@@ -3,7 +3,7 @@
 ## 改造前状态
 
 ```
-react-admin/
+web/
 ├── CLAUDE.md          # 指向 AGENTS.md、docs/agents/ 的引用
 ├── AGENTS.md          # 300 行完整开发规范（角色、技术栈、规则、禁止项）
 ├── CONTEXT.md         # 材料写作平台领域词汇表（特定业务）
@@ -62,7 +62,7 @@ react-admin/
 ## 改造后状态
 
 ```
-react-admin/
+web/
 ├── CLAUDE.md          # → AGENTS.md（软链接）
 ├── AGENTS.md          # ~20 行精简规范
 ├── experience/

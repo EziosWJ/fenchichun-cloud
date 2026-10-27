@@ -6,7 +6,7 @@ Status: accepted（认证内部实现部分由 ADR-0004 更新；数据库正式
 
 > **路径兼容条款已被替代：** 本 ADR 中关于迁移期间保留既有 `/api/**` 路径的约定，已由 [ADR-0013](0013-unified-api-v1-prefix.md) 替代。统一业务 API 前缀现为 `/api/v1/...`，旧未版本化路由及其兼容逻辑已移除；响应结构、分页、Bearer Token 和错误响应契约仍然有效。
 
-后端迁移目标是由 `base-go-api/` 中的 Go 服务最终替代 Java `system-api`。迁移期间保留既有 HTTP 方法、请求参数、`ApiResponse<T>` 响应结构、分页格式和 Bearer Token 认证；Go 端继续兼容现有逻辑数据结构，但物理存储改为 PostgreSQL 17。Java 端只作为现状和行为参考，不再为本次迁移修改，也不参与 Java/Go 双写；迁移完成后生产环境只运行 Go 服务。
+后端迁移目标是由 `server/` 中的 Go 服务最终替代 Java `system-api`。迁移期间保留既有 HTTP 方法、请求参数、`ApiResponse<T>` 响应结构、分页格式和 Bearer Token 认证；Go 端继续兼容现有逻辑数据结构，但物理存储改为 PostgreSQL 17。Java 端只作为现状和行为参考，不再为本次迁移修改，也不参与 Java/Go 双写；迁移完成后生产环境只运行 Go 服务。
 
 本次迁移不保留现有 MySQL 数据。PostgreSQL 17 使用全新数据库，由 Go 端提供建表和初始化数据流程；因此不包含 MySQL 到 PostgreSQL 的历史数据迁移。
 

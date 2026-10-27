@@ -4,7 +4,7 @@ import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
-const backend = join(root, "base-go-api");
+const backend = join(root, "server");
 const [mode, ...args] = process.argv.slice(2);
 
 function command(name, args) {
@@ -20,11 +20,11 @@ function command(name, args) {
 
 function run() {
   if (!["init", "doctor"].includes(mode)) {
-    console.error("用法：task init [-- --database postgres|sqlite] 或 task doctor [-- --database sqlite]");
+    console.error("用法：task init [-- --database postgres] 或 task doctor [-- --database postgres]");
     return 1;
   }
   if (args.includes("--help") || args.includes("-h")) {
-    console.log(`task ${mode} [-- --database postgres|sqlite]`);
+    console.log(`task ${mode} [-- --database postgres]`);
     return 0;
   }
 
@@ -38,27 +38,13 @@ function run() {
   const go = command("go", ["version"]);
   canCompile = go.status === 0;
   check(canCompile, "Go", "安装 Go 1.26 或更高版本，并加入 PATH");
-  if (canCompile) {
-    const result = command("go", ["env", "-json", "CGO_ENABLED", "CC"]);
-    let settings;
-    try {
-      if (result.status === 0) settings = JSON.parse(result.stdout);
-    } catch {
-      // Report a bounded, sanitized failure instead of forwarding tool output.
-    }
-    const cgo = settings?.CGO_ENABLED === "1";
-    check(cgo, "CGO", "启用 CGO_ENABLED=1；现有 SQLite 驱动需要 CGO");
-    const compiler = settings?.CC?.trim().split(/\s+/)[0];
-    const hasCompiler = !!compiler && command(compiler, ["--version"]).status === 0;
-    check(hasCompiler, "C 编译器", "安装 gcc/clang（Windows 可使用 MinGW），并确认 go env CC 可执行");
-    canCompile = cgo && hasCompiler;
-  }
+
 
   if (mode === "doctor") {
     check(true, "Node.js");
     check(command("pnpm", ["--version"]).status === 0, "pnpm", "安装 pnpm 并加入 PATH");
     check(command("task", ["--version"]).status === 0, "Task", "安装 Task 并加入 PATH");
-    check(existsSync(join(root, "react-admin", "node_modules", "vite", "package.json")),
+    check(existsSync(join(root, "web", "node_modules", "vite", "package.json")),
       "前端依赖", "在项目根目录执行 task frontend:install");
   }
 

@@ -9,16 +9,16 @@
 - **项目代号**: base-project-java 仓库
 - **仓库类型**: monorepo
 - **交流 / 输出语言**: 中文
-- **项目定位**: React 管理后台 + Go REST API 后端（monorepo 单仓库），Java 参考后端已删除，接口统一在 `base-go-api/` 开发。
-- **当前后端事实**: `base-go-api/` 是可运行的 Go 后端（Gin、配置、PostgreSQL/SQLite 连接池、Goose、统一响应、CORS、可观测性与 Swagger），PostgreSQL 是默认数据库，SQLite 支持单 API 实例使用本地持久文件。已迁移认证、角色、菜单、部门、用户、字典、系统配置、本地文件管理、日志管理和站内通知接口。文件内容存于配置的本地根目录（开发 Compose 使用持久化 Volume），数据库仅保存元数据和相对路径；删除保持元数据软删，不删除物理内容。所有管理模块的成功写操作写入操作审计日志；登录日志与操作日志的查询、详情与清空接口已迁移，清空受 `system.log-clear-enabled` 配置门控，操作日志查询通过 LEFT JOIN sys_user 回填 operator_name。站内通知支持 ADMIN 发布、用户分页查询和已读状态，用户角色集合实际变化时在同一事务写入角色变更通知。既有迁移接口和站内通知均有 PostgreSQL/SQLite 集成契约覆盖，Swagger 随实现同步生成。Java 参考后端 `base-api/` 已删除（可从 git 历史恢复）。
+- **项目定位**: React 管理后台 + Go REST API 后端（monorepo 单仓库），Java 参考后端已删除，接口统一在 `server/` 开发。
+- **当前后端事实**: `server/` 是可运行的 Go 后端（Gin、配置、PostgreSQL 连接池、Goose、统一响应、CORS、可观测性与 Swagger），仅支持 PostgreSQL。已迁移认证、角色、菜单、部门、用户、字典、系统配置、本地文件管理、日志管理和站内通知接口。文件内容存于配置的本地根目录（开发 Compose 使用持久化 Volume），数据库仅保存元数据和相对路径；删除保持元数据软删，不删除物理内容。所有管理模块的成功写操作写入操作审计日志；登录日志与操作日志的查询、详情与清空接口已迁移，清空受 `system.log-clear-enabled` 配置门控，操作日志查询通过 LEFT JOIN sys_user 回填 operator_name。站内通知支持 ADMIN 发布、用户分页查询和已读状态，用户角色集合实际变化时在同一事务写入角色变更通知。既有迁移接口和站内通知均有 PostgreSQL 集成契约覆盖，Swagger 随实现同步生成。Java 参考后端 `base-api/` 已删除（可从 git 历史恢复）。
 - **脚手架占位内容**: 脚手架里已出现大量"占位"示例（如 HelloWorld、UserTable、示例组件等），这些**不是真正的业务概念**，只是脚手架产物。真正的业务领域术语应来自后续的业务对话，而不是反向推导脚手架示例。
 
 ## 目录结构
 
 ```
 /
-├── react-admin/      # 前端（管理后台 SPA）
-├── base-go-api/      # Go REST API（后端接口在此开发）
+├── web/      # 前端（管理后台 SPA）
+├── server/      # Go REST API（后端接口在此开发）
 ├── record/           # 项目过程记录
 ├── docs/
 │   ├── adr/          # 架构决策记录（ADR）
@@ -28,7 +28,7 @@
 
 ## 技术栈与演进状态
 
-### 前端 react-admin
+### 前端 web
 - 框架: React 19 + TypeScript + Vite 7 + Ant Design 6
 - 路由: react-router-dom v7 Data Router；页面按本地路由注册懒加载
 - 服务端数据: TanStack Query；HTTP: Axios
@@ -40,26 +40,26 @@
 - 菜单: 后端 `/auth/menus` 驱动侧边栏，`component` 与本地 `menuComponent` 映射；未注册组件不展示
 - MSW: 仅保留测试能力，真实系统默认关闭
 
-### 当前后端 base-go-api（Go，唯一后端）
+### 当前后端 server（Go，唯一后端）
 
 - 形态: 模块化单体（Modular Monolith），提供 REST API，发布版本可同时提供内嵌管理页面；不提前拆微服务。
 - Web: Gin；数据访问: GORM + Go 标准 `database/sql`；Schema: Goose migration。
-- 长期兼容目标: PostgreSQL、MySQL、SQLite；当前正式支持 PostgreSQL 和 SQLite，PostgreSQL 是默认数据库，MySQL 仍是后续兼容目标。SQLite 仅承诺单 API 实例、本地持久文件和小规模低写并发部署，具体边界见 ADR-0010。
-- 配置: 使用 Koanf v2，覆盖顺序为默认值 → `config.yaml` → `config.{APP_ENV}.yaml` → `APP_` 环境变量；嵌套键使用双下划线（如 `APP_DATABASE__URL`）。数据库配置包含 driver 和 URL；PostgreSQL 继续拆分 URL、用户名和密码，SQLite 使用本地文件路径且禁止凭据；基础配置与环境模板提交，实际环境 YAML 可保存凭据但不得提交 Git，详见 ADR-0005。
+- 数据库：仅支持 PostgreSQL。
+- 配置: 使用 Koanf v2，覆盖顺序为默认值 → `config.yaml` → `config.{APP_ENV}.yaml` → `APP_` 环境变量；PostgreSQL URL、用户名和密码分开配置。
 - API: 所有业务接口统一使用 `/api/v1/...` 前缀：认证为 `/api/v1/auth`、系统管理为 `/api/v1/system`、公开公告为 `/api/v1/public`、服务器监控为 `/api/v1/monitoring`，并使用统一响应/错误码/分页。旧未版本化的 `/api/auth`、`/api/system`、`/api/public` 路由以及兼容别名已移除，详见 ADR-0013。Gin Handler 与 DTO 注释是文档来源，使用 `swaggo/swag` 生成并提交 Swagger 2.0 文档；Swagger UI 仅在开发环境开放。`/health`、`/ready`、`/metrics` 与开发环境 Swagger 入口保持既有职责和路径。
 - CORS: 默认允许跨域 Bearer Token 请求且不启用 Cookie 凭据；可通过精确 `allowed_origins` 配置收紧来源范围，不使用允许凭据的通配来源。
 - 认证: 目标为 JWT 加数据库管理的动态角色和菜单关系；`ADMIN` 是内置角色，`admin`、`user` 只是角色示例。JWT 使用 HS256，密钥由运行配置提供，包含 `sub`、`jti`、`iat`、`exp` 并校验 `issuer`、`audience`，不包含角色或菜单。Gin middleware 首版只校验登录态，不按 `permissionCode` 拦截接口；会话持久化在所选数据库的 `auth_session` 表中，JWT `jti` 用于校验和登出即时撤销；不引入 Redis、Casbin、ABAC、多租户权限或组织树数据权限。
 - 可观测性: 使用 `log/slog` 记录 request_id、请求方法与路径、状态、耗时、user_id 和错误；`/health` 只检查进程存活，`/ready` 检查所选数据库并在不可用时返回 503，`/metrics` 不要求 JWT、仅通过内部网络或反向代理白名单供 Prometheus 抓取且不应用默认 CORS。业务审计日志须落库，不能由应用日志替代：middleware 将 request_id、IP、User-Agent 写入标准 `context.Context`，Service 显式记录审计，Repository 持久化；认证记录成功与失败登录，其他操作仅在业务成功后记录。
 - 其他目标组件: 本地文件系统加 Docker Volume（文件服务与存储实现解耦）、Excelize、Docker 与 Docker Compose；不提前引入 Kubernetes、OpenTelemetry tracing、Redis 分布式锁或微服务治理基础设施。
 
-通用架构取舍见 [ADR-0004](docs/adr/0004-backend-architecture-and-database-strategy.md)，SQLite 正式生产支持边界见 [ADR-0010](docs/adr/0010-sqlite-production-support.md)。
+通用架构取舍见 [ADR-0004](docs/adr/0004-backend-architecture-and-database-strategy.md)；SQLite 相关历史决策已不适用于本项目。
 
 ## Go 后端架构约定（目标实现必须遵守）
 
 ### 初始目录布局
 
 ```text
-base-go-api/
+server/
 ├── cmd/api/                 # HTTP 服务入口
 ├── cmd/migrate/             # 显式 Goose migrate 命令
 ├── configs/                 # 基础配置与环境模板；实际环境 YAML 不提交
@@ -86,19 +86,18 @@ base-go-api/
 
 ### 数据库与 Migration
 
-- 业务查询优先采用 PostgreSQL、MySQL、SQLite 均稳定支持的 CRUD、普通事务、WHERE/JOIN/GROUP BY/ORDER BY、LIMIT/OFFSET、普通索引/唯一约束/外键、聚合、LIKE/IN/NULL 及基础标量类型。
+- 业务查询使用 PostgreSQL，优先采用清晰、可维护的 SQL。
 - 不要让 JSONB、ARRAY、ILIKE、RETURNING、DISTINCT ON、扩展、专属 UUID、MySQL ENUM/函数/UPSERT、专属全文搜索或存储过程扩散到业务层。确有需要时，隔离在 infrastructure/database 或 Repository 层，并记录原因、提供针对性测试；驱动判断不得进入 Handler 或 Service。
 - 启动时只创建一个 GORM DB；通过 `gormDB.DB()` 获取并配置同一个 `*sql.DB` 的连接池（MaxOpenConns、MaxIdleConns、ConnMaxLifetime、ConnMaxIdleTime）。Repository/Service 持有的是池化 DB 句柄，不是固定 TCP 连接；不另引入连接池框架。
-- Schema 变更必须随代码提交版本化 Goose migration。生产环境和 API 进程均不自动执行 migration 或 `AutoMigrate()`；部署前由独立的 `migrate up` 步骤执行，Docker Compose 使用一次性 migrate 服务并在成功后启动 API。本地开发也执行相同的显式命令。表、索引和约束与管理员、根部门、`ADMIN`、菜单、字典、系统配置等内置数据分属独立 migration；种子数据只执行一次，不由 API 自动补种。PostgreSQL 与 SQLite 使用独立的 schema/seed migration 树，逻辑版本号锁步；方言差异集中在 migration 和 `internal/platform/database`，不扩散到 Handler 或 Service。
+- Schema 变更必须随代码提交版本化 Goose migration。生产环境和 API 进程均不自动执行 migration 或 `AutoMigrate()`；部署前由独立的 `migrate up` 步骤执行，Docker Compose 使用一次性 migrate 服务并在成功后启动 API。本地开发也执行相同的显式命令。表、索引和约束与管理员、根部门、`ADMIN`、菜单、字典、系统配置等内置数据分属独立 migration；种子数据只执行一次，不由 API 自动补种。PostgreSQL 使用独立的 schema 和 seed migration。
 - 实体主键延续现有接口的数据形态，使用数据库生成的 `int64` 数值 ID；PostgreSQL 通过 identity/sequence 生成，业务层不得依赖具体方言语法，也不在迁移中切换为 UUID。
-- 数据库兼容意味着真实集成测试通过，不只是能建立连接。PostgreSQL 与 SQLite 的验收范围为 CRUD、事务、分页、排序、普通 JOIN/聚合、权限、审批、通知与审计日志；MySQL 尚未进入正式支持矩阵。
-- 单元测试不连接数据库；PostgreSQL 集成测试使用 Docker 提供的临时隔离实例，SQLite 集成测试使用临时本地文件；两者均验证 migration、Repository、认证会话和 HTTP 契约。自动化测试不得连接实际部署 DSN 或其数据。
+- PostgreSQL 集成测试覆盖 CRUD、事务、分页、权限、通知和审计。
+- 单元测试不连接数据库；PostgreSQL 集成测试使用 Docker 临时隔离实例，不得连接实际部署数据。
 
 ### 部署数据库拓扑
 
 - 开发 Docker Compose 启动独立的 PostgreSQL 命名 volume，再依次运行 migrate 与 API；该数据库只绑定本机端口。
 - 实际部署通过外部 PostgreSQL 运行配置执行 migrate 与 API，不依赖 Compose 数据库容器。
-- SQLite 部署使用单个 API 实例和本地持久卷中的数据库文件；应用启用外键、WAL、忙等待超时和 UTC，锁等待耗尽统一返回 503，不重放业务事务。需要多副本或更高写并发时使用 PostgreSQL。
 
 ### 运行时约定
 
@@ -174,8 +173,8 @@ _Avoid_：可用性探测（主动检查目标是否可达或服务是否正常�
 
 ## 边界与职责约定（已确认）
 
-- **前端改动范围**: `react-admin/src/**`，不要新建顶层 `src/`。
-- **后端改动范围**: `base-go-api/**`，不要在仓库根目录新建散落的 Go `src/`。
+- **前端改动范围**: `web/src/**`，不要新建顶层 `src/`。
+- **后端改动范围**: `server/**`，不要在仓库根目录新建散落的 Go `src/`。
 - **脚手架结构参考**: 只看单个子模块，不要批量扫目录。
 - **架构参考**: 只在 `docs/` 或 `experience/` 下找摘要。
 

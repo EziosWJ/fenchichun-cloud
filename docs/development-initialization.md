@@ -12,7 +12,7 @@
 - 提供 `task init` 生成开发配置、`task doctor` 检查开发环境。
 - PostgreSQL 保持默认选择，同时允许选择 SQLite。
 - 初始化后提示运行既有的 `task dev` 或 `task dev:sqlite`；初始化入口不自动执行迁移或启动服务。
-- 沿用实际开发配置 `base-go-api/configs/config.dev.yaml`，不另建根目录 `.env.local`。
+- 沿用实际开发配置 `server/configs/config.dev.yaml`，不另建根目录 `.env.local`。
 
 ## 当前基础
 

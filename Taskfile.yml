@@ -6,145 +6,112 @@ env:
   APP_ENV: dev
   GOCACHE: '{{.ROOT_DIR}}/.task/go-build'
 
+# 常用任务显示在默认列表；专项任务可通过 task tasks 查看。
 tasks:
   default:
-    desc: Show available tasks
+    summary: Show available tasks
     cmds:
       - task --list
     silent: true
 
+  tasks:
+    desc: 查看全部任务（含专项验证）
+    cmds:
+      - task --list-all
+    silent: true
+
   init:
-    desc: Generate local development configuration (optional --database sqlite)
+    desc: 生成本地开发配置（保留已有配置）
     preconditions:
       - sh: node --version
         msg: '需要 Node.js；安装后重新运行 task init。'
-      - sh: pnpm --version
-        msg: '需要 pnpm 10；安装后重新运行 task init。'
     cmds:
       - node scripts/dev-setup.mjs init {{.CLI_ARGS}}
 
   doctor:
-    desc: Check local tools, configuration and database readiness
+    desc: 检查开发工具、配置和数据库连接
     preconditions:
       - sh: node --version
         msg: '需要 Node.js；安装后重新运行 task doctor。'
-      - sh: pnpm --version
-        msg: '需要 pnpm 10；安装后重新运行 task doctor。'
     cmds:
       - node scripts/dev-setup.mjs doctor {{.CLI_ARGS}}
 
   dev:setup:test:
-    desc: Run development setup bootstrap command tests
+    summary: Run development setup bootstrap command tests
     cmds:
       - node --test scripts/dev-setup.test.mjs
 
   db:migrate:
-    desc: Apply schema and seed migrations
-    dir: base-go-api
-    cmds:
-      - go run ./cmd/migrate up --kind all
-
-  db:migrate:sqlite:
-    desc: Apply SQLite schema and seed migrations using the SQLite profile
-    dir: base-go-api
-    env:
-      APP_CONFIG_PROFILE: sqlite
+    desc: 执行数据库结构和初始数据迁移
+    dir: server
     cmds:
       - go run ./cmd/migrate up --kind all
 
   db:migrate:schema:
-    desc: Apply schema migrations only
-    dir: base-go-api
+    summary: Apply schema migrations only
+    dir: server
     cmds:
       - go run ./cmd/migrate up --kind schema
 
   db:migrate:seed:
-    desc: Apply seed migrations only
-    dir: base-go-api
+    summary: Apply seed migrations only
+    dir: server
     cmds:
       - go run ./cmd/migrate up --kind seed
 
-  db:backup:
-    desc: Create an online SQLite backup; pass CLI flags through CLI_ARGS
-    dir: base-go-api
-    cmds:
-      - go run ./cmd/backup {{.CLI_ARGS}}
-
   api:
-    desc: Start the Go API
-    dir: base-go-api
-    cmds:
-      - go run ./cmd/api
-
-  api:sqlite:
-    desc: Start the Go API with the SQLite profile
-    dir: base-go-api
-    env:
-      APP_CONFIG_PROFILE: sqlite
+    summary: Start the Go API
+    dir: server
     cmds:
       - go run ./cmd/api
 
   web:
-    desc: Start the React development server
-    dir: react-admin
+    summary: Start the React development server
+    dir: web
     cmds:
       - pnpm run dev
 
   host:collector:
-    desc: Start the Linux host resource collector; pass flags through CLI_ARGS
-    dir: base-go-api
+    summary: Start the Linux host resource collector; pass flags through CLI_ARGS
+    dir: server
     cmds:
       - go run ./cmd/host-collector {{.CLI_ARGS}}
 
   host:build:
-    desc: Build the Linux host resource collector
-    dir: base-go-api
+    summary: Build the Linux host resource collector
+    dir: server
     cmds:
       - go build -trimpath -o ../bin/base-go-host-collector ./cmd/host-collector
 
   host:smoke:
-    desc: Verify real Linux host samples, Unix socket and collector restart
+    summary: Verify real Linux host samples, Unix socket and collector restart
     deps:
       - host:build
     cmds:
       - python3 scripts/check-host-collector.py {{.CLI_ARGS}}
 
-  monitoring:smoke:docker:
-    desc: Verify native and isolated Docker APIs using temporary data (requires task build)
-    cmds:
-      - python3 scripts/check-monitoring-docker.py {{.CLI_ARGS}}
-
   dev:
-    desc: Migrate the database and start API and web together
+    desc: 执行迁移并启动 API 和 Web
     deps:
       - db:migrate
     cmds:
       - task --parallel api web
 
-  dev:sqlite:
-    desc: Migrate SQLite and start the SQLite API and web together
-    env:
-      APP_CONFIG_PROFILE: sqlite
-    deps:
-      - db:migrate:sqlite
-    cmds:
-      - task --parallel api:sqlite web
-
   backend:test:
-    desc: Run backend unit tests
-    dir: base-go-api
+    summary: Run backend unit tests
+    dir: server
     cmds:
       - go test ./...
 
   backend:swagger:
-    desc: Regenerate API documentation from handler contracts
-    dir: base-go-api
+    summary: Regenerate API documentation from handler contracts
+    dir: server
     cmds:
       - go run github.com/swaggo/swag/cmd/swag@v1.8.12 init -g cmd/api/main.go --parseInternal --output docs
 
   backend:windows:
-    desc: Cross-build Windows amd64 API, migrations and monitoring tests (PostgreSQL, no CGO)
-    dir: base-go-api
+    summary: Cross-build Windows amd64 API, migrations and monitoring tests (PostgreSQL, no CGO)
+    dir: server
     env:
       GOOS: windows
       GOARCH: amd64
@@ -156,82 +123,75 @@ tasks:
       - go vet ./cmd/api ./internal/monitoring
 
   monitoring:smoke:windows:
-    desc: Run read-only native monitoring verification on Windows (or WSL with Windows interop)
+    summary: Run read-only native monitoring verification on Windows (or WSL with Windows interop)
     deps:
       - backend:windows
     cmds:
       - '"{{.ROOT_DIR}}/.task/windows-monitoring.test.exe" -test.timeout 30s -test.v -test.run "TestWindows|TestInterfaceAddressesKeepHostIPAndPrefix|TestNetworkAddressesThroughHTTP|TestDisabledMonitoringHTTPAndSampling" -windows-smoke'
 
   backend:notifications:
-    desc: Run announcement, notification, SSE and capacity integration contracts
-    dir: base-go-api
+    summary: Run announcement, notification, SSE and capacity integration contracts
+    dir: server
     cmds:
       - go test -tags=integration ./integration -run 'Notification|Announcement' -count=1
 
   backend:integration:
-    desc: Run backend PostgreSQL integration tests
-    dir: base-go-api
+    summary: Run backend PostgreSQL integration tests
+    dir: server
     cmds:
       - go test -tags=integration ./integration -run 'Postgres|Auth|RBAC|SysConfig|Department|Dictionary|Login|File|Notification|UserPage|Monitor' -count=1
 
   db:integration:postgres:
-    desc: Run the PostgreSQL database integration contract
-    dir: base-go-api
+    summary: Run the PostgreSQL database integration contract
+    dir: server
     cmds:
       - go test -tags=integration ./integration -run 'Postgres|Auth|RBAC|SysConfig|Department|Dictionary|Login|File|Notification|UserPage|Monitor' -count=1
 
-  db:integration:sqlite:
-    desc: Run the file-backed SQLite database integration contract
-    dir: base-go-api
-    cmds:
-      - go test -tags=integration ./integration -run 'SQLite' -count=1
-
   db:check:
-    desc: Run backend checks and both supported database integration contracts
+    summary: Run backend checks and PostgreSQL integration contract
     deps:
       - backend:check
       - db:integration:postgres
-      - db:integration:sqlite
 
   backend:check:
-    desc: Run backend tests and static checks
-    dir: base-go-api
+    summary: Run backend tests and static checks
+    dir: server
     cmds:
       - go test ./...
       - go vet ./...
 
   frontend:install:
-    desc: Install frontend dependencies from the frozen pnpm lockfile
-    dir: react-admin
+    desc: 安装前端依赖
+    dir: web
     cmds:
       - pnpm install --frozen-lockfile
 
   frontend:lint:
-    desc: Run frontend lint
-    dir: react-admin
+    summary: Run frontend lint
+    dir: web
     cmds:
       - pnpm run lint
 
   frontend:typecheck:
-    desc: Run frontend TypeScript checks
-    dir: react-admin
+    summary: Run frontend TypeScript checks
+    dir: web
     cmds:
       - pnpm run typecheck
 
   frontend:test:
-    desc: Run frontend unit tests
-    dir: react-admin
+    summary: Run frontend unit tests
+    dir: web
     cmds:
       - pnpm run test
 
   frontend:build:
-    desc: Type-check and build the frontend
-    dir: react-admin
+    summary: Type-check and build the frontend
+    dir: web
     cmds:
       - pnpm run build
 
   check:
-    desc: Run backend and frontend checks
+    desc: 运行后端和前端检查
     deps:
       - dev:setup:test
       - backend:check
@@ -241,10 +201,10 @@ tasks:
       - frontend:build
 
   build:
-    desc: Build release binaries with the production frontend embedded in the API
+    desc: 构建内嵌 Web 的发布程序
     deps:
       - frontend:build
-    dir: base-go-api
+    dir: server
     vars:
       GOEXE:
         sh: go env GOEXE
@@ -252,19 +212,18 @@ tasks:
       - node ../scripts/prepare-webui.mjs
       - go build -tags=embedweb -trimpath -o ../bin/base-go-api{{.GOEXE}} ./cmd/api
       - go build -trimpath -o ../bin/base-go-migrate{{.GOEXE}} ./cmd/migrate
-      - go build -trimpath -o ../bin/base-go-backup{{.GOEXE}} ./cmd/backup
       - go build -trimpath -o ../bin/base-go-host-collector{{.GOEXE}} ./cmd/host-collector
 
   build:check:
-    desc: Build the release and verify tests and vet with embedded frontend assets
+    summary: Build the release and verify tests and vet with embedded frontend assets
     deps:
       - build
-    dir: base-go-api
+    dir: server
     cmds:
       - go test -tags=embedweb ./...
       - go vet -tags=embedweb ./...
 
   test:
-    desc: Run the default test suite
+    summary: Run the default test suite
     deps:
       - backend:test

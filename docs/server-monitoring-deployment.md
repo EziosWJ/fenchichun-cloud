@@ -69,7 +69,7 @@ monitoring:
 
 环境变量覆盖名称沿用现有双下划线嵌套规则：`APP_MONITORING__ENABLED`、`APP_MONITORING__SOURCE`、`APP_MONITORING__SOCKET_PATH`、`APP_MONITORING__TIMEOUT`。原生 API 设置 `enabled: true` 和 `source: native`，无需启动额外进程。采样周期仍为 5 秒，历史仍保存在当前 API 实例的内存中，窗口为 30 分钟。
 
-现有 `base-go-api/docker-compose.dev.yml` 已接入目录映射及访问组，但默认关闭监控。需要监控时，在 Compose 环境中显式设置 `APP_MONITORING__ENABLED=true`，并将 `HOST_MONITOR_SOCKET_DIR=/run/base-go-api` 与 `HOST_MONITOR_GID` 写入部署环境；后者为 `getent group base-monitor` 显示的数值 GID。启用后的等价 API 服务配置如下：
+现有 `server/docker-compose.dev.yml` 已接入目录映射及访问组，但默认关闭监控。需要监控时，在 Compose 环境中显式设置 `APP_MONITORING__ENABLED=true`，并将 `HOST_MONITOR_SOCKET_DIR=/run/base-go-api` 与 `HOST_MONITOR_GID` 写入部署环境；后者为 `getent group base-monitor` 显示的数值 GID。启用后的等价 API 服务配置如下：
 
 ```yaml
 services:

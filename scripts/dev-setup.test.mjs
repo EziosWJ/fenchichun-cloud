@@ -5,18 +5,18 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { spawnSync } from "node:child_process";
 
-function fixture(t, { tools = ["go", "gcc", "task", "pnpm"], cgo = "1", helperStatus = 0, dependencies = true } = {}) {
+function fixture(t, { tools = ["go", "task", "pnpm"], helperStatus = 0, dependencies = true } = {}) {
   const root = mkdtempSync(join(tmpdir(), "dev-setup-test-"));
   t.after(() => rmSync(root, { recursive: true, force: true }));
-  for (const dir of ["scripts", "base-go-api", "tools"]) mkdirSync(join(root, dir));
+  for (const dir of ["scripts", "server", "tools"]) mkdirSync(join(root, dir));
   cpSync(new URL("./dev-setup.mjs", import.meta.url), join(root, "scripts", "dev-setup.mjs"));
   if (dependencies) {
-    mkdirSync(join(root, "react-admin", "node_modules", "vite"), { recursive: true });
-    writeFileSync(join(root, "react-admin", "node_modules", "vite", "package.json"), "{}");
+    mkdirSync(join(root, "web", "node_modules", "vite"), { recursive: true });
+    writeFileSync(join(root, "web", "node_modules", "vite", "package.json"), "{}");
   }
   for (const tool of tools) {
     const body = tool === "go"
-      ? `if [ "$1" = "env" ]; then printf '%s' '{"CGO_ENABLED":"${cgo}","CC":"gcc"}'; elif [ "$1" = "run" ]; then printf '%s\\n' 'helper invoked'; exit ${helperStatus}; else printf '%s\\n' 'version'; fi`
+      ? `if [ "$1" = "run" ]; then printf '%s\\n' 'helper invoked'; exit ${helperStatus}; else printf '%s\\n' 'version'; fi`
       : "exit 0";
     writeFileSync(join(root, "tools", tool), `#!/bin/sh\n${body}\n`, { mode: 0o755 });
   }
@@ -38,14 +38,6 @@ test("doctor reports missing Go before compiling and diagnoses other tools", uni
   assert.doesNotMatch(result.stdout, /helper invoked/);
 });
 
-test("doctor detects disabled CGO and a missing C compiler", unixOnly, (t) => {
-  const result = fixture(t, { tools: ["go", "task", "pnpm"], cgo: "0" })("doctor");
-  assert.equal(result.status, 1);
-  assert.match(result.stdout, /\[失败\] CGO/);
-  assert.match(result.stdout, /\[失败\] C 编译器/);
-  assert.doesNotMatch(result.stdout, /helper invoked/);
-});
-
 test("doctor checks configuration even if frontend dependencies are missing", unixOnly, (t) => {
   const result = fixture(t, { dependencies: false })("doctor");
   assert.equal(result.status, 1);
@@ -55,7 +47,7 @@ test("doctor checks configuration even if frontend dependencies are missing", un
 
 test("bootstrap propagates helper failure and successful initialization", unixOnly, (t) => {
   assert.equal(fixture(t, { helperStatus: 1 })("doctor").status, 1);
-  const result = fixture(t)("init", "--database", "sqlite");
+  const result = fixture(t)("init", "--database", "postgres");
   assert.equal(result.status, 0);
   assert.match(result.stdout, /helper invoked/);
 });

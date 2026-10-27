@@ -1,0 +1,30 @@
+# 开发环境配置模板。请勿手工复制：在仓库根目录运行 `task init` 生成 configs/config.dev.yaml。
+#   task init                        # 默认 PostgreSQL
+# 生成时写入随机 JWT 密钥与本机绝对上传目录。
+# config.dev.yaml 已被 Git 忽略，不会提交。
+swagger:
+  enabled: true
+
+database:
+  # PostgreSQL 需要 url、username 和 password。
+  driver: postgres
+  url: postgres://127.0.0.1:5432/base_go_api?sslmode=disable
+  username: change-me
+  password: change-me
+
+jwt:
+  secret: replace-with-a-random-local-development-jwt-secret
+
+auth:
+  login_guard:
+    # Set either max_attempts to 0 to disable that protection dimension.
+    ip_max_attempts: 20
+    username_max_attempts: 5
+
+file:
+  # 生成时会填为本检出的绝对路径；手工修改后同样必须是绝对路径。
+  storage_root: /home/your-user/project/base-project-golang/.data/uploads
+
+log:
+  level: debug
+  format: text
