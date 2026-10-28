@@ -862,6 +862,15 @@ definitions:
       message:
         type: string
     type: object
+  weighbridge.Category:
+    properties:
+      code:
+        type: string
+      enabled:
+        type: boolean
+      name:
+        type: string
+    type: object
   weighbridge.CategoryInput:
     properties:
       enabled:
@@ -873,7 +882,7 @@ definitions:
     properties:
       changeId:
         type: string
-      scaleCode:
+      previousSiteCode:
         type: string
       schemaVersion:
         type: integer
@@ -887,6 +896,22 @@ definitions:
         type: string
       void:
         $ref: '#/definitions/weighbridge.VoidInfo'
+    type: object
+  weighbridge.ChangeReceipt:
+    properties:
+      changeId:
+        type: string
+      ticketNo:
+        type: string
+    type: object
+  weighbridge.ChangeResponse:
+    properties:
+      code:
+        type: integer
+      data:
+        $ref: '#/definitions/weighbridge.ChangeReceipt'
+      message:
+        type: string
     type: object
   weighbridge.Contact:
     properties:
@@ -903,6 +928,49 @@ definitions:
       remark:
         type: string
     type: object
+  weighbridge.MasterResponse:
+    properties:
+      code:
+        type: integer
+      data:
+        $ref: '#/definitions/weighbridge.MasterSnapshot'
+      message:
+        type: string
+    type: object
+  weighbridge.MasterSnapshot:
+    properties:
+      categories:
+        items:
+          $ref: '#/definitions/weighbridge.Category'
+        type: array
+      materials:
+        items:
+          $ref: '#/definitions/weighbridge.Material'
+        type: array
+      parties:
+        items:
+          $ref: '#/definitions/weighbridge.Party'
+        type: array
+      schemaVersion:
+        type: integer
+      siteCode:
+        type: string
+    type: object
+  weighbridge.Material:
+    properties:
+      categoryCode:
+        type: string
+      code:
+        type: string
+      enabled:
+        type: boolean
+      name:
+        type: string
+      remark:
+        type: string
+      spec:
+        type: string
+    type: object
   weighbridge.MaterialInput:
     properties:
       categoryCode:
@@ -914,6 +982,37 @@ definitions:
       remark:
         type: string
       spec:
+        type: string
+    type: object
+  weighbridge.Party:
+    properties:
+      address:
+        type: string
+      code:
+        type: string
+      contacts:
+        items:
+          $ref: '#/definitions/weighbridge.Contact'
+        type: array
+      creditCode:
+        type: string
+      enabled:
+        type: boolean
+      isCarrier:
+        type: boolean
+      isCustomer:
+        type: boolean
+      isSupplier:
+        type: boolean
+      name:
+        type: string
+      nature:
+        type: string
+      phone:
+        type: string
+      remark:
+        type: string
+      shortName:
         type: string
     type: object
   weighbridge.PartyInput:
@@ -950,10 +1049,6 @@ definitions:
       code:
         type: string
       name:
-        type: string
-      scaleCode:
-        type: string
-      scaleName:
         type: string
     type: object
   weighbridge.TicketSnapshot:
@@ -1007,8 +1102,6 @@ definitions:
       previousFinalTare:
         type: string
       previousTicketNo:
-        type: string
-      scaleCode:
         type: string
       secondConfirmedAt:
         type: string
@@ -3743,12 +3836,12 @@ paths:
             $ref: '#/definitions/weighbridge.ApiEnvelope'
       security:
       - BearerAuth: []
-      summary: 查询厂区和地磅
+      summary: 查询厂区
       tags:
       - 厂云同步
     post:
       parameters:
-      - description: 厂区及地磅
+      - description: 厂区
         in: body
         name: request
         required: true
@@ -3761,17 +3854,23 @@ paths:
             $ref: '#/definitions/weighbridge.ApiEnvelope'
       security:
       - BearerAuth: []
-      summary: 创建厂区和初始厂端凭据
+      summary: 创建厂区
       tags:
       - 厂云同步
-  /api/v1/weighbridge/sites/{code}/credential:
-    post:
+  /api/v1/weighbridge/sites/{code}:
+    put:
       parameters:
       - description: 厂区编码
         in: path
         name: code
         required: true
         type: string
+      - description: 厂区
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/weighbridge.SiteInput'
       responses:
         "200":
           description: OK
@@ -3779,11 +3878,12 @@ paths:
             $ref: '#/definitions/weighbridge.ApiEnvelope'
       security:
       - BearerAuth: []
-      summary: 重置厂端接入凭据
+      summary: 更新厂区
       tags:
       - 厂云同步
   /api/v1/weighbridge/sync/changes:
     post:
+      description: 版本 2，按厂区编码归属，重开使用 previousSiteCode 和 previousTicketNo 定位原单。
       parameters:
       - description: 单据变化
         in: body
@@ -3795,21 +3895,40 @@ paths:
         "200":
           description: OK
           schema:
+            $ref: '#/definitions/weighbridge.ChangeResponse'
+        "400":
+          description: Bad Request
+          schema:
             $ref: '#/definitions/weighbridge.ApiEnvelope'
-      security:
-      - BearerAuth: []
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/weighbridge.ApiEnvelope'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/weighbridge.ApiEnvelope'
       summary: 厂端上传过磅单变化
       tags:
       - 厂云同步
   /api/v1/weighbridge/sync/master:
     get:
+      description: 以启用的厂区编码读取版本 2 一致性快照；编码不提供来源认证。
+      parameters:
+      - description: 厂区编码
+        in: query
+        name: siteCode
+        required: true
+        type: string
       responses:
         "200":
           description: OK
           schema:
+            $ref: '#/definitions/weighbridge.MasterResponse'
+        "401":
+          description: Unauthorized
+          schema:
             $ref: '#/definitions/weighbridge.ApiEnvelope'
-      security:
-      - BearerAuth: []
       summary: 厂端读取完整基础资料
       tags:
       - 厂云同步

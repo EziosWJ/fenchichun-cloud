@@ -1,9 +1,10 @@
 package weighbridge
 
 import (
+	"encoding/json"
 	"errors"
+	"io"
 	"net/http"
-	"strings"
 
 	"fenchichun.local/server/internal/audit"
 	"fenchichun.local/server/internal/auth"
@@ -19,10 +20,32 @@ type ApiEnvelope struct {
 	Data    any    `json:"data"`
 }
 
+type MasterResponse struct {
+	Code    int            `json:"code"`
+	Message string         `json:"message"`
+	Data    MasterSnapshot `json:"data"`
+}
+type ChangeResponse struct {
+	Code    int           `json:"code"`
+	Message string        `json:"message"`
+	Data    ChangeReceipt `json:"data"`
+}
+
+func bindStrict(c *gin.Context, target any) error {
+	decoder := json.NewDecoder(c.Request.Body)
+	decoder.DisallowUnknownFields()
+	if err := decoder.Decode(target); err != nil {
+		return err
+	}
+	if err := decoder.Decode(new(any)); err != io.EOF {
+		return ErrInvalid
+	}
+	return nil
+}
+
 func NewHandler(service *Service) *Handler { return &Handler{service: service} }
 
-// RegisterRoutes registers machine-only endpoints; authentication is performed
-// using the site credential and is independent of interactive user sessions.
+// RegisterRoutes registers factory synchronization endpoints. Site codes are not authentication.
 func RegisterRoutes(api gin.IRouter, handler *Handler) {
 	api.POST("/weighbridge/sync/changes", handler.change)
 	api.GET("/weighbridge/sync/master", handler.master)
@@ -31,9 +54,7 @@ func RegisterRoutes(api gin.IRouter, handler *Handler) {
 func RegisterManagementRoutes(authenticated gin.IRouter, handler *Handler) {
 	authenticated.POST("/weighbridge/sites", handler.createSite)
 	authenticated.GET("/weighbridge/sites", handler.sites)
-	authenticated.PUT("/weighbridge/sites/:code/scales/:scaleCode", handler.updateSite)
-	authenticated.POST("/weighbridge/sites/:code/credential", handler.rotateCredential)
-	authenticated.GET("/weighbridge/sites/:code/credential", handler.getCredential)
+	authenticated.PUT("/weighbridge/sites/:code", handler.updateSite)
 	authenticated.GET("/weighbridge/tickets", handler.ticketPage)
 	authenticated.GET("/weighbridge/ticket-totals", handler.ticketTotals)
 	master := authenticated.Group("/weighbridge/master")
@@ -49,10 +70,10 @@ func RegisterManagementRoutes(authenticated gin.IRouter, handler *Handler) {
 }
 
 // createSite godoc
-// @Summary 创建厂区和初始厂端凭据
+// @Summary 创建厂区
 // @Tags 厂云同步
 // @Security BearerAuth
-// @Param request body SiteInput true "厂区及地磅"
+// @Param request body SiteInput true "厂区"
 // @Success 200 {object} ApiEnvelope
 // @Router /api/v1/weighbridge/sites [post]
 func (h *Handler) createSite(c *gin.Context) {
@@ -62,7 +83,7 @@ func (h *Handler) createSite(c *gin.Context) {
 		return
 	}
 	var input SiteInput
-	if err := c.ShouldBindJSON(&input); err != nil {
+	if err := bindStrict(c, &input); err != nil {
 		platformhttp.WriteError(c, http.StatusBadRequest, platformhttp.CodeBadRequest, "参数错误", nil)
 		return
 	}
@@ -86,16 +107,13 @@ func (h *Handler) createSite(c *gin.Context) {
 // master godoc
 // @Summary 厂端读取完整基础资料
 // @Tags 厂云同步
-// @Security BearerAuth
-// @Success 200 {object} ApiEnvelope
+// @Description 以启用的厂区编码读取版本 2 一致性快照；编码不提供来源认证。
+// @Param siteCode query string true "厂区编码"
+// @Success 200 {object} MasterResponse
+// @Failure 401 {object} ApiEnvelope
 // @Router /api/v1/weighbridge/sync/master [get]
 func (h *Handler) master(c *gin.Context) {
-	parts := strings.Fields(c.GetHeader("Authorization"))
-	if len(parts) != 2 || !strings.EqualFold(parts[0], "Bearer") || parts[1] == "" {
-		platformhttp.WriteError(c, http.StatusUnauthorized, platformhttp.CodeUnauthorized, "厂端身份无效", nil)
-		return
-	}
-	snapshot, err := h.service.MasterSnapshot(c.Request.Context(), parts[1])
+	snapshot, err := h.service.MasterSnapshot(c.Request.Context(), c.Query("siteCode"))
 	if errors.Is(err, ErrUnauthorized) {
 		platformhttp.WriteError(c, http.StatusUnauthorized, platformhttp.CodeUnauthorized, err.Error(), nil)
 		return
@@ -110,22 +128,20 @@ func (h *Handler) master(c *gin.Context) {
 // change godoc
 // @Summary 厂端上传过磅单变化
 // @Tags 厂云同步
-// @Security BearerAuth
+// @Description 版本 2，按厂区编码归属，重开使用 previousSiteCode 和 previousTicketNo 定位原单。
 // @Param request body Change true "单据变化"
-// @Success 200 {object} ApiEnvelope
+// @Success 200 {object} ChangeResponse
+// @Failure 400 {object} ApiEnvelope
+// @Failure 401 {object} ApiEnvelope
+// @Failure 409 {object} ApiEnvelope
 // @Router /api/v1/weighbridge/sync/changes [post]
 func (h *Handler) change(c *gin.Context) {
-	parts := strings.Fields(c.GetHeader("Authorization"))
-	if len(parts) != 2 || !strings.EqualFold(parts[0], "Bearer") || parts[1] == "" {
-		platformhttp.WriteError(c, http.StatusUnauthorized, platformhttp.CodeUnauthorized, "厂端身份无效", nil)
-		return
-	}
 	var input Change
-	if err := c.ShouldBindJSON(&input); err != nil {
+	if err := bindStrict(c, &input); err != nil {
 		platformhttp.WriteError(c, http.StatusBadRequest, platformhttp.CodeBadRequest, "参数错误", nil)
 		return
 	}
-	receipt, err := h.service.ApplyChange(c.Request.Context(), parts[1], input)
+	receipt, err := h.service.ApplyChange(c.Request.Context(), input)
 	switch {
 	case err == nil:
 		platformhttp.OK(c, receipt)

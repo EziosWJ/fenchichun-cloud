@@ -14,7 +14,6 @@ var (
 type TicketSnapshot struct {
 	TicketNo           string     `json:"ticketNo"`
 	PreviousTicketNo   *string    `json:"previousTicketNo"`
-	ScaleCode          string     `json:"scaleCode"`
 	Title              string     `json:"title"`
 	Plate              string     `json:"plate"`
 	Direction          string     `json:"direction"`
@@ -45,14 +44,14 @@ type TicketSnapshot struct {
 }
 
 type Change struct {
-	SchemaVersion int             `json:"schemaVersion"`
-	ChangeID      string          `json:"changeId"`
-	SiteCode      string          `json:"siteCode"`
-	ScaleCode     string          `json:"scaleCode"`
-	TicketNo      string          `json:"ticketNo"`
-	Type          string          `json:"type"`
-	Ticket        *TicketSnapshot `json:"ticket,omitempty"`
-	Void          *VoidInfo       `json:"void,omitempty"`
+	SchemaVersion    int             `json:"schemaVersion"`
+	ChangeID         string          `json:"changeId"`
+	SiteCode         string          `json:"siteCode"`
+	PreviousSiteCode string          `json:"previousSiteCode,omitempty"`
+	TicketNo         string          `json:"ticketNo"`
+	Type             string          `json:"type"`
+	Ticket           *TicketSnapshot `json:"ticket,omitempty"`
+	Void             *VoidInfo       `json:"void,omitempty"`
 }
 
 type VoidInfo struct {
@@ -62,11 +61,11 @@ type VoidInfo struct {
 }
 
 func (c Change) Validate() (int64, error) {
-	if c.SchemaVersion != 1 || c.ChangeID == "" || len(c.ChangeID) > 200 || c.SiteCode == "" || len(c.SiteCode) > 80 || c.ScaleCode == "" || len(c.ScaleCode) > 80 || c.TicketNo == "" || len(c.TicketNo) > 200 {
+	if c.SchemaVersion != 2 || c.ChangeID == "" || len(c.ChangeID) > 200 || !identityCode.MatchString(c.SiteCode) || c.TicketNo == "" || len(c.TicketNo) > 200 {
 		return 0, ErrInvalid
 	}
 	if c.Type == "void" {
-		if c.Ticket != nil || c.Void == nil || c.Void.Reason == "" || c.Void.Actor == "" || c.Void.At.IsZero() {
+		if c.PreviousSiteCode != "" || c.Ticket != nil || c.Void == nil || c.Void.Reason == "" || c.Void.Actor == "" || c.Void.At.IsZero() {
 			return 0, ErrInvalid
 		}
 		return 0, nil
@@ -75,13 +74,13 @@ func (c Change) Validate() (int64, error) {
 		return 0, ErrInvalid
 	}
 	t := c.Ticket
-	if t.TicketNo != c.TicketNo || t.ScaleCode != c.ScaleCode || t.MaterialCode == "" || t.MaterialName == "" || t.PartyCode == "" || t.PartyName == "" || t.Plate == "" || t.Title == "" || t.IssuerName == "" || t.IssuedAt.IsZero() || t.FirstConfirmedAt.IsZero() || t.SecondConfirmedAt.IsZero() || (t.Direction != "inbound" && t.Direction != "outbound") {
+	if t.TicketNo != c.TicketNo || t.MaterialCode == "" || t.MaterialName == "" || t.PartyCode == "" || t.PartyName == "" || t.Plate == "" || t.Title == "" || t.IssuerName == "" || t.IssuedAt.IsZero() || t.FirstConfirmedAt.IsZero() || t.SecondConfirmedAt.IsZero() || (t.Direction != "inbound" && t.Direction != "outbound") {
 		return 0, ErrInvalid
 	}
-	if c.Type == "reopen" && (t.PreviousTicketNo == nil || *t.PreviousTicketNo == "" || *t.PreviousTicketNo == c.TicketNo) {
+	if c.Type == "reopen" && (t.PreviousTicketNo == nil || *t.PreviousTicketNo == "" || !identityCode.MatchString(c.PreviousSiteCode) || (c.PreviousSiteCode == c.SiteCode && *t.PreviousTicketNo == c.TicketNo)) {
 		return 0, ErrInvalid
 	}
-	if c.Type == "issue" && t.PreviousTicketNo != nil {
+	if c.Type == "issue" && (t.PreviousTicketNo != nil || c.PreviousSiteCode != "") {
 		return 0, ErrInvalid
 	}
 	og, e1 := ParseTonnes(t.OriginalGross, false)

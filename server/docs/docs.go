@@ -4396,7 +4396,7 @@ const docTemplate = `{
                 "tags": [
                     "厂云同步"
                 ],
-                "summary": "查询厂区和地磅",
+                "summary": "查询厂区",
                 "responses": {
                     "200": {
                         "description": "OK",
@@ -4415,10 +4415,10 @@ const docTemplate = `{
                 "tags": [
                     "厂云同步"
                 ],
-                "summary": "创建厂区和初始厂端凭据",
+                "summary": "创建厂区",
                 "parameters": [
                     {
-                        "description": "厂区及地磅",
+                        "description": "厂区",
                         "name": "request",
                         "in": "body",
                         "required": true,
@@ -4437,8 +4437,8 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/v1/weighbridge/sites/{code}/credential": {
-            "post": {
+        "/api/v1/weighbridge/sites/{code}": {
+            "put": {
                 "security": [
                     {
                         "BearerAuth": []
@@ -4447,7 +4447,7 @@ const docTemplate = `{
                 "tags": [
                     "厂云同步"
                 ],
-                "summary": "重置厂端接入凭据",
+                "summary": "更新厂区",
                 "parameters": [
                     {
                         "type": "string",
@@ -4455,6 +4455,15 @@ const docTemplate = `{
                         "name": "code",
                         "in": "path",
                         "required": true
+                    },
+                    {
+                        "description": "厂区",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/weighbridge.SiteInput"
+                        }
                     }
                 ],
                 "responses": {
@@ -4469,11 +4478,7 @@ const docTemplate = `{
         },
         "/api/v1/weighbridge/sync/changes": {
             "post": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
+                "description": "版本 2，按厂区编码归属，重开使用 previousSiteCode 和 previousTicketNo 定位原单。",
                 "tags": [
                     "厂云同步"
                 ],
@@ -4493,6 +4498,24 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
+                            "$ref": "#/definitions/weighbridge.ChangeResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/weighbridge.ApiEnvelope"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/weighbridge.ApiEnvelope"
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
+                        "schema": {
                             "$ref": "#/definitions/weighbridge.ApiEnvelope"
                         }
                     }
@@ -4501,18 +4524,29 @@ const docTemplate = `{
         },
         "/api/v1/weighbridge/sync/master": {
             "get": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
+                "description": "以启用的厂区编码读取版本 2 一致性快照；编码不提供来源认证。",
                 "tags": [
                     "厂云同步"
                 ],
                 "summary": "厂端读取完整基础资料",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "厂区编码",
+                        "name": "siteCode",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
                 "responses": {
                     "200": {
                         "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/weighbridge.MasterResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
                         "schema": {
                             "$ref": "#/definitions/weighbridge.ApiEnvelope"
                         }
@@ -5887,6 +5921,20 @@ const docTemplate = `{
                 }
             }
         },
+        "weighbridge.Category": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "string"
+                },
+                "enabled": {
+                    "type": "boolean"
+                },
+                "name": {
+                    "type": "string"
+                }
+            }
+        },
         "weighbridge.CategoryInput": {
             "type": "object",
             "properties": {
@@ -5904,7 +5952,7 @@ const docTemplate = `{
                 "changeId": {
                     "type": "string"
                 },
-                "scaleCode": {
+                "previousSiteCode": {
                     "type": "string"
                 },
                 "schemaVersion": {
@@ -5924,6 +5972,31 @@ const docTemplate = `{
                 },
                 "void": {
                     "$ref": "#/definitions/weighbridge.VoidInfo"
+                }
+            }
+        },
+        "weighbridge.ChangeReceipt": {
+            "type": "object",
+            "properties": {
+                "changeId": {
+                    "type": "string"
+                },
+                "ticketNo": {
+                    "type": "string"
+                }
+            }
+        },
+        "weighbridge.ChangeResponse": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "integer"
+                },
+                "data": {
+                    "$ref": "#/definitions/weighbridge.ChangeReceipt"
+                },
+                "message": {
+                    "type": "string"
                 }
             }
         },
@@ -5950,6 +6023,72 @@ const docTemplate = `{
                 }
             }
         },
+        "weighbridge.MasterResponse": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "integer"
+                },
+                "data": {
+                    "$ref": "#/definitions/weighbridge.MasterSnapshot"
+                },
+                "message": {
+                    "type": "string"
+                }
+            }
+        },
+        "weighbridge.MasterSnapshot": {
+            "type": "object",
+            "properties": {
+                "categories": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/weighbridge.Category"
+                    }
+                },
+                "materials": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/weighbridge.Material"
+                    }
+                },
+                "parties": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/weighbridge.Party"
+                    }
+                },
+                "schemaVersion": {
+                    "type": "integer"
+                },
+                "siteCode": {
+                    "type": "string"
+                }
+            }
+        },
+        "weighbridge.Material": {
+            "type": "object",
+            "properties": {
+                "categoryCode": {
+                    "type": "string"
+                },
+                "code": {
+                    "type": "string"
+                },
+                "enabled": {
+                    "type": "boolean"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "remark": {
+                    "type": "string"
+                },
+                "spec": {
+                    "type": "string"
+                }
+            }
+        },
         "weighbridge.MaterialInput": {
             "type": "object",
             "properties": {
@@ -5966,6 +6105,53 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "spec": {
+                    "type": "string"
+                }
+            }
+        },
+        "weighbridge.Party": {
+            "type": "object",
+            "properties": {
+                "address": {
+                    "type": "string"
+                },
+                "code": {
+                    "type": "string"
+                },
+                "contacts": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/weighbridge.Contact"
+                    }
+                },
+                "creditCode": {
+                    "type": "string"
+                },
+                "enabled": {
+                    "type": "boolean"
+                },
+                "isCarrier": {
+                    "type": "boolean"
+                },
+                "isCustomer": {
+                    "type": "boolean"
+                },
+                "isSupplier": {
+                    "type": "boolean"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "nature": {
+                    "type": "string"
+                },
+                "phone": {
+                    "type": "string"
+                },
+                "remark": {
+                    "type": "string"
+                },
+                "shortName": {
                     "type": "string"
                 }
             }
@@ -6021,12 +6207,6 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "name": {
-                    "type": "string"
-                },
-                "scaleCode": {
-                    "type": "string"
-                },
-                "scaleName": {
                     "type": "string"
                 }
             }
@@ -6107,9 +6287,6 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "previousTicketNo": {
-                    "type": "string"
-                },
-                "scaleCode": {
                     "type": "string"
                 },
                 "secondConfirmedAt": {

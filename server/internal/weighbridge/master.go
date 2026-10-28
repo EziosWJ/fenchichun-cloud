@@ -2,9 +2,7 @@ package weighbridge
 
 import (
 	"context"
-	"crypto/sha256"
 	"database/sql"
-	"encoding/hex"
 	"errors"
 
 	"gorm.io/gorm"
@@ -66,25 +64,20 @@ func (Contact) TableName() string { return "wb_cloud_contact" }
 type MasterSnapshot struct {
 	SchemaVersion int        `json:"schemaVersion"`
 	SiteCode      string     `json:"siteCode"`
-	ScaleCodes    []string   `json:"scaleCodes"`
 	Categories    []Category `json:"categories"`
 	Materials     []Material `json:"materials"`
 	Parties       []Party    `json:"parties"`
 }
 
 // MasterSnapshot reads all four related lists in one repeatable-read transaction.
-func (r *Repository) MasterSnapshot(ctx context.Context, token string) (MasterSnapshot, error) {
-	digest := sha256.Sum256([]byte(token))
-	result := MasterSnapshot{SchemaVersion: 1, ScaleCodes: []string{}, Categories: []Category{}, Materials: []Material{}, Parties: []Party{}}
+func (r *Repository) MasterSnapshot(ctx context.Context, code string) (MasterSnapshot, error) {
+	result := MasterSnapshot{SchemaVersion: 2, Categories: []Category{}, Materials: []Material{}, Parties: []Party{}}
 	err := r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		var bound site
-		if err := tx.Table("wb_cloud_site s").Select("s.id, s.code").Joins("JOIN wb_cloud_credential c ON c.site_id = s.id").Where("c.token_hash = ? AND c.revoked_at IS NULL AND s.enabled = ?", hex.EncodeToString(digest[:]), true).Take(&bound).Error; err != nil {
+		if err := tx.Where("code = ? AND enabled = ?", code, true).Take(&bound).Error; err != nil {
 			return err
 		}
 		result.SiteCode = bound.Code
-		if err := tx.Table("wb_cloud_scale").Where("site_id = ? AND enabled = ?", bound.ID, true).Order("code").Pluck("code", &result.ScaleCodes).Error; err != nil {
-			return err
-		}
 		if err := tx.Order("code").Find(&result.Categories).Error; err != nil {
 			return err
 		}

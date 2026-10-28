@@ -7,7 +7,7 @@ import (
 
 func validIssue() Change {
 	now := time.Date(2026, 10, 27, 3, 0, 0, 0, time.UTC)
-	return Change{SchemaVersion: 1, ChangeID: "change-1", SiteCode: "F001", ScaleCode: "WB01", TicketNo: "F001-20261027-0001", Type: "issue", Ticket: &TicketSnapshot{TicketNo: "F001-20261027-0001", ScaleCode: "WB01", Title: "酒厂过磅单", Plate: "晋A12345", Direction: "inbound", MaterialCode: "C-M-0001", MaterialName: "高粱", PartyCode: "C-P-0001", PartyName: "供货方", FirstConfirmedAt: now, SecondConfirmedAt: now, IssuedAt: now, IssuerName: "操作员", OriginalGross: "30", OriginalTare: "9", FinalGross: "30", FinalTare: "10"}}
+	return Change{SchemaVersion: 2, ChangeID: "change-1", SiteCode: "F001", TicketNo: "F001-20261027-0001", Type: "issue", Ticket: &TicketSnapshot{TicketNo: "F001-20261027-0001", Title: "酒厂过磅单", Plate: "晋A12345", Direction: "inbound", MaterialCode: "C-M-0001", MaterialName: "高粱", PartyCode: "C-P-0001", PartyName: "供货方", FirstConfirmedAt: now, SecondConfirmedAt: now, IssuedAt: now, IssuerName: "操作员", OriginalGross: "30", OriginalTare: "9", FinalGross: "30", FinalTare: "10"}}
 }
 
 func TestChangeValidation(t *testing.T) {
@@ -33,6 +33,7 @@ func TestChangeValidation(t *testing.T) {
 		}
 		old := "F001-20261026-0001"
 		c.Ticket.PreviousTicketNo = &old
+		c.PreviousSiteCode = "F001"
 		if _, err := c.Validate(); err != nil {
 			t.Fatal(err)
 		}

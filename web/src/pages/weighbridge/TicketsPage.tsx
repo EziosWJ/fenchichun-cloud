@@ -59,7 +59,7 @@ export default function TicketsPage() {
     <Modal title="过磅单详情" open={!!detail} onCancel={() => setDetail(null)} footer={<Button onClick={() => setDetail(null)}>关闭</Button>} width={800}>
       {detail && <Descriptions bordered size="small" column={{ xs: 1, sm: 2 }} items={[
         {key:'ticketNo',label:'单号',children:detail.ticket.ticketNo}, {key:'previous',label:'关联原单',children:detail.ticket.previousTicketNo || '—'},
-        {key:'site',label:'厂区／地磅',children:`${detail.siteCode} / ${detail.ticket.scaleCode}`}, {key:'title',label:'单据标题',children:detail.ticket.title},
+        {key:'site',label:'出单厂区编码',children:detail.siteCode}, {key:'title',label:'单据标题',children:detail.ticket.title},
         {key:'plate',label:'车牌',children:detail.ticket.plate}, {key:'direction',label:'方向',children:detail.ticket.direction === 'inbound' ? '入厂卸货' : '出厂装货'},
         {key:'material',label:'物料',children:`${detail.ticket.materialName} ${detail.ticket.materialSpec} (${detail.ticket.materialCode})`}, {key:'party',label:'供收方',children:`${detail.ticket.partyName} (${detail.ticket.partyCode})`},
         {key:'original',label:'原始毛重／皮重（吨）',children:`${detail.ticket.originalGross} / ${detail.ticket.originalTare}`}, {key:'final',label:'最终毛重／皮重（吨）',children:`${detail.ticket.finalGross} / ${detail.ticket.finalTare}`},

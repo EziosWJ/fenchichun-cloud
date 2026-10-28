@@ -52,7 +52,7 @@ type ticketRow struct {
 
 func applyTicketFilter(tx *gorm.DB, q TicketQuery) *gorm.DB {
 	if q.SiteCode != "" {
-		tx = tx.Where("s.code = ?", q.SiteCode)
+		tx = tx.Where("t.site_code = ?", q.SiteCode)
 	}
 	if q.Direction != "" {
 		tx = tx.Where("t.direction = ?", q.Direction)
@@ -83,12 +83,12 @@ func (r *Repository) TicketPage(ctx context.Context, q TicketQuery) (TicketPage,
 		return TicketPage{}, ErrInvalid
 	}
 	page := TicketPage{Records: []TicketResult{}, Page: q.Page, PageSize: q.PageSize}
-	base := applyTicketFilter(r.db.WithContext(ctx).Table("wb_cloud_ticket t").Joins("JOIN wb_cloud_site s ON s.id = t.site_id"), q)
+	base := applyTicketFilter(r.db.WithContext(ctx).Table("wb_cloud_ticket t"), q)
 	if err := base.Count(&page.Total).Error; err != nil {
 		return TicketPage{}, err
 	}
 	var rows []ticketRow
-	if err := base.Select("s.code AS site_code, t.status, t.snapshot, t.void_reason, t.voided_by, t.voided_at").Order("t.issued_at DESC, t.id DESC").Limit(q.PageSize).Offset((q.Page - 1) * q.PageSize).Scan(&rows).Error; err != nil {
+	if err := base.Select("t.issued_site_code AS site_code, t.status, t.snapshot, t.void_reason, t.voided_by, t.voided_at").Order("t.issued_at DESC, t.id DESC").Limit(q.PageSize).Offset((q.Page - 1) * q.PageSize).Scan(&rows).Error; err != nil {
 		return TicketPage{}, err
 	}
 	for _, row := range rows {
@@ -103,7 +103,7 @@ func (r *Repository) TicketPage(ctx context.Context, q TicketQuery) (TicketPage,
 func (r *Repository) TicketTotals(ctx context.Context, q TicketQuery) ([]DirectionTotal, error) {
 	q.Status = "valid"
 	totals := []DirectionTotal{}
-	base := applyTicketFilter(r.db.WithContext(ctx).Table("wb_cloud_ticket t").Joins("JOIN wb_cloud_site s ON s.id = t.site_id"), q)
+	base := applyTicketFilter(r.db.WithContext(ctx).Table("wb_cloud_ticket t"), q)
 	err := base.Select("t.direction, t.material_code, t.party_code, COUNT(*) AS count, COALESCE(SUM(t.final_net_milli_tonne), 0) AS net_milli_tonne").Group("t.direction, t.material_code, t.party_code").Order("t.direction, t.material_code, t.party_code").Scan(&totals).Error
 	return totals, err
 }

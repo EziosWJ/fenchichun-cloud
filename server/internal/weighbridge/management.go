@@ -207,7 +207,7 @@ func (h *Handler) ticketTotals(c *gin.Context) {
 }
 
 // sites godoc
-// @Summary 查询厂区和地磅
+// @Summary 查询厂区
 // @Tags 厂云同步
 // @Security BearerAuth
 // @Success 200 {object} ApiEnvelope
@@ -217,74 +217,28 @@ func (h *Handler) sites(c *gin.Context) {
 	managementResult(c, values, err)
 }
 
-// rotateCredential godoc
-// @Summary 重置厂端接入凭据
-// @Tags 厂云同步
-// @Security BearerAuth
-// @Param code path string true "厂区编码"
-// @Success 200 {object} ApiEnvelope
-// @Router /api/v1/weighbridge/sites/{code}/credential [post]
-func (h *Handler) rotateCredential(c *gin.Context) {
-	event, ok := managementEvent(c, "credential.rotate")
-	if !ok {
-		return
-	}
-	value, err := h.service.RotateCredential(c.Request.Context(), c.Param("code"), event)
-	if errors.Is(err, ErrForbidden) {
-		platformhttp.WriteError(c, http.StatusForbidden, platformhttp.CodeForbidden, err.Error(), nil)
-		return
-	}
-	managementResult(c, value, err)
-}
-
 // updateSite godoc
-// @Summary 更新厂区及地磅
+// @Summary 更新厂区
 // @Tags 厂云同步
 // @Security BearerAuth
 // @Param code path string true "厂区编码"
-// @Param scaleCode path string true "地磅编码"
-// @Param request body SiteInput true "厂区及地磅"
+// @Param request body SiteInput true "厂区"
 // @Success 200 {object} ApiEnvelope
-// @Router /api/v1/weighbridge/sites/{code}/scales/{scaleCode} [put]
+// @Router /api/v1/weighbridge/sites/{code} [put]
 func (h *Handler) updateSite(c *gin.Context) {
 	event, ok := managementEvent(c, "site.update")
 	if !ok {
 		return
 	}
 	var input SiteInput
-	if c.ShouldBindJSON(&input) != nil {
+	if bindStrict(c, &input) != nil {
 		managementResult(c, nil, ErrInvalid)
 		return
 	}
-	err := h.service.UpdateSite(c.Request.Context(), c.Param("code"), c.Param("scaleCode"), input, event)
+	err := h.service.UpdateSite(c.Request.Context(), c.Param("code"), input, event)
 	if errors.Is(err, ErrForbidden) {
 		platformhttp.WriteError(c, http.StatusForbidden, platformhttp.CodeForbidden, err.Error(), nil)
 		return
 	}
 	managementResult(c, nil, err)
-}
-
-// getCredential godoc
-// @Summary 查看厂端接入凭据
-// @Tags 厂云同步
-// @Security BearerAuth
-// @Param code path string true "厂区编码"
-// @Success 200 {object} ApiEnvelope
-// @Router /api/v1/weighbridge/sites/{code}/credential [get]
-func (h *Handler) getCredential(c *gin.Context) {
-	principal, ok := auth.PrincipalFromContext(c.Request.Context())
-	if !ok {
-		platformhttp.WriteError(c, http.StatusUnauthorized, platformhttp.CodeUnauthorized, "未登录", nil)
-		return
-	}
-	value, err := h.service.Credential(c.Request.Context(), c.Param("code"), principal.UserID)
-	if errors.Is(err, ErrForbidden) {
-		platformhttp.WriteError(c, http.StatusForbidden, platformhttp.CodeForbidden, err.Error(), nil)
-		return
-	}
-	if errors.Is(err, ErrCredentialUnavailable) {
-		platformhttp.WriteError(c, http.StatusBadRequest, platformhttp.CodeBadRequest, err.Error(), nil)
-		return
-	}
-	managementResult(c, value, err)
 }

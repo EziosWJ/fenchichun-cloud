@@ -7,13 +7,11 @@ import (
 )
 
 type Store interface {
-	ApplyChange(context.Context, string, Change) (ChangeReceipt, error)
+	ApplyChange(context.Context, Change) (ChangeReceipt, error)
 	MasterSnapshot(context.Context, string) (MasterSnapshot, error)
-	CreateSite(context.Context, SiteInput, audit.Event) (SiteCredential, error)
+	CreateSite(context.Context, SiteInput, audit.Event) (SiteView, error)
 	Sites(context.Context) ([]SiteView, error)
-	UpdateSite(context.Context, string, string, SiteInput, audit.Event) error
-	RotateCredential(context.Context, string, audit.Event) (SiteCredential, error)
-	Credential(context.Context, string, int64) (SiteCredential, error)
+	UpdateSite(context.Context, string, SiteInput, audit.Event) error
 	Categories(context.Context) ([]Category, error)
 	Materials(context.Context) ([]Material, error)
 	Parties(context.Context) ([]Party, error)
@@ -34,13 +32,13 @@ func (s *Service) TicketTotals(ctx context.Context, q TicketQuery) ([]DirectionT
 type Service struct{ store Store }
 
 func NewService(store Store) *Service { return &Service{store: store} }
-func (s *Service) ApplyChange(ctx context.Context, token string, c Change) (ChangeReceipt, error) {
-	return s.store.ApplyChange(ctx, token, c)
+func (s *Service) ApplyChange(ctx context.Context, c Change) (ChangeReceipt, error) {
+	return s.store.ApplyChange(ctx, c)
 }
 func (s *Service) MasterSnapshot(ctx context.Context, token string) (MasterSnapshot, error) {
 	return s.store.MasterSnapshot(ctx, token)
 }
-func (s *Service) CreateSite(ctx context.Context, in SiteInput, e audit.Event) (SiteCredential, error) {
+func (s *Service) CreateSite(ctx context.Context, in SiteInput, e audit.Event) (SiteView, error) {
 	return s.store.CreateSite(ctx, in, e)
 }
 func (s *Service) Categories(ctx context.Context) ([]Category, error) { return s.store.Categories(ctx) }
@@ -58,14 +56,6 @@ func (s *Service) SaveParty(ctx context.Context, code string, in PartyInput, e a
 
 func (s *Service) Sites(ctx context.Context) ([]SiteView, error) { return s.store.Sites(ctx) }
 
-func (s *Service) RotateCredential(ctx context.Context, code string, event audit.Event) (SiteCredential, error) {
-	return s.store.RotateCredential(ctx, code, event)
-}
-
-func (s *Service) UpdateSite(ctx context.Context, code, scaleCode string, in SiteInput, event audit.Event) error {
-	return s.store.UpdateSite(ctx, code, scaleCode, in, event)
-}
-
-func (s *Service) Credential(ctx context.Context, code string, actorID int64) (SiteCredential, error) {
-	return s.store.Credential(ctx, code, actorID)
+func (s *Service) UpdateSite(ctx context.Context, code string, in SiteInput, event audit.Event) error {
+	return s.store.UpdateSite(ctx, code, in, event)
 }
