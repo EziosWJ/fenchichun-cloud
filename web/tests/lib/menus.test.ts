@@ -40,6 +40,13 @@ describe('sidebar navigation', () => {
     expect(serialized).toContain('/system/announcement');
   });
 
+  it('shows backend-managed admin pages only once', () => {
+    const navigation = buildSidebarNavigation([
+      node({ menuName: '厂区接入', path: '/weighbridge/sites', component: 'weighbridge/sites/index' }),
+    ], true);
+    expect(JSON.stringify(navigation.items).match(/厂区接入/g)).toHaveLength(1);
+  });
+
   it('filters unregistered components, empty directories and hidden menus, and keeps external links', () => {
     const menus: CurrentUserMenu[] = [
       node({ id: 1, menuName: '未注册页面', path: '/missing', component: 'missing/page' }),

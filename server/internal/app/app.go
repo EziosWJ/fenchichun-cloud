@@ -21,6 +21,7 @@ import (
 	"fenchichun.local/server/internal/sysconfig"
 	"fenchichun.local/server/internal/usermgmt"
 	"fenchichun.local/server/internal/webui"
+	"fenchichun.local/server/internal/weighbridge"
 )
 
 // Dependencies holds the named business services the HTTP application assembles.
@@ -37,6 +38,7 @@ type Dependencies struct {
 	Log          *logmgmt.Service
 	Notification *notification.Service
 	Monitoring   *monitoring.Service
+	Weighbridge  *weighbridge.Handler
 }
 
 // Application is the assembled HTTP application and its process logger.
@@ -84,9 +86,15 @@ func New(cfg config.Config, readiness platformhttp.ReadinessChecker, deps Depend
 		return nil, fmt.Errorf("create authentication handler: %w", err)
 	}
 	auth.RegisterRoutes(api, authHandler)
+	if deps.Weighbridge != nil {
+		weighbridge.RegisterRoutes(api, deps.Weighbridge)
+	}
 
 	authenticated := api.Group("")
 	authenticated.Use(auth.BearerMiddleware(deps.Auth))
+	if deps.Weighbridge != nil {
+		weighbridge.RegisterManagementRoutes(authenticated, deps.Weighbridge)
+	}
 
 	system := authenticated.Group("/system")
 	system.Use(

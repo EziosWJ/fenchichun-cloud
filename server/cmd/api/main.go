@@ -25,6 +25,7 @@ import (
 	"fenchichun.local/server/internal/rbac"
 	"fenchichun.local/server/internal/sysconfig"
 	"fenchichun.local/server/internal/usermgmt"
+	"fenchichun.local/server/internal/weighbridge"
 )
 
 const defaultUserPassword = "admin123"
@@ -127,6 +128,7 @@ func main() {
 		Log:          logService,
 		Notification: notificationService,
 		Monitoring:   monitoringService,
+		Weighbridge:  weighbridge.NewHandler(weighbridge.NewService(weighbridge.NewRepository(database.GORM))),
 	})
 	if err != nil {
 		slog.Error("build application", "error", err)

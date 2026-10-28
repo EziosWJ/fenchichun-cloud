@@ -4128,6 +4128,431 @@
                     }
                 }
             }
+        },
+        "/api/v1/weighbridge/master/categories": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "tags": [
+                    "过磅基础资料"
+                ],
+                "summary": "查询总部物料分类",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/weighbridge.ApiEnvelope"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "tags": [
+                    "过磅基础资料"
+                ],
+                "summary": "保存总部物料分类",
+                "parameters": [
+                    {
+                        "description": "分类",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/weighbridge.CategoryInput"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/weighbridge.ApiEnvelope"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/weighbridge/master/categories/{code}": {
+            "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "tags": [
+                    "过磅基础资料"
+                ],
+                "summary": "保存总部物料分类",
+                "parameters": [
+                    {
+                        "description": "分类",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/weighbridge.CategoryInput"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/weighbridge.ApiEnvelope"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/weighbridge/master/materials": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "tags": [
+                    "过磅基础资料"
+                ],
+                "summary": "查询总部物料",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/weighbridge.ApiEnvelope"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "tags": [
+                    "过磅基础资料"
+                ],
+                "summary": "保存总部物料",
+                "parameters": [
+                    {
+                        "description": "物料",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/weighbridge.MaterialInput"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/weighbridge.ApiEnvelope"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/weighbridge/master/materials/{code}": {
+            "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "tags": [
+                    "过磅基础资料"
+                ],
+                "summary": "保存总部物料",
+                "parameters": [
+                    {
+                        "description": "物料",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/weighbridge.MaterialInput"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/weighbridge.ApiEnvelope"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/weighbridge/master/parties": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "tags": [
+                    "过磅基础资料"
+                ],
+                "summary": "查询总部往来主体及联系人",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/weighbridge.ApiEnvelope"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "tags": [
+                    "过磅基础资料"
+                ],
+                "summary": "保存总部往来主体及联系人",
+                "parameters": [
+                    {
+                        "description": "往来主体",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/weighbridge.PartyInput"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/weighbridge.ApiEnvelope"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/weighbridge/master/parties/{code}": {
+            "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "tags": [
+                    "过磅基础资料"
+                ],
+                "summary": "保存总部往来主体及联系人",
+                "parameters": [
+                    {
+                        "description": "往来主体",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/weighbridge.PartyInput"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/weighbridge.ApiEnvelope"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/weighbridge/sites": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "tags": [
+                    "厂云同步"
+                ],
+                "summary": "查询厂区和地磅",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/weighbridge.ApiEnvelope"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "tags": [
+                    "厂云同步"
+                ],
+                "summary": "创建厂区和初始厂端凭据",
+                "parameters": [
+                    {
+                        "description": "厂区及地磅",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/weighbridge.SiteInput"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/weighbridge.ApiEnvelope"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/weighbridge/sites/{code}/credential": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "tags": [
+                    "厂云同步"
+                ],
+                "summary": "重置厂端接入凭据",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "厂区编码",
+                        "name": "code",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/weighbridge.ApiEnvelope"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/weighbridge/sync/changes": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "tags": [
+                    "厂云同步"
+                ],
+                "summary": "厂端上传过磅单变化",
+                "parameters": [
+                    {
+                        "description": "单据变化",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/weighbridge.Change"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/weighbridge.ApiEnvelope"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/weighbridge/sync/master": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "tags": [
+                    "厂云同步"
+                ],
+                "summary": "厂端读取完整基础资料",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/weighbridge.ApiEnvelope"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/weighbridge/ticket-totals": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "tags": [
+                    "云端过磅单"
+                ],
+                "summary": "统计各厂有效过磅单",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/weighbridge.ApiEnvelope"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/weighbridge/tickets": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "tags": [
+                    "云端过磅单"
+                ],
+                "summary": "查询各厂过磅单",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/weighbridge.ApiEnvelope"
+                        }
+                    }
+                }
+            }
         }
     },
     "definitions": {
@@ -5439,6 +5864,271 @@
                 },
                 "status": {
                     "type": "integer"
+                }
+            }
+        },
+        "weighbridge.ApiEnvelope": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "integer"
+                },
+                "data": {},
+                "message": {
+                    "type": "string"
+                }
+            }
+        },
+        "weighbridge.CategoryInput": {
+            "type": "object",
+            "properties": {
+                "enabled": {
+                    "type": "boolean"
+                },
+                "name": {
+                    "type": "string"
+                }
+            }
+        },
+        "weighbridge.Change": {
+            "type": "object",
+            "properties": {
+                "changeId": {
+                    "type": "string"
+                },
+                "scaleCode": {
+                    "type": "string"
+                },
+                "schemaVersion": {
+                    "type": "integer"
+                },
+                "siteCode": {
+                    "type": "string"
+                },
+                "ticket": {
+                    "$ref": "#/definitions/weighbridge.TicketSnapshot"
+                },
+                "ticketNo": {
+                    "type": "string"
+                },
+                "type": {
+                    "type": "string"
+                },
+                "void": {
+                    "$ref": "#/definitions/weighbridge.VoidInfo"
+                }
+            }
+        },
+        "weighbridge.Contact": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "integer"
+                },
+                "isDefault": {
+                    "type": "boolean"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "phone": {
+                    "type": "string"
+                },
+                "purpose": {
+                    "type": "string"
+                },
+                "remark": {
+                    "type": "string"
+                }
+            }
+        },
+        "weighbridge.MaterialInput": {
+            "type": "object",
+            "properties": {
+                "categoryCode": {
+                    "type": "string"
+                },
+                "enabled": {
+                    "type": "boolean"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "remark": {
+                    "type": "string"
+                },
+                "spec": {
+                    "type": "string"
+                }
+            }
+        },
+        "weighbridge.PartyInput": {
+            "type": "object",
+            "properties": {
+                "address": {
+                    "type": "string"
+                },
+                "contacts": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/weighbridge.Contact"
+                    }
+                },
+                "creditCode": {
+                    "type": "string"
+                },
+                "enabled": {
+                    "type": "boolean"
+                },
+                "isCarrier": {
+                    "type": "boolean"
+                },
+                "isCustomer": {
+                    "type": "boolean"
+                },
+                "isSupplier": {
+                    "type": "boolean"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "nature": {
+                    "type": "string"
+                },
+                "phone": {
+                    "type": "string"
+                },
+                "remark": {
+                    "type": "string"
+                },
+                "shortName": {
+                    "type": "string"
+                }
+            }
+        },
+        "weighbridge.SiteInput": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "scaleCode": {
+                    "type": "string"
+                },
+                "scaleName": {
+                    "type": "string"
+                }
+            }
+        },
+        "weighbridge.TicketSnapshot": {
+            "type": "object",
+            "properties": {
+                "adjustedAt": {
+                    "type": "string"
+                },
+                "adjustedBy": {
+                    "type": "string"
+                },
+                "adjustmentRemark": {
+                    "type": "string"
+                },
+                "contactName": {
+                    "type": "string"
+                },
+                "contactPhone": {
+                    "type": "string"
+                },
+                "direction": {
+                    "type": "string"
+                },
+                "driver": {
+                    "type": "string"
+                },
+                "driverPhone": {
+                    "type": "string"
+                },
+                "finalGross": {
+                    "type": "string"
+                },
+                "finalTare": {
+                    "type": "string"
+                },
+                "firstConfirmedAt": {
+                    "type": "string"
+                },
+                "grossSource": {
+                    "type": "string"
+                },
+                "issuedAt": {
+                    "type": "string"
+                },
+                "issuerName": {
+                    "type": "string"
+                },
+                "materialCode": {
+                    "type": "string"
+                },
+                "materialName": {
+                    "type": "string"
+                },
+                "materialSpec": {
+                    "type": "string"
+                },
+                "originalGross": {
+                    "type": "string"
+                },
+                "originalTare": {
+                    "type": "string"
+                },
+                "partyCode": {
+                    "type": "string"
+                },
+                "partyName": {
+                    "type": "string"
+                },
+                "plate": {
+                    "type": "string"
+                },
+                "previousFinalGross": {
+                    "type": "string"
+                },
+                "previousFinalTare": {
+                    "type": "string"
+                },
+                "previousTicketNo": {
+                    "type": "string"
+                },
+                "scaleCode": {
+                    "type": "string"
+                },
+                "secondConfirmedAt": {
+                    "type": "string"
+                },
+                "tareSource": {
+                    "type": "string"
+                },
+                "ticketNo": {
+                    "type": "string"
+                },
+                "title": {
+                    "type": "string"
+                }
+            }
+        },
+        "weighbridge.VoidInfo": {
+            "type": "object",
+            "properties": {
+                "actor": {
+                    "type": "string"
+                },
+                "at": {
+                    "type": "string"
+                },
+                "reason": {
+                    "type": "string"
                 }
             }
         }

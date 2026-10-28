@@ -1,8 +1,10 @@
-# 汾池春酒业云端平台
+# 汾池春酒厂综合管理大平台
 
-汾池春酒业云端平台采用 React 管理后台和 Go REST API，基于 [base-project-golang 的 template/sidebar 脚手架](https://github.com/EziosWJ/base-project-golang/tree/template/sidebar)建设。当前阶段先完善基础管理后台；未来计划覆盖生产、库存、销售订单、经销商和财务，移动端需求待业务明确后设计。
+汾池春酒厂综合管理大平台采用 React 管理后台和 Go REST API，基于 [base-project-golang 的 template/sidebar 脚手架](https://github.com/EziosWJ/base-project-golang/tree/template/sidebar)建设。过磅业务及厂云同步是平台的一部分；未来计划覆盖生产、库存、销售订单、经销商和财务，具体业务按需求逐步确认。移动端需求待业务明确后设计。
 
 目前面向本地开发，后续部署到云端。Go 模块路径暂定为 `fenchichun.local/server`，确定项目仓库地址后可再调整。
+
+过磅业务的已确认目标见[云端过磅业务规格](docs/requirements/weighbridge-cloud-spec.md)，开发依赖和验证顺序见[云端开发准备](docs/requirements/weighbridge-cloud-development.md)。云端相关功能正在开发，厂云端到端同步尚未完成。
 
 ## 目录结构
 

@@ -35,6 +35,43 @@ export interface AppRouteDefinition {
 
 export const routeDefinitions: AppRouteDefinition[] = [
   {
+    path: paths.weighbridgeMaster,
+    label: '物料分类',
+    title: '物料分类',
+    icon: ListTree,
+    menuComponent: 'weighbridge/master/index',
+    menuPath: paths.weighbridgeMaster,
+    component: lazy(() => import('../pages/weighbridge/MasterPage')),
+  },
+  ...([['materials', '物料'], ['parties', '往来主体']] as const).map(([kind, title]) => ({
+    path: `/weighbridge/master/${kind}`,
+    label: title,
+    title,
+    icon: ListTree,
+    menuComponent: `weighbridge/master/${kind}`,
+    menuPath: `/weighbridge/master/${kind}`,
+    component: lazy(() => import('../pages/weighbridge/MasterPage')),
+  })),
+  {
+    path: paths.weighbridgeSites,
+    label: '厂区接入',
+    title: '厂区接入',
+    icon: Building2,
+    menuComponent: 'weighbridge/sites/index',
+    menuPath: paths.weighbridgeSites,
+    adminOnly: true,
+    component: lazy(() => import('../pages/weighbridge/SitesPage')),
+  },
+  {
+    path: paths.weighbridgeTickets,
+    label: '过磅单查询',
+    title: '过磅单查询',
+    icon: ClipboardList,
+    menuComponent: 'weighbridge/tickets/index',
+    menuPath: paths.weighbridgeTickets,
+    component: lazy(() => import('../pages/weighbridge/TicketsPage')),
+  },
+  {
     path: paths.dashboard,
     label: '工作台',
     title: '工作台',
@@ -206,4 +243,4 @@ export const sidebarStaticRoutes: AppRouteDefinition[] = routeDefinitions.filter
   (['/dashboard', '/notifications', '/announcements'] as string[]).includes(route.path),
 );
 
-export const adminMenuRoutes: AppRouteDefinition[] = routeDefinitions.filter((route) => route.adminOnly);
+export const adminMenuRoutes: AppRouteDefinition[] = routeDefinitions.filter((route) => route.adminOnly && !route.menuComponent);

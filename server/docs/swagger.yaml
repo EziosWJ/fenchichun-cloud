@@ -854,6 +854,180 @@ definitions:
       status:
         type: integer
     type: object
+  weighbridge.ApiEnvelope:
+    properties:
+      code:
+        type: integer
+      data: {}
+      message:
+        type: string
+    type: object
+  weighbridge.CategoryInput:
+    properties:
+      enabled:
+        type: boolean
+      name:
+        type: string
+    type: object
+  weighbridge.Change:
+    properties:
+      changeId:
+        type: string
+      scaleCode:
+        type: string
+      schemaVersion:
+        type: integer
+      siteCode:
+        type: string
+      ticket:
+        $ref: '#/definitions/weighbridge.TicketSnapshot'
+      ticketNo:
+        type: string
+      type:
+        type: string
+      void:
+        $ref: '#/definitions/weighbridge.VoidInfo'
+    type: object
+  weighbridge.Contact:
+    properties:
+      id:
+        type: integer
+      isDefault:
+        type: boolean
+      name:
+        type: string
+      phone:
+        type: string
+      purpose:
+        type: string
+      remark:
+        type: string
+    type: object
+  weighbridge.MaterialInput:
+    properties:
+      categoryCode:
+        type: string
+      enabled:
+        type: boolean
+      name:
+        type: string
+      remark:
+        type: string
+      spec:
+        type: string
+    type: object
+  weighbridge.PartyInput:
+    properties:
+      address:
+        type: string
+      contacts:
+        items:
+          $ref: '#/definitions/weighbridge.Contact'
+        type: array
+      creditCode:
+        type: string
+      enabled:
+        type: boolean
+      isCarrier:
+        type: boolean
+      isCustomer:
+        type: boolean
+      isSupplier:
+        type: boolean
+      name:
+        type: string
+      nature:
+        type: string
+      phone:
+        type: string
+      remark:
+        type: string
+      shortName:
+        type: string
+    type: object
+  weighbridge.SiteInput:
+    properties:
+      code:
+        type: string
+      name:
+        type: string
+      scaleCode:
+        type: string
+      scaleName:
+        type: string
+    type: object
+  weighbridge.TicketSnapshot:
+    properties:
+      adjustedAt:
+        type: string
+      adjustedBy:
+        type: string
+      adjustmentRemark:
+        type: string
+      contactName:
+        type: string
+      contactPhone:
+        type: string
+      direction:
+        type: string
+      driver:
+        type: string
+      driverPhone:
+        type: string
+      finalGross:
+        type: string
+      finalTare:
+        type: string
+      firstConfirmedAt:
+        type: string
+      grossSource:
+        type: string
+      issuedAt:
+        type: string
+      issuerName:
+        type: string
+      materialCode:
+        type: string
+      materialName:
+        type: string
+      materialSpec:
+        type: string
+      originalGross:
+        type: string
+      originalTare:
+        type: string
+      partyCode:
+        type: string
+      partyName:
+        type: string
+      plate:
+        type: string
+      previousFinalGross:
+        type: string
+      previousFinalTare:
+        type: string
+      previousTicketNo:
+        type: string
+      scaleCode:
+        type: string
+      secondConfirmedAt:
+        type: string
+      tareSource:
+        type: string
+      ticketNo:
+        type: string
+      title:
+        type: string
+    type: object
+  weighbridge.VoidInfo:
+    properties:
+      actor:
+        type: string
+      at:
+        type: string
+      reason:
+        type: string
+    type: object
 info:
   contact: {}
   description: Go backend migration platform API.
@@ -3413,6 +3587,256 @@ paths:
       summary: 用户分页
       tags:
       - 用户管理
+  /api/v1/weighbridge/master/categories:
+    get:
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/weighbridge.ApiEnvelope'
+      security:
+      - BearerAuth: []
+      summary: 查询总部物料分类
+      tags:
+      - 过磅基础资料
+    post:
+      parameters:
+      - description: 分类
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/weighbridge.CategoryInput'
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/weighbridge.ApiEnvelope'
+      security:
+      - BearerAuth: []
+      summary: 保存总部物料分类
+      tags:
+      - 过磅基础资料
+  /api/v1/weighbridge/master/categories/{code}:
+    put:
+      parameters:
+      - description: 分类
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/weighbridge.CategoryInput'
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/weighbridge.ApiEnvelope'
+      security:
+      - BearerAuth: []
+      summary: 保存总部物料分类
+      tags:
+      - 过磅基础资料
+  /api/v1/weighbridge/master/materials:
+    get:
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/weighbridge.ApiEnvelope'
+      security:
+      - BearerAuth: []
+      summary: 查询总部物料
+      tags:
+      - 过磅基础资料
+    post:
+      parameters:
+      - description: 物料
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/weighbridge.MaterialInput'
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/weighbridge.ApiEnvelope'
+      security:
+      - BearerAuth: []
+      summary: 保存总部物料
+      tags:
+      - 过磅基础资料
+  /api/v1/weighbridge/master/materials/{code}:
+    put:
+      parameters:
+      - description: 物料
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/weighbridge.MaterialInput'
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/weighbridge.ApiEnvelope'
+      security:
+      - BearerAuth: []
+      summary: 保存总部物料
+      tags:
+      - 过磅基础资料
+  /api/v1/weighbridge/master/parties:
+    get:
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/weighbridge.ApiEnvelope'
+      security:
+      - BearerAuth: []
+      summary: 查询总部往来主体及联系人
+      tags:
+      - 过磅基础资料
+    post:
+      parameters:
+      - description: 往来主体
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/weighbridge.PartyInput'
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/weighbridge.ApiEnvelope'
+      security:
+      - BearerAuth: []
+      summary: 保存总部往来主体及联系人
+      tags:
+      - 过磅基础资料
+  /api/v1/weighbridge/master/parties/{code}:
+    put:
+      parameters:
+      - description: 往来主体
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/weighbridge.PartyInput'
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/weighbridge.ApiEnvelope'
+      security:
+      - BearerAuth: []
+      summary: 保存总部往来主体及联系人
+      tags:
+      - 过磅基础资料
+  /api/v1/weighbridge/sites:
+    get:
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/weighbridge.ApiEnvelope'
+      security:
+      - BearerAuth: []
+      summary: 查询厂区和地磅
+      tags:
+      - 厂云同步
+    post:
+      parameters:
+      - description: 厂区及地磅
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/weighbridge.SiteInput'
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/weighbridge.ApiEnvelope'
+      security:
+      - BearerAuth: []
+      summary: 创建厂区和初始厂端凭据
+      tags:
+      - 厂云同步
+  /api/v1/weighbridge/sites/{code}/credential:
+    post:
+      parameters:
+      - description: 厂区编码
+        in: path
+        name: code
+        required: true
+        type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/weighbridge.ApiEnvelope'
+      security:
+      - BearerAuth: []
+      summary: 重置厂端接入凭据
+      tags:
+      - 厂云同步
+  /api/v1/weighbridge/sync/changes:
+    post:
+      parameters:
+      - description: 单据变化
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/weighbridge.Change'
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/weighbridge.ApiEnvelope'
+      security:
+      - BearerAuth: []
+      summary: 厂端上传过磅单变化
+      tags:
+      - 厂云同步
+  /api/v1/weighbridge/sync/master:
+    get:
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/weighbridge.ApiEnvelope'
+      security:
+      - BearerAuth: []
+      summary: 厂端读取完整基础资料
+      tags:
+      - 厂云同步
+  /api/v1/weighbridge/ticket-totals:
+    get:
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/weighbridge.ApiEnvelope'
+      security:
+      - BearerAuth: []
+      summary: 统计各厂有效过磅单
+      tags:
+      - 云端过磅单
+  /api/v1/weighbridge/tickets:
+    get:
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/weighbridge.ApiEnvelope'
+      security:
+      - BearerAuth: []
+      summary: 查询各厂过磅单
+      tags:
+      - 云端过磅单
 securityDefinitions:
   BearerAuth:
     in: header
