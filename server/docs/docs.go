@@ -4478,7 +4478,7 @@ const docTemplate = `{
         },
         "/api/v1/weighbridge/sync/changes": {
             "post": {
-                "description": "版本 2，按厂区编码归属，重开使用 previousSiteCode 和 previousTicketNo 定位原单。",
+                "description": "兼容版本 2 和 3，按厂区编码归属，重开使用 previousSiteCode 和 previousTicketNo 定位原单；版本 3 携带净重调整并以其 finalNet 作为统计净重。",
                 "tags": [
                     "厂云同步"
                 ],
@@ -6241,6 +6241,9 @@ const docTemplate = `{
                 "finalGross": {
                     "type": "string"
                 },
+                "finalNet": {
+                    "type": "string"
+                },
                 "finalTare": {
                     "type": "string"
                 },
@@ -6265,6 +6268,21 @@ const docTemplate = `{
                 "materialSpec": {
                     "type": "string"
                 },
+                "netAdjustment": {
+                    "type": "string"
+                },
+                "netAdjustmentCategory": {
+                    "type": "string"
+                },
+                "netAdjustmentCategoryName": {
+                    "type": "string"
+                },
+                "netAdjustmentMode": {
+                    "type": "string"
+                },
+                "netAdjustmentRateBp": {
+                    "type": "integer"
+                },
                 "originalGross": {
                     "type": "string"
                 },
@@ -6283,7 +6301,13 @@ const docTemplate = `{
                 "previousFinalGross": {
                     "type": "string"
                 },
+                "previousFinalNet": {
+                    "type": "string"
+                },
                 "previousFinalTare": {
+                    "type": "string"
+                },
+                "previousNetAdjustment": {
                     "type": "string"
                 },
                 "previousTicketNo": {

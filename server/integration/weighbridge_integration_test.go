@@ -130,6 +130,20 @@ func TestPostgresWeighbridgeChanges(t *testing.T) {
 	if err != nil || len(totals) != 1 || totals[0].Count != 2 || totals[0].NetMilliTonne != 40000 {
 		t.Fatalf("totals: %+v %v", totals, err)
 	}
+	v3 := makeIssue("C", "V3-1", "V3C1")
+	v3.SchemaVersion = 3
+	v3.Ticket.FinalNet = "19.5"
+	v3.Ticket.NetAdjustment = "0.5"
+	v3.Ticket.NetAdjustmentMode = "amount"
+	v3.Ticket.NetAdjustmentCategory = "QUALITY"
+	v3.Ticket.NetAdjustmentCategoryName = "质量差"
+	if _, err := repo.ApplyChange(ctx, v3); err != nil {
+		t.Fatalf("version 3 issue: %v", err)
+	}
+	totals, err = repo.TicketTotals(ctx, weighbridge.TicketQuery{})
+	if err != nil || len(totals) != 1 || totals[0].Count != 3 || totals[0].NetMilliTonne != 59500 {
+		t.Fatalf("version 3 totals: %+v %v", totals, err)
+	}
 	router := gin.New()
 	weighbridge.RegisterRoutes(router.Group("/api/v1"), weighbridge.NewHandler(weighbridge.NewService(repo)))
 	request := func(method, path string, body []byte) *httptest.ResponseRecorder {
@@ -146,6 +160,11 @@ func TestPostgresWeighbridgeChanges(t *testing.T) {
 	w = request(http.MethodPost, "/api/v1/weighbridge/sync/changes", body)
 	if w.Code != 200 {
 		t.Fatalf("HTTP duplicate: %s", w.Body.String())
+	}
+	v3Body, _ := json.Marshal(v3)
+	w = request(http.MethodPost, "/api/v1/weighbridge/sync/changes", v3Body)
+	if w.Code != 200 {
+		t.Fatalf("HTTP version 3 duplicate: %s", w.Body.String())
 	}
 	invalid := []byte(fmt.Sprintf(`{"schemaVersion":2,"siteCode":"B","scaleCode":"X"}`))
 	w = request(http.MethodPost, "/api/v1/weighbridge/sync/changes", invalid)

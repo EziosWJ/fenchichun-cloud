@@ -128,7 +128,7 @@ func (h *Handler) master(c *gin.Context) {
 // change godoc
 // @Summary 厂端上传过磅单变化
 // @Tags 厂云同步
-// @Description 版本 2，按厂区编码归属，重开使用 previousSiteCode 和 previousTicketNo 定位原单。
+// @Description 兼容版本 2 和 3，按厂区编码归属，重开使用 previousSiteCode 和 previousTicketNo 定位原单；版本 3 携带净重调整并以其 finalNet 作为统计净重。
 // @Param request body Change true "单据变化"
 // @Success 200 {object} ChangeResponse
 // @Failure 400 {object} ApiEnvelope

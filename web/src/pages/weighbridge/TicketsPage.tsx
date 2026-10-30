@@ -6,7 +6,7 @@ import { DataTable } from '../../components/DataTable';
 import { PageHeader } from '../../components/PageHeader';
 import { useListUrlState } from '../../hooks/useListUrlState';
 import { getApiErrorMessage } from '../../lib/api/errors';
-import { tickets, totals, type TicketRecord } from '../../features/weighbridge/api';
+import { tickets, totals, type Ticket, type TicketRecord } from '../../features/weighbridge/api';
 import { formatDateTime } from '../../utils/format';
 
 const config = { filters: { siteCode: 'text', direction: ['inbound', 'outbound'], status: ['valid', 'void'], from: 'text', to: 'text', materialCode: 'text', partyCode: 'text' }, sortKeys: [], pageSizeOptions: [10, 20, 50, 100], defaultPageSize: 10 } as const;
@@ -17,6 +17,21 @@ function difference(a: string, b: string): string {
   const fraction = (absolute % 1000n).toString().padStart(3, '0').replace(/0+$/, '');
   return `${value < 0n ? '-' : ''}${absolute / 1000n}${fraction ? `.${fraction}` : ''}`;
 }
+function finalNet(ticket: Ticket): string {
+  return ticket.finalNet || difference(ticket.finalGross, ticket.finalTare);
+}
+function formatAdjustment(ticket: Ticket): string {
+  if (!ticket.netAdjustment || Number(ticket.netAdjustment) === 0) return '—';
+  const category = ticket.netAdjustmentCategoryName || ticket.netAdjustmentCategory || '—';
+  return `${ticket.netAdjustment} 吨（${category}）`;
+}
+function formatAdjustmentMode(ticket: Ticket): string {
+  if (!ticket.netAdjustment || Number(ticket.netAdjustment) === 0) return '—';
+  if (ticket.netAdjustmentMode === 'percent') {
+    return `按比例 ${(Number(ticket.netAdjustmentRateBp ?? 0) / 100).toFixed(2).replace(/\.?0+$/, '')}%`;
+  }
+  return '按吨';
+}
 const baseColumns: ColumnsType<TicketRecord> = [
   { title: '厂区编码', dataIndex: 'siteCode', key: 'siteCode' },
   { title: '单号', key: 'ticketNo', render: (_, row) => row.ticket.ticketNo },
@@ -26,6 +41,7 @@ const baseColumns: ColumnsType<TicketRecord> = [
   { title: '供收方', key: 'party', render: (_, row) => row.ticket.partyName },
   { title: '毛重（吨）', key: 'gross', render: (_, row) => row.ticket.finalGross },
   { title: '皮重（吨）', key: 'tare', render: (_, row) => row.ticket.finalTare },
+  { title: '净重（吨）', key: 'net', render: (_, row) => finalNet(row.ticket) },
   { title: '状态', dataIndex: 'status', key: 'status', render: (v: string) => <Tag color={v === 'valid' ? 'green' : 'default'}>{v === 'valid' ? '有效' : '作废'}</Tag> },
   { title: '出单时间', key: 'issuedAt', render: (_, row) => formatDateTime(row.ticket.issuedAt) },
 ];
@@ -64,7 +80,8 @@ export default function TicketsPage() {
         {key:'material',label:'物料',children:`${detail.ticket.materialName} ${detail.ticket.materialSpec} (${detail.ticket.materialCode})`}, {key:'party',label:'供收方',children:`${detail.ticket.partyName} (${detail.ticket.partyCode})`},
         {key:'original',label:'原始毛重／皮重（吨）',children:`${detail.ticket.originalGross} / ${detail.ticket.originalTare}`}, {key:'final',label:'最终毛重／皮重（吨）',children:`${detail.ticket.finalGross} / ${detail.ticket.finalTare}`},
         {key:'previousWeights',label:'上版最终毛重／皮重（吨）',children:detail.ticket.previousFinalGross && detail.ticket.previousFinalTare ? `${detail.ticket.previousFinalGross} / ${detail.ticket.previousFinalTare}` : '—'},
-        {key:'net',label:'原始／最终净重（吨）',children:`${difference(detail.ticket.originalGross, detail.ticket.originalTare)} / ${difference(detail.ticket.finalGross, detail.ticket.finalTare)}`}, {key:'difference',label:'毛重／皮重调整差额（吨）',children:`${difference(detail.ticket.originalGross, detail.ticket.finalGross)} / ${difference(detail.ticket.originalTare, detail.ticket.finalTare)}`},
+        {key:'net',label:'原始／最终净重（吨）',children:`${difference(detail.ticket.originalGross, detail.ticket.originalTare)} / ${finalNet(detail.ticket)}`}, {key:'difference',label:'毛重／皮重调整差额（吨）',children:`${difference(detail.ticket.originalGross, detail.ticket.finalGross)} / ${difference(detail.ticket.originalTare, detail.ticket.finalTare)}`},
+        {key:'netAdjustment',label:'净重调整／方式',children:`${formatAdjustment(detail.ticket)} / ${formatAdjustmentMode(detail.ticket)}`}, {key:'previousNet',label:'上版最终净重／净重调整（吨）',children:detail.ticket.previousFinalNet ? `${detail.ticket.previousFinalNet} / ${detail.ticket.previousNetAdjustment || '0'}` : '—'},
         {key:'source',label:'毛重／皮重来源',children:`${detail.ticket.grossSource || '—'} / ${detail.ticket.tareSource || '—'}`}, {key:'adjustment',label:'调整备注',children:detail.ticket.adjustmentRemark || '—'},
         {key:'adjuster',label:'调整人',children:detail.ticket.adjustedBy || '—'}, {key:'adjustedAt',label:'调整时间',children:detail.ticket.adjustedAt ? formatDateTime(detail.ticket.adjustedAt) : '—'},
         {key:'first',label:'首次称重',children:formatDateTime(detail.ticket.firstConfirmedAt)}, {key:'second',label:'二次称重',children:formatDateTime(detail.ticket.secondConfirmedAt)},

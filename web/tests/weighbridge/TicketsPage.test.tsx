@@ -17,4 +17,18 @@ describe('总部过磅单查询', () => {
     await userEvent.type(screen.getByLabelText('厂区编码'), 'F001');
     await waitFor(() => expect(api.tickets).toHaveBeenCalledWith(expect.objectContaining({siteCode:'F001'})));
   });
+
+  it('版本 3 按 finalNet 展示最终净重和净重调整', async () => {
+    api.tickets.mockResolvedValue({items:[{siteCode:'F001',status:'valid',voidReason:null,voidedAt:null,ticket:{
+      ticketNo:'F001-20261029-0004',previousTicketNo:null,title:'酒厂过磅单',plate:'晋A78945',direction:'inbound',materialCode:'C-M-0010',materialName:'高粱',materialSpec:'散装',partyCode:'C-P-0081',partyName:'青岛青胜禾农产品有限公司',firstConfirmedAt:'2026-10-29T20:27:57+08:00',secondConfirmedAt:'2026-10-29T20:29:23+08:00',originalGross:'1.49',originalTare:'0.89',finalGross:'1.49',finalTare:'0.89',finalNet:'0.5',netAdjustment:'0.1',netAdjustmentMode:'amount',netAdjustmentRateBp:null,netAdjustmentCategory:'QUALITY',netAdjustmentCategoryName:'质量差',previousFinalGross:null,previousFinalTare:null,previousFinalNet:null,previousNetAdjustment:null,grossSource:'collected',tareSource:'collected',adjustmentRemark:'',adjustedBy:null,adjustedAt:null,driver:'',driverPhone:'',contactName:'',contactPhone:'',issuedAt:'2026-10-29T20:29:23+08:00',issuerName:'司磅员',
+    }}],total:1,page:1,pageSize:10});
+    api.totals.mockResolvedValue([{direction:'inbound',materialCode:'C-M-0010',partyCode:'C-P-0081',count:1,netMilliTonne:500}]);
+    renderWithProviders(<TicketsPage />);
+    await screen.findByText('晋A78945');
+    await userEvent.click(screen.getByRole('button', { name: '详情' }));
+    const netRow = screen.getByText('原始／最终净重（吨）').closest('tr');
+    expect(netRow).toHaveTextContent('0.6 / 0.5');
+    const adjustmentRow = screen.getByText('净重调整／方式').closest('tr');
+    expect(adjustmentRow).toHaveTextContent('0.1 吨（质量差） / 按吨');
+  });
 });

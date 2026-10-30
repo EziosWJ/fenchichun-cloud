@@ -1,6 +1,6 @@
 # 厂云同步接口设计草案
 
-本文件描述厂区编码归属协议（版本 2）。两端已实现，隔离双端联调已执行；长期断网和现场验收仍待完成。业务约束以[厂云同步契约](cloud-sync-contract.md)及本地有效规格为准。仅描述本次过磅同步，不定义整个平台资料模型。
+本文件描述厂区编码归属协议（版本 3，兼容版本 2）。厂端已实现版本 3，云端接收端已兼容版本 2 和 3；隔离双端联调及长期断网、现场验收仍待完成。业务约束以[厂云同步契约](cloud-sync-contract.md)及本地有效规格为准。仅描述本次过磅同步，不定义整个平台资料模型。
 
 ## 通用约定
 
@@ -24,9 +24,9 @@
 
 基础资料与单据字段已对照当前双方实现；字段空值与快照映射见共享契约。不得将重新生成的事件标识当作同一次重试，也不得把恢复备份导致流水号倒退的处理视为已决定。
 
-## 接口（版本 2）
+## 接口（版本 3，兼容版本 2）
 
-- `GET /api/v1/weighbridge/sync/master?siteCode=F001`：不传凭据。云端验证厂区编码存在且启用，返回 `schemaVersion=2`、`siteCode` 及 `categories`、`materials`、`parties` 数组；`siteCode` 回显已核对的请求编码，厂端须检查其与请求时编码一致。身份与资料来自同一一致快照。无需 `scaleCodes`。
+- `GET /api/v1/weighbridge/sync/master?siteCode=F001`：不传凭据。云端验证厂区编码存在且启用，返回 `schemaVersion=2`、`siteCode` 及 `categories`、`materials`、`parties` 数组；`siteCode` 回显已核对的请求编码，厂端须检查其与请求时编码一致。身份与资料来自同一一致快照。无需 `scaleCodes`。资料协议不随单据版本变化，仍为版本 2。
 ### 完整资料 JSON 字段（版本 2）
 
 响应使用 `{ "code": 200, "message": "...", "data": { ... } }`；厂端同时检查 HTTP 状态及业务码。所有集合（包括空资料集和主体的空联系人）都是数组，不是 null。编码在各自类型内唯一，资料以编码关联，不使用内部数据库主键：
@@ -44,14 +44,15 @@
 
 资料同步以编码关联，联系人 `id` 为云端稳定标识。本地整体校验并在单个事务中生效；首次快照允许为空，但已有总部分类、物料或主体在后续快照中消失时整次同步失败，联系人可移除。隔离双端联调已执行；长期断网和现场验收仍待完成。
 
-### 单据变化接口（版本 2）
-- `POST /api/v1/weighbridge/sync/changes`：不传凭据。请求包含 `schemaVersion=2`、`changeId`、`siteCode`、`ticketNo`、`type`（`issue`、`void`、`reopen`）。`siteCode` 是该单据出单时的厂区编码；云端按此编码验证并归属。地磅编码不参与协议或云端校验。
+### 单据变化接口（版本 3，兼容版本 2）
+- `POST /api/v1/weighbridge/sync/changes`：不传凭据。请求包含 `schemaVersion`（厂端新变化为 `3`，历史重试可能仍为 `2`）、`changeId`、`siteCode`、`ticketNo`、`type`（`issue`、`void`、`reopen`）。`siteCode` 是该单据出单时的厂区编码；云端按此编码验证并归属。地磅编码不参与协议或云端校验。
 - 出单和重开携带 `ticket`，作废携带 `void` 的 `reason`、`actor`、`at`。重开还携带 `previousSiteCode` 和 `ticket.previousTicketNo`，以原单的出单厂区编码及原单号定位原单，即使新旧编码不同。原单必须已作废，不能重复重开；新单按新单的 `siteCode` 归属。厂端必须先获得原单出单和作废确认，再发送重开。
-- 单据 `ticket` 包含 `ticketNo`、`title`、`plate`、`direction`、`materialCode`／`materialName`／`materialSpec`、`partyCode`／`partyName`、`firstConfirmedAt`／`secondConfirmedAt`、`issuedAt`／`issuerName`、`originalGross`／`originalTare`／`finalGross`／`finalTare`、`previousFinalGross`／`previousFinalTare`、`grossSource`／`tareSource`、`adjustmentRemark`／`adjustedBy`／`adjustedAt`、`driver`／`driverPhone`／`contactName`／`contactPhone`。单据号须与变化头一致；重量为十进制吨字符串。字段空值和本地映射见共享契约。
+- 版本 2 的 `ticket` 字段与既有约定一致。版本 3 在此基础上新增 `finalNet`、`netAdjustment`、`netAdjustmentMode`、`netAdjustmentRateBp`、`netAdjustmentCategory`、`netAdjustmentCategoryName`，并在重开时新增 `previousFinalNet`、`previousNetAdjustment`；其余字段保持版本 2 的空值和映射规则。`netAdjustment` 为有符号调整量，正数扣减、负数上调；`netAdjustmentMode` 为 `amount` 或 `percent`，`netAdjustmentRateBp` 仅比例模式非空（0.01% 单位）；非零调整须携带类别。接收方以 `finalNet` 为准，并用 `finalGross − finalTare − netAdjustment` 复核；版本 3 的重开须同时校验上版最终净重和上版净重调整。
+- 版本 3 的 `ticketNo` 须与变化头一致；重量为十进制吨字符串，最终净重须大于 0 且小于最终毛重。版本 2 的净重仍由最终毛重减最终皮重计算；版本 2 请求不得携带版本 3 字段，避免同一变化在两种口径间漂移。
 - 厂端待发送变化固定原始载荷及变化标识；未知结果重试不改内容。云端以厂区编码与变化标识去重，相同内容返回原确认，不同内容或相同厂区单号冲突返回 409，不覆盖。未登记或停用的编码、前序缺失及临时故障应明确返回失败，不能误判成功。
 - 互换编码只影响后续按该编码上送的单据，不移动已接收数据；云端改码时旧编码不再接受请求，历史关联保留，待上传旧编码须先处理。两端须覆盖改码、互换、重开跨编码、冲突及重试的契约测试。
 
-云端仅支持版本 2；本次不迁移旧数据库。请求编码不存在或停用返回 HTTP 401；参数、未知字段或协议版本错误返回 400；重复标识内容不同、单号冲突或前序状态不满足返回 409。云端不验证物理来源。
+云端兼容版本 2 和 3；本次不迁移旧数据库。请求编码不存在或停用返回 HTTP 401；参数、未知字段或协议版本错误返回 400；重复标识内容不同、单号冲突或前序状态不满足返回 409。云端不验证物理来源。
 
 ## 云端厂区管理与改码边界
 
