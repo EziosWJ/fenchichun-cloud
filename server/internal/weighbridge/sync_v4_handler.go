@@ -15,12 +15,17 @@ type ChangeV4Response struct {
 	Data    ChangeReceiptV4 `json:"data"`
 }
 
+type BatchReconcileRequest struct {
+	Items []TicketRef `json:"items"`
+}
+
 // RegisterSyncV4Routes registers the digest-protocol factory endpoints. Site
 // codes are not authentication; a historical code may only be read.
 func RegisterSyncV4Routes(api gin.IRouter, handler *Handler) {
 	api.POST("/weighbridge/sync/v4/changes", handler.applyChangeV4)
 	api.GET("/weighbridge/sync/v4/changes", handler.lookupChange)
 	api.GET("/weighbridge/sync/v4/tickets", handler.reconcileTicket)
+	api.POST("/weighbridge/sync/v4/reconcile", handler.reconcileTickets)
 }
 
 func RegisterSyncV4ManagementRoutes(authenticated gin.IRouter, handler *Handler) {
@@ -113,6 +118,28 @@ func (h *Handler) lookupChange(c *gin.Context) {
 // @Router /api/v1/weighbridge/sync/v4/tickets [get]
 func (h *Handler) reconcileTicket(c *gin.Context) {
 	result, err := h.service.ReconcileTicket(c.Request.Context(), c.Query("siteCode"), c.Query("ticketNo"))
+	if err != nil {
+		writeSyncError(c, err)
+		return
+	}
+	platformhttp.OK(c, result)
+}
+
+// reconcileTickets godoc
+// @Summary 厂端批量核对云端单据
+// @Tags 厂云同步
+// @Description 批量上限 200 条；逐项返回单据状态和最新摘要，不返回变化历史；单项配置错误在 items[].error 中返回。需要变化历史时使用单张对账接口。
+// @Param request body BatchReconcileRequest true "批量对账请求"
+// @Success 200 {object} ApiEnvelope
+// @Failure 400 {object} ApiEnvelope
+// @Router /api/v1/weighbridge/sync/v4/reconcile [post]
+func (h *Handler) reconcileTickets(c *gin.Context) {
+	var input BatchReconcileRequest
+	if err := bindStrict(c, &input); err != nil {
+		writeSyncError(c, newSyncError(SyncCategoryConfigOrData, "invalid_request", "请求不是合法的批量对账报文"))
+		return
+	}
+	result, err := h.service.ReconcileTickets(c.Request.Context(), input.Items)
 	if err != nil {
 		writeSyncError(c, err)
 		return

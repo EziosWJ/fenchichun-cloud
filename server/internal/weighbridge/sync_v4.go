@@ -12,6 +12,7 @@ import (
 const (
 	SyncSchemaVersion  = 4
 	DigestRulesVersion = 1
+	MaxBatchReconcile  = 200
 )
 
 const (
@@ -129,6 +130,28 @@ type ChangeLookup struct {
 	SiteCode     string              `json:"siteCode"`
 	Digest       string              `json:"digest"`
 	Confirmation *ChangeConfirmation `json:"confirmation"`
+}
+
+// BatchTicketResult is one item of a batch reconciliation. It deliberately
+// omits the change history; use the single ticket endpoint when a difference
+// needs the full confirmation list.
+type BatchTicketResult struct {
+	SiteCode            string     `json:"siteCode"`
+	TicketNo            string     `json:"ticketNo"`
+	Found               bool       `json:"found"`
+	Status              string     `json:"status,omitempty"`
+	LatestDigest        *string    `json:"latestDigest"`
+	LatestDigestVersion *int       `json:"latestDigestVersion"`
+	LatestChangeType    *string    `json:"latestChangeType"`
+	LatestReceivedAt    *time.Time `json:"latestReceivedAt"`
+	PreviousSiteCode    *string    `json:"previousSiteCode"`
+	PreviousTicketNo    *string    `json:"previousTicketNo"`
+	ReopenedBy          *TicketRef `json:"reopenedBy"`
+	Error               *SyncError `json:"error"`
+}
+
+type BatchTicketReconcile struct {
+	Items []BatchTicketResult `json:"items"`
 }
 
 type SiteReceipt struct {

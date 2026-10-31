@@ -171,6 +171,39 @@ func TestPostgresWeighbridgeSyncReceipts(t *testing.T) {
 		t.Fatalf("reopen association = %+v, %v", reopened, err)
 	}
 
+	batch, err := repo.ReconcileTickets(ctx, []weighbridge.TicketRef{
+		{SiteCode: "A", TicketNo: "T1"},
+		{SiteCode: "A", TicketNo: "NOPE"},
+		{SiteCode: "Z", TicketNo: "T1"},
+		{SiteCode: "", TicketNo: ""},
+	})
+	if err != nil || len(batch.Items) != 4 {
+		t.Fatalf("batch reconcile = %+v, %v", batch, err)
+	}
+	if first := batch.Items[0]; !first.Found || first.Status != "void" || first.LatestDigest == nil || *first.LatestDigest != syncDigest(7) || first.LatestDigestVersion == nil || *first.LatestDigestVersion != 1 || first.Error != nil {
+		t.Fatalf("batch hit = %+v", first)
+	}
+	if missing := batch.Items[1]; missing.Found || missing.Error != nil {
+		t.Fatalf("batch missing = %+v", missing)
+	}
+	if unknown := batch.Items[2]; unknown.Found || unknown.Error == nil || unknown.Error.Category != weighbridge.SyncCategoryConfigOrData || unknown.Error.Reason != "site_not_found" {
+		t.Fatalf("batch unknown site = %+v", unknown)
+	}
+	if invalid := batch.Items[3]; invalid.Error == nil || invalid.Error.Reason != "invalid_request" {
+		t.Fatalf("batch invalid item = %+v", invalid)
+	}
+	if _, err := repo.ReconcileTickets(ctx, nil); err == nil {
+		t.Fatal("empty batch must fail")
+	} else {
+		wantSyncFailure(t, err, weighbridge.SyncCategoryConfigOrData, "invalid_request")
+	}
+	tooMany := make([]weighbridge.TicketRef, weighbridge.MaxBatchReconcile+1)
+	if _, err := repo.ReconcileTickets(ctx, tooMany); err == nil {
+		t.Fatal("oversized batch must fail")
+	} else {
+		wantSyncFailure(t, err, weighbridge.SyncCategoryConfigOrData, "invalid_request")
+	}
+
 	lookup, err := repo.LookupChange(ctx, "A", syncDigest(1))
 	if err != nil || !lookup.Found || lookup.Confirmation == nil || lookup.Confirmation.ChangeType != "issue" {
 		t.Fatalf("historical confirmation = %+v, %v", lookup, err)
@@ -196,6 +229,10 @@ func TestPostgresWeighbridgeSyncReceipts(t *testing.T) {
 	}
 	if receipt, err := repo.ApplyChangeV4(ctx, syncIssue("C", "T4", syncDigest(12))); err != nil || receipt.Duplicate {
 		t.Fatalf("new code issue = %+v, %v", receipt, err)
+	}
+	batch, err = repo.ReconcileTickets(ctx, []weighbridge.TicketRef{{SiteCode: "A", TicketNo: "T1"}, {SiteCode: "C", TicketNo: "T4"}})
+	if err != nil || len(batch.Items) != 2 || !batch.Items[0].Found || !batch.Items[1].Found {
+		t.Fatalf("batch after rename = %+v, %v", batch, err)
 	}
 	if _, err := repo.ApplyChangeV4(ctx, syncIssue("C", "T9", syncDigest(1))); err == nil {
 		t.Fatal("one digest must not identify another change")
@@ -284,6 +321,13 @@ func TestPostgresWeighbridgeSyncReceipts(t *testing.T) {
 	}
 	if w := request(http.MethodGet, "/api/v1/weighbridge/sync/v4/changes?siteCode=Z&digest="+syncDigest(1), nil); w.Code != 400 || !bytes.Contains(w.Body.Bytes(), []byte(`"category":"config_or_data"`)) {
 		t.Fatalf("HTTP unknown code: %s", w.Body.String())
+	}
+	batchBody, _ := json.Marshal(weighbridge.BatchReconcileRequest{Items: []weighbridge.TicketRef{{SiteCode: "A", TicketNo: "T1"}, {SiteCode: "Z", TicketNo: "T1"}}})
+	if w := request(http.MethodPost, "/api/v1/weighbridge/sync/v4/reconcile", batchBody); w.Code != 200 || !bytes.Contains(w.Body.Bytes(), []byte(`"found":true`)) || !bytes.Contains(w.Body.Bytes(), []byte(`"site_not_found"`)) {
+		t.Fatalf("HTTP batch reconcile: %s", w.Body.String())
+	}
+	if w := request(http.MethodPost, "/api/v1/weighbridge/sync/v4/reconcile", []byte(`{"items":[]}`)); w.Code != 400 || !bytes.Contains(w.Body.Bytes(), []byte(`"category":"config_or_data"`)) {
+		t.Fatalf("HTTP empty batch: %s", w.Body.String())
 	}
 }
 

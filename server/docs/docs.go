@@ -4709,6 +4709,40 @@ const docTemplate = `{
                 }
             }
         },
+        "/api/v1/weighbridge/sync/v4/reconcile": {
+            "post": {
+                "description": "批量上限 200 条；逐项返回单据状态和最新摘要，不返回变化历史；单项配置错误在 items[].error 中返回。需要变化历史时使用单张对账接口。",
+                "tags": [
+                    "厂云同步"
+                ],
+                "summary": "厂端批量核对云端单据",
+                "parameters": [
+                    {
+                        "description": "批量对账请求",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/weighbridge.BatchReconcileRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/weighbridge.ApiEnvelope"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/weighbridge.ApiEnvelope"
+                        }
+                    }
+                }
+            }
+        },
         "/api/v1/weighbridge/sync/v4/tickets": {
             "get": {
                 "description": "按出单厂区编码和单号返回云端单据状态、最新摘要和历史变化确认；历史编码只读。",
@@ -6115,6 +6149,17 @@ const docTemplate = `{
                 }
             }
         },
+        "weighbridge.BatchReconcileRequest": {
+            "type": "object",
+            "properties": {
+                "items": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/weighbridge.TicketRef"
+                    }
+                }
+            }
+        },
         "weighbridge.Category": {
             "type": "object",
             "properties": {
@@ -6467,6 +6512,17 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "name": {
+                    "type": "string"
+                }
+            }
+        },
+        "weighbridge.TicketRef": {
+            "type": "object",
+            "properties": {
+                "siteCode": {
+                    "type": "string"
+                },
+                "ticketNo": {
                     "type": "string"
                 }
             }

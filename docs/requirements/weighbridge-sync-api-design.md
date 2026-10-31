@@ -62,7 +62,7 @@
 
 ## 新协议：摘要同步与对账（schemaVersion 4）
 
-> 状态：云端接收、确认与对账查询已在源码实现，并通过隔离 PostgreSQL 测试；厂端尚未实现，双端契约测试和现场验收未完成。新协议与版本 2/3 单据协议并行存在，不要求兼容或迁移旧单据；既有 v2/v3 接口、迁移和数据保留，不能据此推定双端已完成或已部署。
+> 状态：云端接收、确认与对账查询已在源码实现，并通过隔离 PostgreSQL 测试；厂端尚未实现，双端契约测试和现场验收未完成。新协议与版本 2/3 单据协议并行存在，不要求兼容或迁移旧单据；既有 v2/v3 接口、迁移和数据保留，不能据此推定双端已完成或已部署。厂端四项发布内容见 [v4 厂端对接发布包](weighbridge-sync-v4-factory-release.md)。
 
 新协议使用厂端计算的 SHA-256 摘要作为变化标识和对账依据，不再使用随机 `changeId`。云端保存厂端上传的摘要，不重新计算，也不保存完整变化载荷用于逐字段去重。新协议接口位于 `/api/v1/weighbridge/sync/v4/...`，不复用版本 2/3 的 `/sync/changes` 请求结构。
 
@@ -233,11 +233,25 @@ contactPhone
   - 返回 `found`、`status`、`latestDigest`、`latestDigestVersion`、`latestChangeType`、`latestReceivedAt`、`previousSiteCode`、`previousTicketNo`、`reopenedBy` 和 `changes`（每项含 `digest`、`changeType`、`digestVersion`、`schemaVersion`、`receivedAt`）。
   - 厂区编码按出单时编码查询；历史编码只读，允许在改码后继续查询旧编码已接收的变化和单据。
   - 单据不存在返回 200 且 `found=false`，这是对账的正常结果；厂区编码从未登记返回 400 `config_or_data / site_not_found`。
+- `POST /api/v1/weighbridge/sync/v4/reconcile`
+  - 请求为 `{"items":[{"siteCode":"F001","ticketNo":"T1"}, ...]}`，每批 1 至 200 条。
+  - 按请求顺序逐项返回 `siteCode`、`ticketNo`、`found`、`status`、`latestDigest`、`latestDigestVersion`、`latestChangeType`、`latestReceivedAt`、`previousSiteCode`、`previousTicketNo`、`reopenedBy` 和 `error`。
+  - 单项格式错误或厂区编码不存在只把 `error` 放入该项，不影响其他项；空批次或超过 200 条整批返回 400 `config_or_data / invalid_request`。允许重复项，不做去重。
+  - 批量结果不返回 `changes`；需要历史确认时对具体单据使用单张对账接口。
 - `GET /api/v1/weighbridge/sync/v4/changes?siteCode=F001&digest=<64 位摘要>`
   - 返回某一摘要是否已被接收及原确认（`found`、`confirmation`）。用于回执丢失后按旧编码和原摘要只读确认。
   - 已失败的摘要不会返回确认；旧编码的写入仍然被拒绝。
 - 云端不主动读取厂端数据库，不要求厂端上报积压或对账结果。摘要相同只表示双方记录的最新变化摘要一致，不是云端独立内容校验；接收时间不是厂端在线或全部上传的证明。
 - 厂端应在自身实现中结合变化历史与上传进度判断“待同步”“冲突”“待核查”；不同摘要规则版本不可直接比较，不得直接判为内容冲突。
+
+### 旧队列处置边界
+
+- 云端保留 v2/v3 的 `/api/v1/weighbridge/sync/changes` 接口和既有数据，不自动删除、不自动迁移；v4 与 v2/v3 并行存在，不能据此推定旧协议已下线。
+- v4 不兼容 v2/v3：不能把 v4 摘要当作 v2/v3 变化的重试标识，也不能用 v4 接口补传 v2/v3 载荷；反之亦然。
+- 厂端启用 v4 前必须先处理 v2/v3 待上传队列：按原协议完成上传，或由维护人员明确决定作废/保留。云端不自动清空队列、不自动转换旧变化。
+- 同一单据不要混用两种协议。已通过 v2/v3 出单的单据，其作废/重开继续使用 v2/v3 直至该单据处理完毕；新单据使用 v4。混用会使 v4 历史不完整，不得据此判为对账一致。
+- v4 写入只接受当前启用厂区编码；v2/v3 旧编码写入继续按现行规则拒绝。旧编码的已接收摘要变化只能通过 v4 只读对账查询。
+- v2/v3 接口的下线需另行发布；在明确下线前，云端不拒绝合法的 v2/v3 请求。
 
 ### 云端管理页面接口
 
@@ -256,11 +270,11 @@ contactPhone
 - 云端保存厂端上传的摘要，不重新计算；因此必须由厂端保证规范化实现正确。协议演进或摘要规则版本不同导致不可比较时，由厂端显示待核查。
 - 云端不提供覆盖、删除或修改厂端单据的业务操作，也不提供“直接修复云端单据”的按钮；差异处理由管理员和厂端按契约流程进行。
 - 第一阶段不自动清理历史摘要；后续清理策略另行确定。
-- 已实现：接收、去重、状态约束、事务回滚、错误分类、旧编码只读对账、管理页查询、后端菜单与前端路由、固定测试向量。待完成：厂端实现、双端契约测试、长期断网与现场验收。
+- 已实现：接收、去重、状态约束、事务回滚、错误分类、单张/批量/旧编码只读对账、管理页查询、后端菜单与前端路由、固定测试向量。待完成：厂端实现、双端契约测试、长期断网与现场验收。
 
 ### 实施与验证记录
 
 - Schema migration：`server/migrations/schema/00013_weighbridge_sync_receipts.sql`；菜单 seed：`server/migrations/seed/00011_weighbridge_sync_menu.sql`。
 - 后端单元测试：`server/internal/weighbridge/sync_v4_test.go`；测试向量：`server/internal/weighbridge/testdata/digest_v1_vectors.json`；参考实现：`server/internal/weighbridge/digest.go`。
-- PostgreSQL 集成测试：`server/integration/weighbridge_sync_integration_test.go`，覆盖出单、作废、重开、重复上传、回执丢失后的确认、前序未满足、冲突、跨编码关联、旧编码历史确认、改码后拒绝写入、事务回滚和对账查询边界；使用 Docker 临时隔离数据库。
+- PostgreSQL 集成测试：`server/integration/weighbridge_sync_integration_test.go`，覆盖出单、作废、重开、重复上传、回执丢失后的确认、前序未满足、冲突、跨编码关联、旧编码历史确认、改码后拒绝写入、事务回滚、单张/批量对账及批量上限；使用 Docker 临时隔离数据库。
 - 前端页面：`web/src/pages/weighbridge/SyncPage.tsx`；测试：`web/tests/weighbridge/SyncPage.test.tsx`。

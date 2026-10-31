@@ -286,6 +286,94 @@ func (r *Repository) ReconcileTicket(ctx context.Context, siteCode, ticketNo str
 	return result, nil
 }
 
+type digestVersionRow struct {
+	Digest        string
+	DigestVersion int
+}
+
+// ReconcileTickets answers a bounded batch of ticket reconciliation queries in
+// one read-only snapshot. Per-item configuration errors are returned in the
+// item; a malformed or oversized batch fails the whole request. The response
+// omits change history; use ReconcileTicket when a difference needs it.
+func (r *Repository) ReconcileTickets(ctx context.Context, items []TicketRef) (BatchTicketReconcile, error) {
+	if len(items) == 0 || len(items) > MaxBatchReconcile {
+		return BatchTicketReconcile{}, newSyncError(SyncCategoryConfigOrData, "invalid_request", "批量对账数量必须为 1 至 200 条")
+	}
+	result := BatchTicketReconcile{Items: make([]BatchTicketResult, 0, len(items))}
+	err := r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		for _, item := range items {
+			entry := BatchTicketResult{SiteCode: item.SiteCode, TicketNo: item.TicketNo}
+			if !identityCode.MatchString(item.SiteCode) || item.TicketNo == "" || len(item.TicketNo) > 200 {
+				entry.Error = newSyncError(SyncCategoryConfigOrData, "invalid_request", "厂区编码或单号格式不正确")
+				result.Items = append(result.Items, entry)
+				continue
+			}
+			if err := requireKnownSiteCode(tx, item.SiteCode); err != nil {
+				var syncErr *SyncError
+				if errors.As(err, &syncErr) {
+					entry.Error = syncErr
+					result.Items = append(result.Items, entry)
+					continue
+				}
+				return err
+			}
+			var ticket cloudTicket
+			if err := tx.Where("issued_site_code = ? AND ticket_no = ?", item.SiteCode, item.TicketNo).Take(&ticket).Error; err != nil {
+				if errors.Is(err, gorm.ErrRecordNotFound) {
+					result.Items = append(result.Items, entry)
+					continue
+				}
+				return err
+			}
+			entry.Found = true
+			entry.Status = ticket.Status
+			entry.LatestDigest = ticket.LatestDigest
+			entry.LatestChangeType = ticket.LatestChangeType
+			entry.LatestReceivedAt = ticket.LatestReceivedAt
+			entry.PreviousSiteCode = ticket.PreviousSiteCode
+			entry.PreviousTicketNo = ticket.PreviousTicketNo
+			var reopened cloudTicket
+			if err := tx.Where("previous_site_code = ? AND previous_ticket_no = ?", item.SiteCode, item.TicketNo).Take(&reopened).Error; err == nil {
+				entry.ReopenedBy = ticketRef(reopened)
+			} else if !errors.Is(err, gorm.ErrRecordNotFound) {
+				return err
+			}
+			result.Items = append(result.Items, entry)
+		}
+		digests := []string{}
+		for _, item := range result.Items {
+			if item.LatestDigest != nil {
+				digests = append(digests, *item.LatestDigest)
+			}
+		}
+		if len(digests) == 0 {
+			return nil
+		}
+		rows := []digestVersionRow{}
+		if err := tx.Table("wb_cloud_ticket_change").Select("digest, digest_version").Where("digest IN ?", digests).Scan(&rows).Error; err != nil {
+			return err
+		}
+		versions := make(map[string]int, len(rows))
+		for _, row := range rows {
+			versions[row.Digest] = row.DigestVersion
+		}
+		for i := range result.Items {
+			if result.Items[i].LatestDigest == nil {
+				continue
+			}
+			if version, ok := versions[*result.Items[i].LatestDigest]; ok {
+				value := version
+				result.Items[i].LatestDigestVersion = &value
+			}
+		}
+		return nil
+	}, &sql.TxOptions{Isolation: sql.LevelRepeatableRead, ReadOnly: true})
+	if err != nil {
+		return BatchTicketReconcile{}, err
+	}
+	return result, nil
+}
+
 // LookupChange reports whether the cloud already stored one digest for an
 // issuance site code. It is the read-only path for a lost confirmation after
 // the site code changed.

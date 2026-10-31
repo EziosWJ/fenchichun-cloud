@@ -862,6 +862,13 @@ definitions:
       message:
         type: string
     type: object
+  weighbridge.BatchReconcileRequest:
+    properties:
+      items:
+        items:
+          $ref: '#/definitions/weighbridge.TicketRef'
+        type: array
+    type: object
   weighbridge.Category:
     properties:
       code:
@@ -1092,6 +1099,13 @@ definitions:
       code:
         type: string
       name:
+        type: string
+    type: object
+  weighbridge.TicketRef:
+    properties:
+      siteCode:
+        type: string
+      ticketNo:
         type: string
     type: object
   weighbridge.TicketSnapshot:
@@ -4090,6 +4104,28 @@ paths:
           schema:
             $ref: '#/definitions/weighbridge.ApiEnvelope'
       summary: 厂端上传摘要协议变化
+      tags:
+      - 厂云同步
+  /api/v1/weighbridge/sync/v4/reconcile:
+    post:
+      description: 批量上限 200 条；逐项返回单据状态和最新摘要，不返回变化历史；单项配置错误在 items[].error 中返回。需要变化历史时使用单张对账接口。
+      parameters:
+      - description: 批量对账请求
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/weighbridge.BatchReconcileRequest'
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/weighbridge.ApiEnvelope'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/weighbridge.ApiEnvelope'
+      summary: 厂端批量核对云端单据
       tags:
       - 厂云同步
   /api/v1/weighbridge/sync/v4/tickets:

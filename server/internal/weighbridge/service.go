@@ -22,6 +22,7 @@ type Store interface {
 	TicketTotals(context.Context, TicketQuery) ([]DirectionTotal, error)
 	ApplyChangeV4(context.Context, ChangeV4) (ChangeReceiptV4, error)
 	ReconcileTicket(context.Context, string, string) (TicketReconcile, error)
+	ReconcileTickets(context.Context, []TicketRef) (BatchTicketReconcile, error)
 	LookupChange(context.Context, string, string) (ChangeLookup, error)
 	SiteReceipts(context.Context, int64) ([]SiteReceipt, error)
 	TicketReceipt(context.Context, int64, string, string) (TicketReceipt, error)
@@ -71,6 +72,10 @@ func (s *Service) ApplyChangeV4(ctx context.Context, c ChangeV4) (ChangeReceiptV
 
 func (s *Service) ReconcileTicket(ctx context.Context, siteCode, ticketNo string) (TicketReconcile, error) {
 	return s.store.ReconcileTicket(ctx, siteCode, ticketNo)
+}
+
+func (s *Service) ReconcileTickets(ctx context.Context, items []TicketRef) (BatchTicketReconcile, error) {
+	return s.store.ReconcileTickets(ctx, items)
 }
 
 func (s *Service) LookupChange(ctx context.Context, siteCode, digest string) (ChangeLookup, error) {
