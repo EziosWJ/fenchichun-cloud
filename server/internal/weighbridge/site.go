@@ -36,9 +36,14 @@ func siteError(err error) error {
 func validSite(in SiteInput) bool {
 	return identityCode.MatchString(in.Code) && strings.TrimSpace(in.Name) != "" && utf8.RuneCountInString(in.Name) <= 100
 }
-func requireSiteAdmin(tx *gorm.DB, actor int64) error {
+func adminCount(tx *gorm.DB, actor int64) (int64, error) {
 	var count int64
-	if err := tx.Table("sys_user_role ur").Joins("JOIN sys_role r ON r.id = ur.role_id").Where("ur.user_id = ? AND r.role_code = ? AND r.status = 1 AND r.deleted = 0", actor, "ADMIN").Count(&count).Error; err != nil {
+	err := tx.Table("sys_user_role ur").Joins("JOIN sys_role r ON r.id = ur.role_id").Where("ur.user_id = ? AND r.role_code = ? AND r.status = 1 AND r.deleted = 0", actor, "ADMIN").Count(&count).Error
+	return count, err
+}
+func requireSiteAdmin(tx *gorm.DB, actor int64) error {
+	count, err := adminCount(tx, actor)
+	if err != nil {
 		return err
 	}
 	if count != 1 {

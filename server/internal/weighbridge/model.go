@@ -91,6 +91,12 @@ func (c Change) Validate() (int64, error) {
 	if c.Type == "issue" && (t.PreviousTicketNo != nil || t.PreviousFinalGross != nil || t.PreviousFinalTare != nil || t.PreviousFinalNet != nil || t.PreviousNetAdjustment != nil || c.PreviousSiteCode != "") {
 		return 0, ErrInvalid
 	}
+	return validateTicketWeights(t, c.Type, c.SchemaVersion)
+}
+
+// validateTicketWeights applies the shared weight and adjustment rules for
+// version 2, 3 and 4 tickets. Version 4 uses the version 3 field semantics.
+func validateTicketWeights(t *TicketSnapshot, changeType string, schemaVersion int) (int64, error) {
 	og, e1 := ParseTonnes(t.OriginalGross, false)
 	ot, e2 := ParseTonnes(t.OriginalTare, false)
 	fg, e3 := ParseTonnes(t.FinalGross, false)
@@ -99,7 +105,7 @@ func (c Change) Validate() (int64, error) {
 		return 0, ErrInvalid
 	}
 	finalNet := fg - ft
-	if c.SchemaVersion == 3 {
+	if schemaVersion >= 3 {
 		if t.FinalNet == "" || t.NetAdjustment == "" || t.NetAdjustmentMode == "" {
 			return 0, ErrInvalid
 		}
@@ -111,7 +117,7 @@ func (c Change) Validate() (int64, error) {
 		if err != nil || fg-ft-adjustment != net {
 			return 0, ErrInvalid
 		}
-		if err := validateNetAdjustment(t, adjustment, c.Type); err != nil {
+		if err := validateNetAdjustment(t, adjustment, changeType); err != nil {
 			return 0, err
 		}
 		finalNet = net
@@ -127,7 +133,7 @@ func (c Change) Validate() (int64, error) {
 		if err1 != nil || err2 != nil || pt <= 0 || pg <= pt {
 			return 0, ErrInvalid
 		}
-		if c.SchemaVersion == 3 {
+		if schemaVersion >= 3 {
 			if t.PreviousFinalNet == nil || t.PreviousNetAdjustment == nil {
 				return 0, ErrInvalid
 			}
@@ -137,7 +143,7 @@ func (c Change) Validate() (int64, error) {
 				return 0, ErrInvalid
 			}
 		}
-	} else if c.SchemaVersion == 3 && c.Type == "reopen" {
+	} else if schemaVersion >= 3 && changeType == "reopen" {
 		return 0, ErrInvalid
 	}
 	return finalNet, nil

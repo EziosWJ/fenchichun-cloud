@@ -20,6 +20,11 @@ type Store interface {
 	SaveParty(context.Context, string, PartyInput, audit.Event) (Party, error)
 	TicketPage(context.Context, TicketQuery) (TicketPage, error)
 	TicketTotals(context.Context, TicketQuery) ([]DirectionTotal, error)
+	ApplyChangeV4(context.Context, ChangeV4) (ChangeReceiptV4, error)
+	ReconcileTicket(context.Context, string, string) (TicketReconcile, error)
+	LookupChange(context.Context, string, string) (ChangeLookup, error)
+	SiteReceipts(context.Context, int64) ([]SiteReceipt, error)
+	TicketReceipt(context.Context, int64, string, string) (TicketReceipt, error)
 }
 
 func (s *Service) TicketPage(ctx context.Context, q TicketQuery) (TicketPage, error) {
@@ -58,4 +63,24 @@ func (s *Service) Sites(ctx context.Context) ([]SiteView, error) { return s.stor
 
 func (s *Service) UpdateSite(ctx context.Context, code string, in SiteInput, event audit.Event) error {
 	return s.store.UpdateSite(ctx, code, in, event)
+}
+
+func (s *Service) ApplyChangeV4(ctx context.Context, c ChangeV4) (ChangeReceiptV4, error) {
+	return s.store.ApplyChangeV4(ctx, c)
+}
+
+func (s *Service) ReconcileTicket(ctx context.Context, siteCode, ticketNo string) (TicketReconcile, error) {
+	return s.store.ReconcileTicket(ctx, siteCode, ticketNo)
+}
+
+func (s *Service) LookupChange(ctx context.Context, siteCode, digest string) (ChangeLookup, error) {
+	return s.store.LookupChange(ctx, siteCode, digest)
+}
+
+func (s *Service) SiteReceipts(ctx context.Context, actorID int64) ([]SiteReceipt, error) {
+	return s.store.SiteReceipts(ctx, actorID)
+}
+
+func (s *Service) TicketReceipt(ctx context.Context, actorID int64, siteCode, ticketNo string) (TicketReceipt, error) {
+	return s.store.TicketReceipt(ctx, actorID, siteCode, ticketNo)
 }

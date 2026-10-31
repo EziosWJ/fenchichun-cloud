@@ -24,6 +24,7 @@ import {
   Network,
   Package,
   PanelLeft,
+  RefreshCw,
   ScrollText,
   Settings,
   ShieldHalf,
@@ -77,6 +78,7 @@ const MENU_ICON_MAP: Record<string, LucideIcon> = {
   branch: GitBranch,
   monitor: MonitorCog,
   'panel-left': PanelLeft,
+  'refresh-cw': RefreshCw,
   'table-2': Table2,
   table2: Table2,
 };

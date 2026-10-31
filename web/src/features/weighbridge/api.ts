@@ -10,6 +10,27 @@ export interface TicketRecord { siteCode: string; status: string; ticket: Ticket
 export interface DirectionTotal { direction: string; materialCode: string; partyCode: string; count: number; netMilliTonne: number }
 export interface SiteInput { code: string; name: string }
 export interface Site extends SiteInput { enabled: boolean }
+export interface SyncChangeConfirmation { digest: string; ticketNo: string; changeType: string; digestVersion: number; schemaVersion: number; receivedAt: string }
+export interface SyncTicketRef { siteCode: string; ticketNo: string }
+export interface SyncSiteReceipt { siteCode: string; siteName: string; enabled: boolean; receivedChanges: number; lastReceivedAt: string | null; lastTicketNo: string | null; lastChangeType: string | null; lastIssuedSiteCode: string | null }
+export interface SyncTicketReceipt {
+  found: boolean;
+  siteCode: string;
+  ticketNo: string;
+  status: string | null;
+  ticket: Ticket | null;
+  voidReason: string | null;
+  voidedBy: string | null;
+  voidedAt: string | null;
+  latestDigest: string | null;
+  latestDigestVersion: number | null;
+  latestChangeType: string | null;
+  latestReceivedAt: string | null;
+  previousSiteCode: string | null;
+  previousTicketNo: string | null;
+  reopenedBy: SyncTicketRef | null;
+  changes: SyncChangeConfirmation[];
+}
 const base = '/weighbridge';
 export const categories = () => get<Category[]>(`${base}/master/categories`);
 export const materials = () => get<Material[]>(`${base}/master/materials`);
@@ -22,3 +43,5 @@ export const updateSite = (site: SiteInput, original: Site) => put<void>(`${base
 export const sites = () => get<Site[]>(`${base}/sites`);
 export const tickets = (params: Record<string, unknown>): Promise<PaginatedResult<TicketRecord>> => getPage<TicketRecord>(`${base}/tickets`, params);
 export const totals = (params: Record<string, unknown>) => get<DirectionTotal[]>(`${base}/ticket-totals`, params);
+export const syncSiteReceipts = () => get<SyncSiteReceipt[]>(`${base}/sync/receipts/sites`);
+export const syncTicketReceipt = (siteCode: string, ticketNo: string) => get<SyncTicketReceipt>(`${base}/sync/receipts/ticket`, { siteCode, ticketNo });

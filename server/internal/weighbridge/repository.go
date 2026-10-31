@@ -42,6 +42,9 @@ type cloudTicket struct {
 	VoidReason         *string
 	VoidedBy           *string
 	VoidedAt           *time.Time
+	LatestDigest       *string
+	LatestChangeType   *string
+	LatestReceivedAt   *time.Time
 }
 
 func (cloudTicket) TableName() string { return "wb_cloud_ticket" }

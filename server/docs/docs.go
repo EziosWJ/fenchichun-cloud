@@ -4554,6 +4554,200 @@ const docTemplate = `{
                 }
             }
         },
+        "/api/v1/weighbridge/sync/receipts/sites": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "只展示云端已成功接收的变化；不代表厂端在线、没有积压或数据完整。",
+                "tags": [
+                    "厂云同步"
+                ],
+                "summary": "按厂区查看云端最近成功接收情况",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/weighbridge.ApiEnvelope"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/weighbridge.ApiEnvelope"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/weighbridge/sync/receipts/ticket": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "返回云端单据快照、最新摘要、历史变化确认及原单与重开单关联，供有权限的管理员核对差异。",
+                "tags": [
+                    "厂云同步"
+                ],
+                "summary": "按单据查看云端已保存变化",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "出单厂区编码",
+                        "name": "siteCode",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "单号",
+                        "name": "ticketNo",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/weighbridge.ApiEnvelope"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/weighbridge.ApiEnvelope"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/weighbridge/sync/v4/changes": {
+            "get": {
+                "description": "允许使用旧出单厂区编码只读查询已接收的历史确认，用于处理回执丢失。",
+                "tags": [
+                    "厂云同步"
+                ],
+                "summary": "厂端按摘要查询历史确认",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "出单厂区编码",
+                        "name": "siteCode",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "变化摘要",
+                        "name": "digest",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/weighbridge.ApiEnvelope"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/weighbridge.ApiEnvelope"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "description": "摘要协议（schemaVersion 4）：云端保存厂端计算的 SHA-256 摘要并作为变化标识，不重新计算；同一摘要重复返回原确认，旧变化不能覆盖新状态。",
+                "tags": [
+                    "厂云同步"
+                ],
+                "summary": "厂端上传摘要协议变化",
+                "parameters": [
+                    {
+                        "description": "单据变化",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/weighbridge.ChangeV4"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/weighbridge.ChangeV4Response"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/weighbridge.ApiEnvelope"
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
+                        "schema": {
+                            "$ref": "#/definitions/weighbridge.ApiEnvelope"
+                        }
+                    },
+                    "503": {
+                        "description": "Service Unavailable",
+                        "schema": {
+                            "$ref": "#/definitions/weighbridge.ApiEnvelope"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/weighbridge/sync/v4/tickets": {
+            "get": {
+                "description": "按出单厂区编码和单号返回云端单据状态、最新摘要和历史变化确认；历史编码只读。",
+                "tags": [
+                    "厂云同步"
+                ],
+                "summary": "厂端按单号核对云端单据",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "出单厂区编码",
+                        "name": "siteCode",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "单号",
+                        "name": "ticketNo",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/weighbridge.ApiEnvelope"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/weighbridge.ApiEnvelope"
+                        }
+                    }
+                }
+            }
+        },
         "/api/v1/weighbridge/ticket-totals": {
             "get": {
                 "security": [
@@ -5986,6 +6180,26 @@ const docTemplate = `{
                 }
             }
         },
+        "weighbridge.ChangeReceiptV4": {
+            "type": "object",
+            "properties": {
+                "changeType": {
+                    "type": "string"
+                },
+                "digest": {
+                    "type": "string"
+                },
+                "duplicate": {
+                    "type": "boolean"
+                },
+                "receivedAt": {
+                    "type": "string"
+                },
+                "ticketNo": {
+                    "type": "string"
+                }
+            }
+        },
         "weighbridge.ChangeResponse": {
             "type": "object",
             "properties": {
@@ -5994,6 +6208,52 @@ const docTemplate = `{
                 },
                 "data": {
                     "$ref": "#/definitions/weighbridge.ChangeReceipt"
+                },
+                "message": {
+                    "type": "string"
+                }
+            }
+        },
+        "weighbridge.ChangeV4": {
+            "type": "object",
+            "properties": {
+                "digest": {
+                    "type": "string"
+                },
+                "digestVersion": {
+                    "type": "integer"
+                },
+                "previousSiteCode": {
+                    "type": "string"
+                },
+                "schemaVersion": {
+                    "type": "integer"
+                },
+                "siteCode": {
+                    "type": "string"
+                },
+                "ticket": {
+                    "$ref": "#/definitions/weighbridge.TicketSnapshot"
+                },
+                "ticketNo": {
+                    "type": "string"
+                },
+                "type": {
+                    "type": "string"
+                },
+                "void": {
+                    "$ref": "#/definitions/weighbridge.VoidInfo"
+                }
+            }
+        },
+        "weighbridge.ChangeV4Response": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "integer"
+                },
+                "data": {
+                    "$ref": "#/definitions/weighbridge.ChangeReceiptV4"
                 },
                 "message": {
                     "type": "string"

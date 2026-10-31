@@ -49,6 +49,7 @@ func NewHandler(service *Service) *Handler { return &Handler{service: service} }
 func RegisterRoutes(api gin.IRouter, handler *Handler) {
 	api.POST("/weighbridge/sync/changes", handler.change)
 	api.GET("/weighbridge/sync/master", handler.master)
+	RegisterSyncV4Routes(api, handler)
 }
 
 func RegisterManagementRoutes(authenticated gin.IRouter, handler *Handler) {
@@ -67,6 +68,7 @@ func RegisterManagementRoutes(authenticated gin.IRouter, handler *Handler) {
 	master.GET("/parties", handler.parties)
 	master.POST("/parties", handler.saveParty)
 	master.PUT("/parties/:code", handler.saveParty)
+	RegisterSyncV4ManagementRoutes(authenticated, handler)
 }
 
 // createSite godoc

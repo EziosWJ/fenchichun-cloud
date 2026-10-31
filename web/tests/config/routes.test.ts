@@ -100,4 +100,11 @@ describe('local route and backend menu mapping', () => {
     expect(canAccessRoute(adminRoute, menus, viewer)).toBe(false);
     expect(canAccessRoute(adminRoute, menus, admin)).toBe(true);
   });
+
+  it('registers the admin-only cloud sync page for the backend menu component', () => {
+    const route = routeDefinitions.find((item) => item.menuComponent === 'weighbridge/sync/index');
+    expect(route?.path).toBe('/weighbridge/sync');
+    expect(route?.menuPath).toBe('/weighbridge/sync');
+    expect(route?.adminOnly).toBe(true);
+  });
 });

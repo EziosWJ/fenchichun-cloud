@@ -20,6 +20,7 @@ export const paths = Object.freeze({
   weighbridgeTickets: '/weighbridge/tickets',
   weighbridgeMaster: '/weighbridge/master',
   weighbridgeSites: '/weighbridge/sites',
+  weighbridgeSync: '/weighbridge/sync',
   accountProfile: '/account/profile',
   changePassword: '/account/change-password',
 });
