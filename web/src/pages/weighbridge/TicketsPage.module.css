@@ -1,0 +1,88 @@
+.detail {
+  max-height: min(70vh, 720px);
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.overview {
+  padding: 4px 0 18px;
+}
+
+.overviewMeta {
+  color: var(--ant-color-text-secondary);
+  margin-top: 6px;
+}
+
+.weights {
+  background: var(--ant-color-fill-quaternary);
+  border: 1px solid var(--ant-color-border-secondary);
+  border-radius: 8px;
+  padding: 16px;
+}
+
+.weights h3, .section h3 {
+  color: var(--ant-color-text);
+  font-size: 15px;
+  font-weight: 600;
+  margin: 0 0 12px;
+}
+
+.weights h3 span {
+  color: var(--ant-color-text-secondary);
+  font-size: 12px;
+  font-weight: 400;
+  margin-left: 8px;
+}
+
+.tableWrap {
+  overflow-x: auto;
+}
+
+.weightTable {
+  border-collapse: collapse;
+  font-variant-numeric: tabular-nums;
+  min-width: 480px;
+  width: 100%;
+}
+
+.weightTable th, .weightTable td {
+  border-bottom: 1px solid var(--ant-color-border-secondary);
+  padding: 8px 10px;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.weightTable th:first-child {
+  text-align: left;
+}
+
+.weightTable thead th {
+  color: var(--ant-color-text-secondary);
+  font-size: 12px;
+  font-weight: 400;
+}
+
+.weightTable tbody th {
+  font-weight: 500;
+}
+
+.finalWeight {
+  color: var(--ant-color-link);
+  font-weight: 600;
+}
+
+.adjustment {
+  color: var(--ant-color-text-secondary);
+  font-size: 12px;
+  line-height: 1.8;
+  padding-top: 10px;
+}
+
+.section {
+  border-bottom: 1px solid var(--ant-color-split);
+  padding: 20px 0 8px;
+}
+
+.section + :global(.ant-collapse) {
+  margin-top: 16px;
+}

@@ -4,32 +4,56 @@
   align-items: flex-end;
   justify-content: space-between;
   gap: 14px 20px;
-  padding: 16px 18px;
-  border: 1px solid var(--ant-color-border-secondary, #e9eef6);
-  border-radius: 16px;
-  background: var(--ant-color-bg-container, #fff);
+  padding: 16px 20px;
+  border: 1px solid var(--ant-color-border-secondary);
+  border-radius: var(--app-radius-panel);
+  background: var(--ant-color-bg-container);
+  box-shadow: var(--app-shadow-card);
 }
+
 .fields {
   display: flex;
   flex: 1 1 640px;
   flex-wrap: wrap;
-  align-items: center;
-  gap: 12px;
+  align-items: flex-end;
+  gap: 12px 16px;
   min-width: 0;
 }
-.fields > :global(.ant-input-affix-wrapper) {
-  flex: 1 1 280px;
-  min-width: 220px;
-  max-width: 340px;
-}
-.fields > :global(.ant-select) {
-  flex: 0 1 168px;
+
+.field {
+  display: flex;
+  flex: 0 1 150px;
+  flex-direction: column;
+  gap: 6px;
   min-width: 140px;
 }
-.fields > :global(.ant-picker) {
-  flex: 0 1 260px;
-  min-width: 230px;
+
+.fieldWide {
+  flex: 1 1 240px;
+  max-width: 320px;
 }
+
+.fieldDate {
+  flex: 0 1 280px;
+  min-width: 250px;
+}
+
+.fieldLabel {
+  overflow: hidden;
+  color: var(--ant-color-text-secondary);
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 18px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.field :global(.ant-input-affix-wrapper),
+.field :global(.ant-select),
+.field :global(.ant-picker) {
+  width: 100%;
+}
+
 .actions {
   display: flex;
   flex: 0 0 auto;
@@ -38,35 +62,47 @@
   justify-content: flex-end;
   gap: 8px 12px;
   margin-left: auto;
+  padding-bottom: 1px;
 }
+
 .dirtyHint {
-  color: var(--ant-color-text-tertiary, #94a3b8);
+  color: var(--ant-color-text-tertiary);
   font-size: 12px;
   white-space: nowrap;
 }
+
 .buttons { flex: 0 0 auto; }
+
 @media (max-width: 991px) {
   .fields { flex-basis: 100%; }
   .actions { width: 100%; justify-content: flex-end; }
 }
+
 @media (max-width: 767px) {
-  .bar { padding: 12px; border-radius: 14px; }
-  .fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
-  .fields > :global(.ant-input-affix-wrapper),
-  .fields > :global(.ant-picker) {
-    grid-column: 1 / -1;
-    width: 100%;
-    max-width: none;
-    min-width: 0;
+  .bar { padding: 14px 12px; }
+  .fields {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px 12px;
   }
-  .fields > :global(.ant-select) {
+  .field,
+  .fieldWide,
+  .fieldDate {
     width: 100%;
-    max-width: none;
     min-width: 0;
+    max-width: none;
+  }
+  .fieldWide,
+  .fieldDate {
+    grid-column: 1 / -1;
   }
   .actions { justify-content: stretch; }
   .dirtyHint { width: 100%; white-space: normal; }
   .buttons { display: flex; width: 100%; }
   .buttons > :first-child { flex: 1; }
   .buttons > :last-child { flex: 0 0 auto; }
+}
+
+@media (max-width: 575px) {
+  .fields { grid-template-columns: minmax(0, 1fr); }
 }

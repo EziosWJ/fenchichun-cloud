@@ -18,7 +18,7 @@ import {
 import { Plus } from 'lucide-react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { PageHeader } from '../../components/PageHeader';
-import { SearchFilterBar } from '../../components/SearchFilterBar';
+import { FilterField, SearchFilterBar } from '../../components/SearchFilterBar';
 import { DataTable } from '../../components/DataTable';
 import { StatusTag } from '../../components/StatusTag';
 import { ENABLED_STATUS_OPTIONS } from '../../config/options';
@@ -311,10 +311,18 @@ export default function DictsPage() {
           actions.reset();
         }}
       >
-        <Input allowClear placeholder="字典名称" value={draft.filters.dictName ?? ''} onChange={(event) => setFilter('dictName', event.target.value)} style={{ width: 170 }} aria-label="按字典名称筛选" />
-        <Input allowClear placeholder="字典编码" value={draft.filters.dictCode ?? ''} onChange={(event) => setFilter('dictCode', event.target.value)} style={{ width: 170 }} aria-label="按字典编码筛选" />
-        <Select allowClear placeholder="状态" value={draft.filters.status} onChange={(value) => setFilter('status', value)} style={{ width: 120 }} options={ENABLED_STATUS_OPTIONS} aria-label="按状态筛选" />
-        <Input allowClear placeholder="关键词" value={draft.keyword} onChange={(event) => setKeyword(event.target.value)} style={{ width: 200 }} aria-label="关键词搜索" />
+        <FilterField label="字典名称">
+          <Input allowClear placeholder="字典名称" value={draft.filters.dictName ?? ''} onChange={(event) => setFilter('dictName', event.target.value)} aria-label="按字典名称筛选" />
+        </FilterField>
+        <FilterField label="字典编码">
+          <Input allowClear placeholder="字典编码" value={draft.filters.dictCode ?? ''} onChange={(event) => setFilter('dictCode', event.target.value)} aria-label="按字典编码筛选" />
+        </FilterField>
+        <FilterField label="状态">
+          <Select allowClear placeholder="状态" value={draft.filters.status} onChange={(value) => setFilter('status', value)} options={ENABLED_STATUS_OPTIONS} aria-label="按状态筛选" />
+        </FilterField>
+        <FilterField label="关键词" wide>
+          <Input allowClear placeholder="关键词" value={draft.keyword} onChange={(event) => setKeyword(event.target.value)} aria-label="关键词搜索" />
+        </FilterField>
       </SearchFilterBar>
 
       {typesQuery.isError && <Alert type="error" showIcon title="字典类型加载失败" description={getApiErrorMessage(typesQuery.error)} />}

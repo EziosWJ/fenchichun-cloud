@@ -1,3 +1,5 @@
+export type DefaultThemePreference = 'system' | 'light' | 'dark';
+
 export const appConfig = Object.freeze({
   name: '汾池春酒业',
   brandName: '汾池春酒业',
@@ -10,4 +12,5 @@ export const appConfig = Object.freeze({
   sidebarCaption: '系统管理',
   loginTitle: '统一账号，安全进入系统',
   loginSubtitle: '登录后可访问按角色分配的菜单、系统数据与审计记录。',
+  defaultTheme: 'system' as DefaultThemePreference,
 });

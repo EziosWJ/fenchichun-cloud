@@ -5,6 +5,7 @@ import {
   Checkbox,
   Dropdown,
   Empty,
+  Grid,
   Popover,
   Segmented,
   Space,
@@ -91,8 +92,11 @@ export function DataTable<T extends object>({
   size,
   defaultExpandAllRows = false,
 }: DataTableProps<T>) {
+  const screens = Grid.useBreakpoint();
   const [preferences, setPreferences] = useState<TablePreferences>(() => loadTablePreferences(tableKey));
   const [selectedRows, setSelectedRows] = useState<Map<Key, T>>(new Map());
+  const [columnsOpen, setColumnsOpen] = useState(false);
+  const columnsPanelRef = useRef<HTMLDivElement>(null);
   const onSelectionChangeRef = useRef(onSelectionChange);
 
   useEffect(() => {
@@ -115,11 +119,22 @@ export function DataTable<T extends object>({
   useEffect(() => {
     if (!selectable || preferences.selectionMode !== 'page') return;
     setSelectedRows((current) => (current.size === 0 ? current : new Map()));
-  }, [page, preferences.selectionMode, selectable]);
+  }, [page, pageSize, preferences.selectionMode, selectable]);
 
   useEffect(() => {
     onSelectionChangeRef.current?.(Array.from(selectedRows.values()));
   }, [selectedRows]);
+
+  const isResponsiveVisible = useCallback(
+    (column: TableColumnsType<T>[number]): boolean => {
+      const responsive = column.responsive;
+      if (!responsive || responsive.length === 0) return true;
+      // 首帧断点尚未测量时先保留全部列，避免列设置瞬间为空。
+      if (Object.keys(screens).length === 0) return true;
+      return responsive.some((breakpoint) => Boolean(screens[breakpoint]));
+    },
+    [screens],
+  );
 
   const columnDescriptors = useMemo(
     () =>
@@ -127,9 +142,10 @@ export function DataTable<T extends object>({
         .map((column, index) => ({
           key: columnKeyOf(column as TableColumnsType<unknown>[number], index),
           title: column.title,
+          responsiveVisible: isResponsiveVisible(column),
         }))
-        .filter((item) => item.key !== 'actions'),
-    [columns],
+        .filter((item) => item.key !== 'actions' && item.responsiveVisible),
+    [columns, isResponsiveVisible],
   );
 
   const hidden = useMemo(
@@ -143,7 +159,7 @@ export function DataTable<T extends object>({
     () =>
       columns
         .map((column, index) => ({ column, key: columnKeyOf(column as TableColumnsType<unknown>[number], index) }))
-        .filter((item) => !hidden.has(item.key))
+        .filter((item) => item.key === 'actions' || (!hidden.has(item.key) && isResponsiveVisible(item.column)))
         .map(({ column, key }) => {
           if (!onSortChange || !column.sorter) return column;
           const active = sortBy === key;
@@ -152,7 +168,7 @@ export function DataTable<T extends object>({
             sortOrder: active ? (sortOrder === 'asc' ? 'ascend' : 'descend') : null,
           };
         }) as TableColumnsType<T>,
-    [columns, hidden, onSortChange, sortBy, sortOrder],
+    [columns, hidden, isResponsiveVisible, onSortChange, sortBy, sortOrder],
   );
 
   const handleTableChange: TableProps<T>['onChange'] = (pagination, _filters, sorter) => {
@@ -192,18 +208,57 @@ export function DataTable<T extends object>({
 
   const clearSelection = () => setSelectedRows(new Map());
 
+  const focusColumnTrigger = useCallback(() => {
+    document
+      .querySelector<HTMLButtonElement>(`button[data-column-trigger="${tableKey}"]`)
+      ?.focus();
+  }, [tableKey]);
+
+  useEffect(() => {
+    if (!columnsOpen) return;
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape') return;
+      setColumnsOpen(false);
+      focusColumnTrigger();
+    };
+    document.addEventListener('keydown', handleEscape);
+    return () => document.removeEventListener('keydown', handleEscape);
+  }, [columnsOpen, focusColumnTrigger]);
+
+  const handleColumnsOpenChange = (open: boolean) => {
+    setColumnsOpen(open);
+    if (!open) return;
+    window.setTimeout(() => {
+      columnsPanelRef.current?.querySelector<HTMLInputElement>('input[type="checkbox"]')?.focus();
+    }, 0);
+  };
+
   const columnMenu = (
-    <div className={styles.columnPanel}>
+    <div
+      ref={columnsPanelRef}
+      className={styles.columnPanel}
+      role="group"
+      aria-label="列设置"
+    >
       <Checkbox.Group
+        aria-label="选择显示列"
         value={visibleColumnKeys}
         onChange={(values) => {
           if (values.length === 0) return;
-          setPreferences((current) => ({
-            ...current,
-            hiddenColumns: columnDescriptors
+          setPreferences((current) => {
+            const descriptorKeys = new Set(columnDescriptors.map((item) => item.key));
+            const hiddenForCurrentBreakpoint = columnDescriptors
               .map((item) => item.key)
-              .filter((key) => !values.includes(key)),
-          }));
+              .filter((key) => !values.includes(key));
+            // 保留其它断点下已隐藏的列，避免窄屏调整列设置时覆盖桌面偏好。
+            const hiddenForOtherBreakpoints = current.hiddenColumns.filter(
+              (key) => !descriptorKeys.has(key),
+            );
+            return {
+              ...current,
+              hiddenColumns: [...hiddenForOtherBreakpoints, ...hiddenForCurrentBreakpoint],
+            };
+          });
         }}
       >
         <Space orientation="vertical" size={6}>
@@ -240,7 +295,7 @@ export function DataTable<T extends object>({
 
   return (
     <Card variant="outlined" className={styles.card} styles={{ body: { padding: 0 } }}>
-      <div className={styles.toolbar}>
+      <div className={styles.toolbar} role="toolbar" aria-label="表格工具栏">
         <div className={styles.toolbarTitle}>
           {title && <span className={styles.title}>{title}</span>}
           {typeof total === 'number' && <span className={styles.total}>共 {total} 条</span>}
@@ -276,12 +331,15 @@ export function DataTable<T extends object>({
               title={`列设置（${visibleColumnKeys.length}/${columnDescriptors.length}）`}
               trigger="click"
               placement="bottomRight"
+              open={columnsOpen}
+              onOpenChange={handleColumnsOpenChange}
             >
               <Tooltip title="列设置">
                 <Button
                   type="text"
                   className={styles.iconButton}
                   aria-label="选择显示列"
+                  data-column-trigger={tableKey}
                   icon={<Columns3 size={16} aria-hidden="true" />}
                 />
               </Tooltip>
@@ -329,42 +387,44 @@ export function DataTable<T extends object>({
         </div>
       )}
 
-      <Table<T>
-        rowKey={rowKey}
-        columns={visibleColumns}
-        dataSource={dataSource}
-        loading={loading}
-        size={tableSize}
-        onChange={handleTableChange}
-        scroll={{ x: scrollX }}
-        defaultExpandAllRows={defaultExpandAllRows}
-        pagination={
-          onPageChange
-            ? {
-                current: page,
-                pageSize,
-                total: total ?? dataSource.length,
-                showSizeChanger: true,
-                pageSizeOptions: ['10', '20', '50', '100'],
-                responsive: true,
-                showLessItems: true,
-              }
-            : false
-        }
-        rowSelection={
-          selectable
-            ? {
-                selectedRowKeys: Array.from(selectedRows.keys()),
-                onChange: handleRowSelectionChange,
-                preserveSelectedRowKeys: preferences.selectionMode === 'all',
-                columnWidth: 44,
-              }
-            : undefined
-        }
-        locale={{
-          emptyText: <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description={emptyDescription} />,
-        }}
-      />
+      <div role="region" aria-label={typeof title === 'string' ? title : '数据表格'}>
+        <Table<T>
+          rowKey={rowKey}
+          columns={visibleColumns}
+          dataSource={dataSource}
+          loading={loading}
+          size={tableSize}
+          onChange={handleTableChange}
+          scroll={{ x: scrollX }}
+          defaultExpandAllRows={defaultExpandAllRows}
+          pagination={
+            onPageChange && (total ?? dataSource.length) > 0
+              ? {
+                  current: page,
+                  pageSize,
+                  total: total ?? dataSource.length,
+                  showSizeChanger: true,
+                  pageSizeOptions: ['10', '20', '50', '100'],
+                  responsive: true,
+                  showLessItems: true,
+                }
+              : false
+          }
+          rowSelection={
+            selectable
+              ? {
+                  selectedRowKeys: Array.from(selectedRows.keys()),
+                  onChange: handleRowSelectionChange,
+                  preserveSelectedRowKeys: preferences.selectionMode === 'all',
+                  columnWidth: 44,
+                }
+              : undefined
+          }
+          locale={{
+            emptyText: <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description={emptyDescription} />,
+          }}
+        />
+      </div>
     </Card>
   );
 }

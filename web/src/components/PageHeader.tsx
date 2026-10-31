@@ -29,10 +29,10 @@ export function PageHeader({ title, description, extra, onBack, backLabel = '返
               />
             </Tooltip>
           )}
-          <Typography.Title level={3} className={styles.title}>
+          <Typography.Title level={1} className={styles.title}>
             {title}
           </Typography.Title>
-          {meta}
+          {meta && <span className={styles.meta}>{meta}</span>}
         </div>
         {description && (
           <Typography.Paragraph type="secondary" className={styles.description}>

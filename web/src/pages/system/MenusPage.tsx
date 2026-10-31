@@ -18,6 +18,7 @@ import { Plus } from 'lucide-react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { PageHeader } from '../../components/PageHeader';
 import { DataTable } from '../../components/DataTable';
+import { FilterField } from '../../components/SearchFilterBar';
 import { StatusTag } from '../../components/StatusTag';
 import { ENABLED_STATUS_OPTIONS, MENU_TYPE_OPTIONS, VISIBLE_OPTIONS } from '../../config/options';
 import { commonMessages } from '../../config/messages';
@@ -250,30 +251,33 @@ export default function MenusPage() {
         description="system/user/index、system/role/index、system/menu/index、system/dept/index、system/dict/index、system/config/index、system/file/index、system/login-log/index、system/oper-log/index、monitor/server/index。"
       />
 
-      <Space wrap>
-        <Input.Search
-          allowClear
-          placeholder="搜索名称、路径、组件标识或权限标识"
-          style={{ width: 320 }}
-          value={keyword}
-          onChange={(event) => setKeyword(event.target.value)}
-        />
-        <Select
-          allowClear
-          placeholder="菜单类型"
-          style={{ width: 140 }}
-          value={typeFilter}
-          onChange={setTypeFilter}
-          options={[...MENU_TYPE_OPTIONS]}
-        />
-        <Select
-          allowClear
-          placeholder="状态"
-          style={{ width: 120 }}
-          value={statusFilter}
-          onChange={setStatusFilter}
-          options={ENABLED_STATUS_OPTIONS.map((item) => ({ value: String(item.value), label: item.label }))}
-        />
+      <Space wrap align="end">
+        <FilterField label="名称、路径、组件或权限标识" wide>
+          <Input.Search
+            allowClear
+            placeholder="搜索名称、路径、组件标识或权限标识"
+            value={keyword}
+            onChange={(event) => setKeyword(event.target.value)}
+          />
+        </FilterField>
+        <FilterField label="菜单类型">
+          <Select
+            allowClear
+            placeholder="菜单类型"
+            value={typeFilter}
+            onChange={setTypeFilter}
+            options={[...MENU_TYPE_OPTIONS]}
+          />
+        </FilterField>
+        <FilterField label="状态">
+          <Select
+            allowClear
+            placeholder="状态"
+            value={statusFilter}
+            onChange={setStatusFilter}
+            options={ENABLED_STATUS_OPTIONS.map((item) => ({ value: String(item.value), label: item.label }))}
+          />
+        </FilterField>
         <Button onClick={() => { setKeyword(''); setTypeFilter(undefined); setStatusFilter(undefined); }}>重置筛选</Button>
       </Space>
 

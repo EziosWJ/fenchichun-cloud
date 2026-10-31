@@ -5,6 +5,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { ColumnsType } from 'antd/es/table';
 import { DataTable } from '../../components/DataTable';
 import { PageHeader } from '../../components/PageHeader';
+import { FilterField } from '../../components/SearchFilterBar';
 import { useListUrlState } from '../../hooks/useListUrlState';
 import { getApiErrorMessage } from '../../lib/api/errors';
 import { categories, materials, parties, saveCategory, saveMaterial, saveParty, type Category, type Material, type Party } from '../../features/weighbridge/api';
@@ -12,7 +13,8 @@ import { categories, materials, parties, saveCategory, saveMaterial, saveParty, 
 type Kind = 'categories' | 'materials' | 'parties';
 type Row = Category | Material | Party;
 type FormValues = Omit<Party, 'code'> & Omit<Material, 'code'>;
-const config = { filters: {}, sortKeys: [], pageSizeOptions: [10, 20, 50], defaultPageSize: 10 } as const;
+const identities = [{ value: 'supplier', label: '供应商', field: 'isSupplier' }, { value: 'customer', label: '客户', field: 'isCustomer' }, { value: 'carrier', label: '承运商', field: 'isCarrier' }] as const;
+const config = { filters: { identity: ['supplier', 'customer', 'carrier'] }, sortKeys: [], pageSizeOptions: [10, 20, 50], defaultPageSize: 10 } as const;
 export default function MasterPage() {
   const { message } = App.useApp();
   const client = useQueryClient();
@@ -28,7 +30,10 @@ export default function MasterPage() {
   const partyQuery = useQuery({ queryKey: ['weighbridge', 'parties'], queryFn: parties, enabled: kind === 'parties' });
   const active = kind === 'categories' ? categoryQuery : kind === 'materials' ? materialQuery : partyQuery;
   const rows: Row[] = active.data ?? [];
-  const filtered = rows.filter((row) => !state.keyword || `${row.name} ${row.code}`.includes(state.keyword));
+  const filtered = rows.filter((row) => {
+    const identity = identities.find((item) => item.value === state.filters.identity);
+    return (!state.keyword || `${row.name} ${row.code}`.includes(state.keyword)) && (kind !== 'parties' || !identity || (row as Party)[identity.field]);
+  });
   const save = useMutation({
     mutationFn: (v: FormValues) => kind === 'categories' ? saveCategory({ name: v.name, enabled: v.enabled }, editing?.code) : kind === 'materials' ? saveMaterial({ name: v.name, categoryCode: v.categoryCode || null, spec: v.spec || '', remark: v.remark || '', enabled: v.enabled }, editing?.code) : saveParty({ name: v.name, shortName: v.shortName || '', nature: v.nature, isSupplier: !!v.isSupplier, isCustomer: !!v.isCustomer, isCarrier: !!v.isCarrier, phone: v.phone || '', address: v.address || '', creditCode: v.creditCode || '', remark: v.remark || '', enabled: v.enabled, contacts: (v.contacts || []).map((c) => ({ id: c.id || 0, name: c.name, phone: c.phone || '', purpose: c.purpose || '', remark: c.remark || '', isDefault: !!c.isDefault })) }, editing?.code),
     onSuccess: () => { message.success('保存成功'); setOpen(false); void client.invalidateQueries({ queryKey: ['weighbridge'] }); },
@@ -37,13 +42,27 @@ export default function MasterPage() {
   const edit = (row: Row | null) => { setEditing(row); form.resetFields(); form.setFieldsValue(row ? { ...row } : { enabled: true, nature: 'enterprise', contacts: [] }); setOpen(true); };
   const columns: ColumnsType<Row> = [
     { title: '编码', dataIndex: 'code', key: 'code' }, { title: '名称', dataIndex: 'name', key: 'name' },
+    ...(kind === 'parties' ? [
+      { title: '身份', key: 'identity', render: (_: unknown, row: Row) => { const labels = identities.filter((item) => (row as Party)[item.field]); return labels.length ? labels.map((item) => <Tag key={item.value}>{item.label}</Tag>) : '—'; } },
+      { title: '备注', dataIndex: 'remark', key: 'remark', render: (value: string) => value || '—' },
+    ] : []),
     { title: '状态', dataIndex: 'enabled', key: 'enabled', render: (v: boolean) => <Tag color={v ? 'green' : 'default'}>{v ? '启用' : '停用'}</Tag> },
     { title: '操作', key: 'actions', render: (_, row) => <Button type="link" onClick={() => edit(row)}>编辑</Button> },
   ];
   return <>
     <PageHeader title={kind === 'categories' ? '物料分类' : kind === 'materials' ? '物料' : '往来主体'} description="维护下发各厂的基础资料。" />
     <Space direction="vertical" style={{ width: '100%' }} size="middle">
-      <Space wrap><Input.Search aria-label="名称或编码" placeholder="名称或编码" value={keyword} onChange={(e) => setKeyword(e.target.value)} onSearch={(value) => actions.setKeyword(value)} allowClear /><Button type="primary" onClick={() => edit(null)}>新增</Button></Space>
+      <Space wrap align="end">
+        <FilterField label="名称或编码" wide>
+          <Input.Search aria-label="名称或编码" placeholder="名称或编码" value={keyword} onChange={(e) => setKeyword(e.target.value)} onSearch={(value) => actions.setKeyword(value)} allowClear />
+        </FilterField>
+        {kind === 'parties' && (
+          <FilterField label="身份">
+            <Select aria-label="身份" placeholder="身份" allowClear value={state.filters.identity} options={identities.map(({ value, label }) => ({ value, label }))} onChange={(value) => actions.setFilter('identity', value)} />
+          </FilterField>
+        )}
+        <Button type="primary" onClick={() => edit(null)}>新增</Button>
+      </Space>
       {active.isError && <Alert type="error" message={getApiErrorMessage(active.error)} action={<Button onClick={() => void active.refetch()}>重试</Button>} />}
       <DataTable tableKey={`weighbridge-${kind}`} columns={columns} rowKey="code" dataSource={filtered.slice((state.page - 1) * state.pageSize, state.page * state.pageSize)} total={filtered.length} page={state.page} pageSize={state.pageSize} onPageChange={actions.setPage} loading={active.isLoading} onRefresh={() => void active.refetch()} />
     </Space>

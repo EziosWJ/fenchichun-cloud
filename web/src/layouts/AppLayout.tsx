@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Avatar,
   Badge,
@@ -14,10 +14,21 @@ import {
   Tooltip,
   type MenuProps,
 } from 'antd';
-import { Bell, KeyRound, LogOut, Menu as MenuIcon, Moon, PanelLeftClose, PanelLeftOpen, Sun, UserRound } from 'lucide-react';
+import {
+  Bell,
+  KeyRound,
+  LogOut,
+  Menu as MenuIcon,
+  Moon,
+  PanelLeftClose,
+  PanelLeftOpen,
+  Sun,
+  UserRound,
+} from 'lucide-react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { appConfig } from '../config/app.config';
+import { layoutTokens } from '../config/theme';
 import { findRouteDefinition, getActiveMenuPath, getPageTitle, getTabKey } from '../config/routeUtils';
 import { useAppPreferences } from '../app/AppProviders';
 import { useAuthStore } from '../stores/useAuthStore';
@@ -56,6 +67,8 @@ export default function AppLayout() {
     }
   });
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const mainRef = useRef<HTMLElement>(null);
+  const lastLocationPathRef = useRef(location.pathname);
 
   const tabs = useTabsStore((state) => state.tabs);
   const openTab = useTabsStore((state) => state.openTab);
@@ -105,14 +118,6 @@ export default function AppLayout() {
   }, [notificationVersion, queryClient]);
 
   useEffect(() => {
-    try {
-      window.localStorage.setItem(COLLAPSE_STORAGE_KEY, String(collapsed));
-    } catch {
-      // 忽略存储异常，折叠状态仍在本会话内生效。
-    }
-  }, [collapsed]);
-
-  useEffect(() => {
     if (!hasKnownRoute) return;
     openTab({
       key: tabKey,
@@ -125,6 +130,33 @@ export default function AppLayout() {
   useEffect(() => {
     document.title = `${pageTitle} · ${appConfig.brandName}`;
   }, [pageTitle]);
+
+  useEffect(() => {
+    if (lastLocationPathRef.current === location.pathname) return;
+    lastLocationPathRef.current = location.pathname;
+    // 路由切换后把焦点交给主内容，键盘/读屏用户不会停留在已卸载的触发元素上。
+    mainRef.current?.focus({ preventScroll: true });
+  }, [location.pathname]);
+
+  const persistCollapsed = (value: boolean) => {
+    try {
+      window.localStorage.setItem(COLLAPSE_STORAGE_KEY, String(value));
+    } catch {
+      // 存储不可用时仍允许本次会话折叠。
+    }
+  };
+
+  const handleToggleCollapsed = () => {
+    setCollapsed((value) => {
+      const next = !value;
+      persistCollapsed(next);
+      return next;
+    });
+  };
+
+  const setBreadcrumbRef = useCallback((node: { nativeElement: HTMLElement } | null) => {
+    node?.nativeElement.setAttribute('aria-label', '面包屑');
+  }, []);
 
   const handleMenuClick: MenuProps['onClick'] = ({ key }) => {
     const external = navigation.externalUrls.get(String(key));
@@ -174,7 +206,7 @@ export default function AppLayout() {
         aria-expanded={!collapsed}
         aria-controls="app-sider"
         icon={collapsed ? <PanelLeftOpen size={17} /> : <PanelLeftClose size={17} />}
-        onClick={() => setCollapsed((value) => !value)}
+        onClick={handleToggleCollapsed}
       />
     </Tooltip>
   );
@@ -207,17 +239,21 @@ export default function AppLayout() {
 
   return (
     <Layout className={styles.shell}>
+      <a className={styles.skipLink} href="#main-content">
+        跳到主要内容
+      </a>
       {!isMobile && (
         <Sider
           id="app-sider"
-          width={260}
-          collapsedWidth={76}
+          width={layoutTokens.siderWidth}
+          collapsedWidth={layoutTokens.siderCollapsedWidth}
           collapsible
           collapsed={collapsed}
           onCollapse={setCollapsed}
           theme={themeMode}
           className={styles.sider}
           trigger={null}
+          aria-label="侧边导航"
         >
           <div className={`${styles.brand} ${collapsed ? styles.brandCollapsed : ''}`}>
             <span className={styles.brandMark}>{appConfig.logoText}</span>
@@ -229,9 +265,8 @@ export default function AppLayout() {
                 <span className={styles.brandSubtitle}>{appConfig.brandSubtitle}</span>
               </div>
             )}
-            {!collapsed && collapseButton}
+            {collapseButton}
           </div>
-          {collapsed && <div className={styles.collapsedToggle}>{collapseButton}</div>}
           {menu}
           {!collapsed && <div className={styles.sidebarFoot}>{appConfig.sidebarCaption}</div>}
         </Sider>
@@ -254,8 +289,9 @@ export default function AppLayout() {
                 </Tooltip>
               )}
               <Breadcrumb
+                ref={setBreadcrumbRef}
                 className={styles.breadcrumb}
-                items={(isMobile ? breadcrumbs.slice(-1) : breadcrumbs).map((item, index, list) => ({
+                items={(isMobile ? breadcrumbs.slice(-2) : breadcrumbs).map((item, index, list) => ({
                   title:
                     item.href && index < list.length - 1 ? (
                       <Link to={item.href}>{item.label}</Link>
@@ -282,6 +318,7 @@ export default function AppLayout() {
                   type="text"
                   className={styles.headerIconButton}
                   aria-label={themeMode === 'dark' ? '切换浅色主题' : '切换深色主题'}
+                  aria-pressed={themeMode === 'dark'}
                   icon={themeMode === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
                   onClick={toggleTheme}
                 />
@@ -301,7 +338,7 @@ export default function AppLayout() {
             </Space>
           </header>
 
-          <div className={styles.tabBar}>
+          <nav className={styles.tabBar} aria-label="已打开的页面">
             <Tabs
               type="editable-card"
               hideAdd
@@ -321,27 +358,44 @@ export default function AppLayout() {
                 closable: tab.closable,
               }))}
               className={styles.tabs}
-              aria-label="已打开的页面"
+              locale={{ removeAriaLabel: '关闭标签', dropdownAriaLabel: '更多标签' }}
             />
-          </div>
+          </nav>
         </div>
 
-        <main className={styles.content}>
+        <main
+          id="main-content"
+          ref={mainRef}
+          className={styles.content}
+          tabIndex={-1}
+          aria-label={pageTitle}
+        >
           <Outlet />
         </main>
         <footer className={styles.footer}>{appConfig.footerText}</footer>
       </Layout>
 
-      <Drawer
-        title={appConfig.name}
-        placement="left"
-        open={isMobile && mobileMenuOpen}
-        onClose={() => setMobileMenuOpen(false)}
-        size={280}
-        styles={{ body: { padding: 8 } }}
-      >
-        {menu}
-      </Drawer>
+      {isMobile && (
+        <Drawer
+          title={
+            <div className={styles.drawerBrand}>
+              <span className={styles.brandMark}>{appConfig.logoText}</span>
+              <div className={styles.brandText}>
+                <span className={styles.brandName}>{appConfig.brandName}</span>
+                <span className={styles.brandSubtitle}>{appConfig.brandSubtitle}</span>
+              </div>
+            </div>
+          }
+          placement="left"
+          open={mobileMenuOpen}
+          onClose={() => setMobileMenuOpen(false)}
+          size={layoutTokens.siderWidth}
+          styles={{ body: { padding: 8 } }}
+          destroyOnHidden
+        >
+          {menu}
+        </Drawer>
+      )}
     </Layout>
   );
 }

@@ -3,7 +3,7 @@ import { Alert, App, Button, Descriptions, Input, Modal, Select, Space, Tag } fr
 import { Trash2 } from 'lucide-react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { PageHeader } from '../../components/PageHeader';
-import { SearchFilterBar } from '../../components/SearchFilterBar';
+import { FilterField, SearchFilterBar } from '../../components/SearchFilterBar';
 import { DataTable } from '../../components/DataTable';
 import { useListUrlState } from '../../hooks/useListUrlState';
 import { useListDraft } from '../../hooks/useListDraft';
@@ -113,10 +113,18 @@ export default function LoginLogsPage() {
         onSubmit={() => actions.applyFilters(draft.keyword, { username: draft.filters.username, loginStatus: draft.filters.loginStatus, loginIp: draft.filters.loginIp })}
         onReset={() => { reset(); actions.reset(); }}
       >
-        <Input allowClear placeholder="用户名" value={draft.filters.username ?? ''} onChange={(event) => setFilter('username', event.target.value)} style={{ width: 170 }} aria-label="按用户名筛选" />
-        <Select allowClear placeholder="登录结果" value={draft.filters.loginStatus} onChange={(value) => setFilter('loginStatus', value)} style={{ width: 130 }} options={STATUS_OPTIONS.map(({ value, label }) => ({ value, label }))} aria-label="按登录结果筛选" />
-        <Input allowClear placeholder="登录 IP" value={draft.filters.loginIp ?? ''} onChange={(event) => setFilter('loginIp', event.target.value)} style={{ width: 170 }} aria-label="按登录 IP 筛选" />
-        <Input allowClear placeholder="关键词" value={draft.keyword} onChange={(event) => setKeyword(event.target.value)} style={{ width: 200 }} aria-label="关键词搜索" />
+        <FilterField label="用户名">
+          <Input allowClear placeholder="用户名" value={draft.filters.username ?? ''} onChange={(event) => setFilter('username', event.target.value)} aria-label="按用户名筛选" />
+        </FilterField>
+        <FilterField label="登录结果">
+          <Select allowClear placeholder="登录结果" value={draft.filters.loginStatus} onChange={(value) => setFilter('loginStatus', value)} options={STATUS_OPTIONS.map(({ value, label }) => ({ value, label }))} aria-label="按登录结果筛选" />
+        </FilterField>
+        <FilterField label="登录 IP">
+          <Input allowClear placeholder="登录 IP" value={draft.filters.loginIp ?? ''} onChange={(event) => setFilter('loginIp', event.target.value)} aria-label="按登录 IP 筛选" />
+        </FilterField>
+        <FilterField label="关键词" wide>
+          <Input allowClear placeholder="关键词" value={draft.keyword} onChange={(event) => setKeyword(event.target.value)} aria-label="关键词搜索" />
+        </FilterField>
       </SearchFilterBar>
 
       {logsQuery.isError && <Alert type="error" showIcon title="登录日志加载失败" description={getApiErrorMessage(logsQuery.error)} />}

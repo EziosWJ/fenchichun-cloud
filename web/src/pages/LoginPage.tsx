@@ -95,6 +95,7 @@ export default function LoginPage() {
           className={styles.themeToggle}
           type="text"
           aria-label={themeMode === 'dark' ? '切换浅色主题' : '切换深色主题'}
+          aria-pressed={themeMode === 'dark'}
           icon={themeMode === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
           onClick={toggleTheme}
         />

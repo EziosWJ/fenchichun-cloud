@@ -1,6 +1,7 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import 'antd/dist/reset.css';
+import './styles/tokens.css';
 import './styles/global.css';
 import { AppProviders } from './app/AppProviders';
 import { AppRouter } from './app/router';

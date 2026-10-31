@@ -15,7 +15,7 @@ import {
 import { Plus } from 'lucide-react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { PageHeader } from '../../components/PageHeader';
-import { SearchFilterBar } from '../../components/SearchFilterBar';
+import { FilterField, SearchFilterBar } from '../../components/SearchFilterBar';
 import { DataTable } from '../../components/DataTable';
 import { StatusTag } from '../../components/StatusTag';
 import { CONFIG_TYPE_OPTIONS, ENABLED_STATUS_OPTIONS, VALUE_TYPE_OPTIONS } from '../../config/options';
@@ -228,11 +228,21 @@ export default function ConfigsPage() {
           actions.reset();
         }}
       >
-        <Input allowClear placeholder="配置名称" value={draft.filters.configName ?? ''} onChange={(event) => setFilter('configName', event.target.value)} style={{ width: 180 }} aria-label="按配置名称筛选" />
-        <Input allowClear placeholder="配置键" value={draft.filters.configKey ?? ''} onChange={(event) => setFilter('configKey', event.target.value)} style={{ width: 200 }} aria-label="按配置键筛选" />
-        <Select allowClear placeholder="配置类型" value={draft.filters.configType} onChange={(value) => setFilter('configType', value)} style={{ width: 140 }} options={[...CONFIG_TYPE_OPTIONS]} aria-label="按配置类型筛选" />
-        <Select allowClear placeholder="状态" value={draft.filters.status} onChange={(value) => setFilter('status', value)} style={{ width: 120 }} options={ENABLED_STATUS_OPTIONS} aria-label="按状态筛选" />
-        <Input allowClear placeholder="关键词" value={draft.keyword} onChange={(event) => setKeyword(event.target.value)} style={{ width: 200 }} aria-label="关键词搜索" />
+        <FilterField label="配置名称">
+          <Input allowClear placeholder="配置名称" value={draft.filters.configName ?? ''} onChange={(event) => setFilter('configName', event.target.value)} aria-label="按配置名称筛选" />
+        </FilterField>
+        <FilterField label="配置键">
+          <Input allowClear placeholder="配置键" value={draft.filters.configKey ?? ''} onChange={(event) => setFilter('configKey', event.target.value)} aria-label="按配置键筛选" />
+        </FilterField>
+        <FilterField label="配置类型">
+          <Select allowClear placeholder="配置类型" value={draft.filters.configType} onChange={(value) => setFilter('configType', value)} options={[...CONFIG_TYPE_OPTIONS]} aria-label="按配置类型筛选" />
+        </FilterField>
+        <FilterField label="状态">
+          <Select allowClear placeholder="状态" value={draft.filters.status} onChange={(value) => setFilter('status', value)} options={ENABLED_STATUS_OPTIONS} aria-label="按状态筛选" />
+        </FilterField>
+        <FilterField label="关键词" wide>
+          <Input allowClear placeholder="关键词" value={draft.keyword} onChange={(event) => setKeyword(event.target.value)} aria-label="关键词搜索" />
+        </FilterField>
       </SearchFilterBar>
 
       {configsQuery.isError && <Alert type="error" showIcon title="配置列表加载失败" description={getApiErrorMessage(configsQuery.error)} />}

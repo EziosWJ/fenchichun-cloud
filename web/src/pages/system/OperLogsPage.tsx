@@ -3,7 +3,7 @@ import { Alert, App, Button, Descriptions, Input, Modal, Select, Typography } fr
 import { Trash2 } from 'lucide-react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { PageHeader } from '../../components/PageHeader';
-import { SearchFilterBar } from '../../components/SearchFilterBar';
+import { FilterField, SearchFilterBar } from '../../components/SearchFilterBar';
 import { DataTable } from '../../components/DataTable';
 import { useListUrlState } from '../../hooks/useListUrlState';
 import { useListDraft } from '../../hooks/useListDraft';
@@ -115,11 +115,21 @@ export default function OperLogsPage() {
         }
         onReset={() => { reset(); actions.reset(); }}
       >
-        <Input allowClear placeholder="模块名称" value={draft.filters.moduleName ?? ''} onChange={(event) => setFilter('moduleName', event.target.value)} style={{ width: 160 }} aria-label="按模块筛选" />
-        <Input allowClear placeholder="操作类型" value={draft.filters.operationType ?? ''} onChange={(event) => setFilter('operationType', event.target.value)} style={{ width: 170 }} aria-label="按操作类型筛选" />
-        <Input allowClear placeholder="操作人" value={draft.filters.operatorName ?? ''} onChange={(event) => setFilter('operatorName', event.target.value)} style={{ width: 150 }} aria-label="按操作人筛选" />
-        <Select allowClear placeholder="结果" value={draft.filters.operationStatus} onChange={(value) => setFilter('operationStatus', value)} style={{ width: 120 }} options={[{ value: 'SUCCESS', label: '成功' }, { value: 'FAIL', label: '失败' }]} aria-label="按结果筛选" />
-        <Input allowClear placeholder="关键词" value={draft.keyword} onChange={(event) => setKeyword(event.target.value)} style={{ width: 200 }} aria-label="关键词搜索" />
+        <FilterField label="模块名称">
+          <Input allowClear placeholder="模块名称" value={draft.filters.moduleName ?? ''} onChange={(event) => setFilter('moduleName', event.target.value)} aria-label="按模块筛选" />
+        </FilterField>
+        <FilterField label="操作类型">
+          <Input allowClear placeholder="操作类型" value={draft.filters.operationType ?? ''} onChange={(event) => setFilter('operationType', event.target.value)} aria-label="按操作类型筛选" />
+        </FilterField>
+        <FilterField label="操作人">
+          <Input allowClear placeholder="操作人" value={draft.filters.operatorName ?? ''} onChange={(event) => setFilter('operatorName', event.target.value)} aria-label="按操作人筛选" />
+        </FilterField>
+        <FilterField label="结果">
+          <Select allowClear placeholder="结果" value={draft.filters.operationStatus} onChange={(value) => setFilter('operationStatus', value)} options={[{ value: 'SUCCESS', label: '成功' }, { value: 'FAIL', label: '失败' }]} aria-label="按结果筛选" />
+        </FilterField>
+        <FilterField label="关键词" wide>
+          <Input allowClear placeholder="关键词" value={draft.keyword} onChange={(event) => setKeyword(event.target.value)} aria-label="关键词搜索" />
+        </FilterField>
       </SearchFilterBar>
 
       {logsQuery.isError && <Alert type="error" showIcon title="操作日志加载失败" description={getApiErrorMessage(logsQuery.error)} />}

@@ -26,9 +26,9 @@ describe('总部过磅单查询', () => {
     renderWithProviders(<TicketsPage />);
     await screen.findByText('晋A78945');
     await userEvent.click(screen.getByRole('button', { name: '详情' }));
-    const netRow = screen.getByText('原始／最终净重（吨）').closest('tr');
-    expect(netRow).toHaveTextContent('0.6 / 0.5');
-    const adjustmentRow = screen.getByText('净重调整／方式').closest('tr');
-    expect(adjustmentRow).toHaveTextContent('0.1 吨（质量差） / 按吨');
+    const netRow = screen.getByRole('rowheader', { name: '净重' }).closest('tr');
+    expect(netRow).toHaveTextContent('0.600');
+    expect(netRow).toHaveTextContent('0.500');
+    expect(screen.getByText(/净重调整／方式/)).toHaveTextContent('0.1 吨（质量差） / 按吨');
   });
 });

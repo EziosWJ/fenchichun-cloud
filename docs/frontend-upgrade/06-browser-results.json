@@ -1,0 +1,127 @@
+[
+  {
+    "name": "登录页桌面浅色渲染",
+    "pass": true,
+    "detail": ""
+  },
+  {
+    "name": "登录页可切换深色主题",
+    "pass": true,
+    "detail": ""
+  },
+  {
+    "name": "刷新后恢复深色偏好",
+    "pass": true,
+    "detail": "dark"
+  },
+  {
+    "name": "登录进入工作台",
+    "pass": true,
+    "detail": ""
+  },
+  {
+    "name": "工作台标题可见",
+    "pass": true,
+    "detail": ""
+  },
+  {
+    "name": "深色主题页面背景生效",
+    "pass": true,
+    "detail": "rgb(10, 16, 28)"
+  },
+  {
+    "name": "通知入口可见",
+    "pass": true,
+    "detail": ""
+  },
+  {
+    "name": "后端菜单驱动进入用户管理",
+    "pass": true,
+    "detail": ""
+  },
+  {
+    "name": "用户筛选持久标签可见",
+    "pass": true,
+    "detail": ""
+  },
+  {
+    "name": "用户表格渲染",
+    "pass": true,
+    "detail": ""
+  },
+  {
+    "name": "桌面无页面级横向滚动",
+    "pass": true,
+    "detail": "1440/1440"
+  },
+  {
+    "name": "登录后切换浅色主题",
+    "pass": true,
+    "detail": ""
+  },
+  {
+    "name": "危险操作弹出确认框",
+    "pass": true,
+    "detail": ""
+  },
+  {
+    "name": "取消删除后弹窗关闭",
+    "pass": true,
+    "detail": ""
+  },
+  {
+    "name": "过磅单据页筛选标签可见",
+    "pass": true,
+    "detail": ""
+  },
+  {
+    "name": "过磅单据按厂区编码筛选触发真实接口",
+    "pass": true,
+    "detail": "siteCode=F001"
+  },
+  {
+    "name": "过磅标签页存在",
+    "pass": true,
+    "detail": ""
+  },
+  {
+    "name": "已打开标签可关闭",
+    "pass": true,
+    "detail": ""
+  },
+  {
+    "name": "退出登录回到登录页",
+    "pass": true,
+    "detail": ""
+  },
+  {
+    "name": "未登录直接访问跳转登录页",
+    "pass": true,
+    "detail": ""
+  },
+  {
+    "name": "窄屏登录页无横向滚动",
+    "pass": true,
+    "detail": "390/390"
+  },
+  {
+    "name": "窄屏 Drawer 导航可打开",
+    "pass": true,
+    "detail": ""
+  },
+  {
+    "name": "窄屏 Drawer 菜单跳转成功",
+    "pass": true,
+    "detail": ""
+  },
+  {
+    "name": "窄屏宽表在容器内横向滚动",
+    "pass": true,
+    "detail": "920/364"
+  },
+  {
+    "name": "窄屏过磅页无页面级横向滚动",
+    "pass": true,
+    "detail": "390/390"
+  }
+]

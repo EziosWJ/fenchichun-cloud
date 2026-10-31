@@ -17,7 +17,7 @@ import { Download, Eye, Plus, Upload as UploadIcon } from 'lucide-react';
 import type { UploadFile } from 'antd';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { PageHeader } from '../../components/PageHeader';
-import { SearchFilterBar } from '../../components/SearchFilterBar';
+import { FilterField, SearchFilterBar } from '../../components/SearchFilterBar';
 import { DataTable } from '../../components/DataTable';
 import { StatusTag } from '../../components/StatusTag';
 import { ENABLED_STATUS_OPTIONS } from '../../config/options';
@@ -269,11 +269,21 @@ export default function FilesPage() {
           actions.reset();
         }}
       >
-        <Input allowClear placeholder="文件名" value={draft.filters.originalName ?? ''} onChange={(event) => setFilter('originalName', event.target.value)} style={{ width: 180 }} aria-label="按文件名筛选" />
-        <Input allowClear placeholder="业务模块" value={draft.filters.businessModule ?? ''} onChange={(event) => setFilter('businessModule', event.target.value)} style={{ width: 160 }} aria-label="按业务模块筛选" />
-        <Input allowClear placeholder="MIME 类型" value={draft.filters.mimeType ?? ''} onChange={(event) => setFilter('mimeType', event.target.value)} style={{ width: 170 }} aria-label="按 MIME 类型筛选" />
-        <Select allowClear placeholder="状态" value={draft.filters.status} onChange={(value) => setFilter('status', value)} style={{ width: 120 }} options={ENABLED_STATUS_OPTIONS} aria-label="按状态筛选" />
-        <Input allowClear placeholder="关键词" value={draft.keyword} onChange={(event) => setKeyword(event.target.value)} style={{ width: 200 }} aria-label="关键词搜索" />
+        <FilterField label="文件名">
+          <Input allowClear placeholder="文件名" value={draft.filters.originalName ?? ''} onChange={(event) => setFilter('originalName', event.target.value)} aria-label="按文件名筛选" />
+        </FilterField>
+        <FilterField label="业务模块">
+          <Input allowClear placeholder="业务模块" value={draft.filters.businessModule ?? ''} onChange={(event) => setFilter('businessModule', event.target.value)} aria-label="按业务模块筛选" />
+        </FilterField>
+        <FilterField label="MIME 类型">
+          <Input allowClear placeholder="MIME 类型" value={draft.filters.mimeType ?? ''} onChange={(event) => setFilter('mimeType', event.target.value)} aria-label="按 MIME 类型筛选" />
+        </FilterField>
+        <FilterField label="状态">
+          <Select allowClear placeholder="状态" value={draft.filters.status} onChange={(value) => setFilter('status', value)} options={ENABLED_STATUS_OPTIONS} aria-label="按状态筛选" />
+        </FilterField>
+        <FilterField label="关键词" wide>
+          <Input allowClear placeholder="关键词" value={draft.keyword} onChange={(event) => setKeyword(event.target.value)} aria-label="关键词搜索" />
+        </FilterField>
       </SearchFilterBar>
 
       {filesQuery.isError && <Alert type="error" showIcon title="文件列表加载失败" description={getApiErrorMessage(filesQuery.error)} />}

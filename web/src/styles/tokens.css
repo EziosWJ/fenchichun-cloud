@@ -1,0 +1,31 @@
+/*
+ * 项目级布局 Token 与根节点颜色。
+ *
+ * 颜色映射的唯一来源是 src/config/theme.ts 的 appPalette。这里只声明
+ * html/body 这类位于 AntD CSS 变量作用域之外的元素所需的最小颜色集合；
+ * 组件和页面一律使用 --ant-* 语义变量。
+ */
+:root {
+  --app-header-height: 64px;
+  --app-header-height-mobile: 56px;
+  --app-tabbar-height: 44px;
+  --app-tabbar-height-mobile: 38px;
+  --app-content-max-width: 1600px;
+  --app-content-padding-x: 28px;
+  --app-content-padding-y: 24px;
+  --app-content-padding-x-mobile: 12px;
+  --app-page-gap: 20px;
+  --app-radius-panel: 16px;
+  --app-radius-control: 8px;
+  --app-shadow-card: 0 1px 2px rgba(15, 23, 42, 0.03);
+  --app-shadow-hover: 0 8px 24px rgba(15, 23, 42, 0.08);
+  --app-color-page: #f4f7fb;
+  --app-color-text: #1e293b;
+}
+
+html[data-theme='dark'] {
+  --app-shadow-card: 0 1px 2px rgba(0, 0, 0, 0.35);
+  --app-shadow-hover: 0 10px 30px rgba(0, 0, 0, 0.42);
+  --app-color-page: #0a101c;
+  --app-color-text: #e2e8f0;
+}

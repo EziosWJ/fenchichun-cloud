@@ -30,13 +30,15 @@ export function QueryState({
   if (isLoading) {
     return (
       <div className={styles.panel} aria-live="polite" aria-busy="true">
+        <span className="srOnly">正在加载数据</span>
         <Skeleton active title={false} paragraph={{ rows: skeletonRows }} />
       </div>
     );
   }
   if (isError) {
     return (
-      <div className={styles.panel}>
+      <div className={styles.panel} role="alert">
+        <span className="srOnly">数据加载失败：{getApiErrorMessage(error)}</span>
         <Result
           status="error"
           icon={<TriangleAlert size={44} aria-hidden="true" />}
@@ -55,7 +57,8 @@ export function QueryState({
   }
   if (isEmpty) {
     return (
-      <div className={styles.panel}>
+      <div className={styles.panel} aria-live="polite">
+        <span className="srOnly">暂无符合条件的数据</span>
         <Empty
           image={Empty.PRESENTED_IMAGE_SIMPLE}
           className={styles.empty}

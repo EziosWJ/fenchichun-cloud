@@ -33,6 +33,8 @@ export function ConfirmDelete({
       okText: '删除',
       cancelText: '取消',
       okButtonProps: { danger: true },
+      centered: true,
+      focusable: { autoFocusButton: 'cancel' },
       onOk: async () => {
         try {
           await onConfirm();

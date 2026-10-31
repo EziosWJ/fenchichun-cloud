@@ -1,7 +1,7 @@
 .panel {
   padding: 28px 24px;
-  border: 1px solid var(--ant-color-border-secondary, #e9eef6);
-  border-radius: 16px;
-  background: var(--ant-color-bg-container, #fff);
+  border: 1px solid var(--ant-color-border-secondary);
+  border-radius: var(--app-radius-panel);
+  background: var(--ant-color-bg-container);
 }
 .empty { margin: 8px 0; }

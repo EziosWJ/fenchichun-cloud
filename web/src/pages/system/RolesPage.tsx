@@ -17,7 +17,7 @@ import {
 import { Plus } from 'lucide-react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { PageHeader } from '../../components/PageHeader';
-import { SearchFilterBar } from '../../components/SearchFilterBar';
+import { FilterField, SearchFilterBar } from '../../components/SearchFilterBar';
 import { DataTable } from '../../components/DataTable';
 import { StatusTag } from '../../components/StatusTag';
 import { ENABLED_STATUS_OPTIONS } from '../../config/options';
@@ -261,10 +261,18 @@ export default function RolesPage() {
           actions.reset();
         }}
       >
-        <Input allowClear placeholder="角色名称" value={draft.filters.roleName ?? ''} onChange={(event) => setFilter('roleName', event.target.value)} style={{ width: 180 }} aria-label="按角色名称筛选" />
-        <Input allowClear placeholder="角色编码" value={draft.filters.roleCode ?? ''} onChange={(event) => setFilter('roleCode', event.target.value)} style={{ width: 180 }} aria-label="按角色编码筛选" />
-        <Select allowClear placeholder="状态" value={draft.filters.status} onChange={(value) => setFilter('status', value)} style={{ width: 120 }} options={ENABLED_STATUS_OPTIONS} aria-label="按状态筛选" />
-        <Input allowClear placeholder="关键词" value={draft.keyword} onChange={(event) => setKeyword(event.target.value)} style={{ width: 220 }} aria-label="关键词搜索" />
+        <FilterField label="角色名称">
+          <Input allowClear placeholder="角色名称" value={draft.filters.roleName ?? ''} onChange={(event) => setFilter('roleName', event.target.value)} aria-label="按角色名称筛选" />
+        </FilterField>
+        <FilterField label="角色编码">
+          <Input allowClear placeholder="角色编码" value={draft.filters.roleCode ?? ''} onChange={(event) => setFilter('roleCode', event.target.value)} aria-label="按角色编码筛选" />
+        </FilterField>
+        <FilterField label="状态">
+          <Select allowClear placeholder="状态" value={draft.filters.status} onChange={(value) => setFilter('status', value)} options={ENABLED_STATUS_OPTIONS} aria-label="按状态筛选" />
+        </FilterField>
+        <FilterField label="关键词" wide>
+          <Input allowClear placeholder="关键词" value={draft.keyword} onChange={(event) => setKeyword(event.target.value)} aria-label="关键词搜索" />
+        </FilterField>
       </SearchFilterBar>
 
       {rolesQuery.isError && <Alert type="error" showIcon title="角色列表加载失败" description={getApiErrorMessage(rolesQuery.error)} />}

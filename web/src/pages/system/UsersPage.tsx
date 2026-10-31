@@ -20,7 +20,7 @@ import {
 import { KeyRound, Plus, ShieldCheck } from 'lucide-react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { PageHeader } from '../../components/PageHeader';
-import { SearchFilterBar } from '../../components/SearchFilterBar';
+import { FilterField, SearchFilterBar } from '../../components/SearchFilterBar';
 import { DataTable } from '../../components/DataTable';
 import { StatusTag } from '../../components/StatusTag';
 import { ENABLED_STATUS_OPTIONS, GENDER_OPTIONS } from '../../config/options';
@@ -313,49 +313,59 @@ export default function UsersPage() {
           actions.reset();
         }}
       >
-        <Input
-          allowClear
-          placeholder="用户名"
-          value={draft.filters.username ?? ''}
-          onChange={(event) => setFilter('username', event.target.value)}
-          style={{ width: 180 }}
-          aria-label="按用户名筛选"
-        />
-        <Input
-          allowClear
-          placeholder="昵称"
-          value={draft.filters.nickname ?? ''}
-          onChange={(event) => setFilter('nickname', event.target.value)}
-          style={{ width: 180 }}
-          aria-label="按昵称筛选"
-        />
-        <Select
-          allowClear
-          placeholder="状态"
-          value={draft.filters.status}
-          onChange={(value) => setFilter('status', value)}
-          style={{ width: 120 }}
-          options={ENABLED_STATUS_OPTIONS}
-          aria-label="按状态筛选"
-        />
-        <TreeSelect
-          allowClear
-          placeholder="部门"
-          value={draft.filters.deptId ? Number(draft.filters.deptId) : undefined}
-          onChange={(value) => setFilter('deptId', value ? String(value) : undefined)}
-          treeData={deptTree}
-          treeDefaultExpandAll
-          style={{ width: 200 }}
-          aria-label="按部门筛选"
-        />
-        <Input
-          allowClear
-          placeholder="关键词（用户名/昵称/手机号/邮箱）"
-          value={draft.keyword}
-          onChange={(event) => setKeyword(event.target.value)}
-          style={{ width: 260 }}
-          aria-label="关键词搜索"
-        />
+        <FilterField label="用户名">
+          <Input
+            allowClear
+            placeholder="用户名"
+            value={draft.filters.username ?? ''}
+            onChange={(event) => setFilter('username', event.target.value)}
+
+            aria-label="按用户名筛选"
+          />
+        </FilterField>
+        <FilterField label="昵称">
+          <Input
+            allowClear
+            placeholder="昵称"
+            value={draft.filters.nickname ?? ''}
+            onChange={(event) => setFilter('nickname', event.target.value)}
+
+            aria-label="按昵称筛选"
+          />
+        </FilterField>
+        <FilterField label="状态">
+          <Select
+            allowClear
+            placeholder="状态"
+            value={draft.filters.status}
+            onChange={(value) => setFilter('status', value)}
+
+            options={ENABLED_STATUS_OPTIONS}
+            aria-label="按状态筛选"
+          />
+        </FilterField>
+        <FilterField label="部门">
+          <TreeSelect
+            allowClear
+            placeholder="部门"
+            value={draft.filters.deptId ? Number(draft.filters.deptId) : undefined}
+            onChange={(value) => setFilter('deptId', value ? String(value) : undefined)}
+            treeData={deptTree}
+            treeDefaultExpandAll
+
+            aria-label="按部门筛选"
+          />
+        </FilterField>
+        <FilterField label="关键词（用户名/昵称/手机号/邮箱）" wide>
+          <Input
+            allowClear
+            placeholder="关键词（用户名/昵称/手机号/邮箱）"
+            value={draft.keyword}
+            onChange={(event) => setKeyword(event.target.value)}
+
+            aria-label="关键词搜索"
+          />
+        </FilterField>
       </SearchFilterBar>
 
       {usersQuery.isError && (
