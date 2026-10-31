@@ -40,6 +40,10 @@ func TestPostgresWeighbridgeChanges(t *testing.T) {
 	if err := repo.UpdateSite(ctx, "A", weighbridge.SiteInput{Code: "B", Name: "甲"}, event); !errors.Is(err, weighbridge.ErrConflict) {
 		t.Fatalf("duplicate update: %v", err)
 	}
+	// This test exercises its own minimal snapshot.
+	if err := db.GORM.Exec(`DELETE FROM wb_cloud_contact; DELETE FROM wb_cloud_material; DELETE FROM wb_cloud_party; DELETE FROM wb_cloud_category`).Error; err != nil {
+		t.Fatal(err)
+	}
 	if err := db.GORM.Exec(`INSERT INTO wb_cloud_category (code,name) VALUES ('C-C-0001','谷物'); INSERT INTO wb_cloud_material (code,name,category_id) SELECT 'C-M-0001','高粱',id FROM wb_cloud_category; INSERT INTO wb_cloud_party (code,name,nature,is_supplier) VALUES ('C-P-0001','供货方','enterprise',true); INSERT INTO wb_cloud_contact (party_id,name,is_default) SELECT id,'联系人',true FROM wb_cloud_party`).Error; err != nil {
 		t.Fatal(err)
 	}
@@ -170,5 +174,46 @@ func TestPostgresWeighbridgeChanges(t *testing.T) {
 	w = request(http.MethodPost, "/api/v1/weighbridge/sync/changes", invalid)
 	if w.Code != 400 {
 		t.Fatalf("legacy field accepted: %s", w.Body.String())
+	}
+}
+
+func TestPostgresMasterSeed(t *testing.T) {
+	tmp := startMigratedPostgres(t)
+	db := openTemporaryDatabase(t, tmp.dsn)
+	defer db.Close()
+	ctx := context.Background()
+	repo := weighbridge.NewRepository(db.GORM)
+	event := audit.Event{Action: "save", Resource: "weighbridge-site", Metadata: audit.Metadata{ActorID: 1}}
+	if _, err := repo.CreateSite(ctx, weighbridge.SiteInput{Code: "SEED", Name: "测试厂"}, event); err != nil {
+		t.Fatal(err)
+	}
+	snap, err := repo.MasterSnapshot(ctx, "SEED")
+	if err != nil || len(snap.Categories) != 6 || len(snap.Materials) != 10 || len(snap.Parties) != 81 {
+		t.Fatalf("seed snapshot: categories=%d materials=%d parties=%d err=%v", len(snap.Categories), len(snap.Materials), len(snap.Parties), err)
+	}
+	foundMerged := false
+	for _, p := range snap.Parties {
+		if p.Code == "C-P-0004" {
+			foundMerged = true
+			if p.Remark != "供应：高粱、大麦" || len(p.Contacts) != 2 {
+				t.Fatalf("merged party: %+v", p)
+			}
+			break
+		}
+	}
+	if !foundMerged {
+		t.Fatal("merged party missing")
+	}
+	c, err := repo.SaveCategory(ctx, "", weighbridge.CategoryInput{Name: "新分类", Enabled: true}, event)
+	if err != nil || c.Code != "C-C-0007" {
+		t.Fatalf("category sequence: %+v %v", c, err)
+	}
+	m, err := repo.SaveMaterial(ctx, "", weighbridge.MaterialInput{Name: "新物料", Enabled: true}, event)
+	if err != nil || m.Code != "C-M-0011" {
+		t.Fatalf("material sequence: %+v %v", m, err)
+	}
+	p, err := repo.SaveParty(ctx, "", weighbridge.PartyInput{Name: "新主体", Nature: "enterprise", IsSupplier: true, Enabled: true}, event)
+	if err != nil || p.Code != "C-P-0083" {
+		t.Fatalf("party sequence: %+v %v", p, err)
 	}
 }
