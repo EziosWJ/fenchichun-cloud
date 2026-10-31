@@ -9,16 +9,18 @@
     <title>汾池春酒业云端平台</title>
     <script>
       (function () {
+        var defaultTheme = '%APP_DEFAULT_THEME%';
+        var stored = null;
         try {
-          var stored = localStorage.getItem('app-theme');
-          var theme = stored === 'light' || stored === 'dark'
-            ? stored
+          stored = localStorage.getItem('app-theme');
+        } catch (error) { /* 存储不可用时仍按默认设置选择主题。 */ }
+        var theme = stored === 'light' || stored === 'dark'
+          ? stored
+          : defaultTheme === 'light' || defaultTheme === 'dark'
+            ? defaultTheme
             : (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
-          document.documentElement.dataset.theme = theme;
-          document.documentElement.style.colorScheme = theme;
-        } catch (error) {
-          document.documentElement.dataset.theme = 'light';
-        }
+        document.documentElement.dataset.theme = theme;
+        document.documentElement.style.colorScheme = theme;
       })();
     </script>
   </head>

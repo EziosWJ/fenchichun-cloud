@@ -5,19 +5,11 @@ export type ThemeMode = 'light' | 'dark';
 
 export const THEME_STORAGE_KEY = 'app-theme';
 
-/** 应用壳层尺寸。TS 与 CSS（tokens.css）共用同一组 4px 基准值。 */
+/** AntD 组件需要的壳层尺寸；共享高度与 CSS 的一致性由测试保证。 */
 export const layoutTokens = Object.freeze({
   siderWidth: 260,
   siderCollapsedWidth: 76,
   headerHeight: 64,
-  headerHeightMobile: 56,
-  tabBarHeight: 44,
-  tabBarHeightMobile: 38,
-  contentMaxWidth: 1600,
-  contentPaddingX: 28,
-  contentPaddingY: 24,
-  contentPaddingXMobile: 12,
-  pageGap: 20,
 });
 
 export interface AppPalette {

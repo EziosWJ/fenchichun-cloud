@@ -1,5 +1,8 @@
 import { describe, expect, it } from 'vitest';
+import { readFileSync } from 'node:fs';
+import { runInNewContext } from 'node:vm';
 import { appConfig } from '../../src/config/app.config';
+import tokensCss from '../../src/styles/tokens.css?raw';
 import {
   appPalette,
   createAppTheme,
@@ -11,6 +14,27 @@ import {
 } from '../../src/config/theme';
 
 describe('theme tokens', () => {
+  it('applies the configured default before React, with stored preference taking priority', () => {
+    const html = readFileSync('index.html', 'utf8');
+    const script = html.match(/<script>([\s\S]*?)<\/script>/)?.[1];
+    expect(script).toBeDefined();
+    for (const [configured, stored, systemDark, expected] of [
+      ['light', null, true, 'light'],
+      ['dark', null, false, 'dark'],
+      ['system', null, true, 'dark'],
+      ['light', 'dark', false, 'dark'],
+    ] as const) {
+      const root = { dataset: { theme: '' }, style: { colorScheme: '' } };
+      runInNewContext(script!.replace('%APP_DEFAULT_THEME%', configured), {
+        localStorage: { getItem: () => stored },
+        window: { matchMedia: () => ({ matches: systemDark }) },
+        document: { documentElement: root },
+      });
+      expect(root.dataset.theme).toBe(expected);
+      expect(root.style.colorScheme).toBe(expected);
+    }
+  });
+
   it('derives both themes from the single brand configuration', () => {
     for (const mode of ['light', 'dark'] as const) {
       const config = createAppTheme(mode);
@@ -47,8 +71,17 @@ describe('theme tokens', () => {
 
   it('exposes the shared layout dimensions', () => {
     expect(layoutTokens.siderWidth).toBeGreaterThan(layoutTokens.siderCollapsedWidth);
-    expect(layoutTokens.contentMaxWidth).toBeGreaterThanOrEqual(1440);
-    expect(layoutTokens.pageGap % 4).toBe(0);
+    expect(layoutTokens.headerHeight % 4).toBe(0);
+  });
+
+  it('keeps root colors and shared header height aligned with CSS tokens', () => {
+    const light = tokensCss.match(/:root\s*\{([^}]+)\}/)?.[1] ?? '';
+    const dark = tokensCss.match(/html\[data-theme='dark'\]\s*\{([^}]+)\}/)?.[1] ?? '';
+    expect(light).toContain(`--app-header-height: ${layoutTokens.headerHeight}px;`);
+    for (const [css, mode] of [[light, 'light'], [dark, 'dark']] as const) {
+      expect(css).toContain(`--app-color-page: ${appPalette[mode].colorBgLayout};`);
+      expect(css).toContain(`--app-color-text: ${appPalette[mode].colorText};`);
+    }
   });
 
   it('resolves the stored preference, configured default and system fallback in order', () => {

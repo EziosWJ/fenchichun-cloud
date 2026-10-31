@@ -40,7 +40,7 @@ export function AppProviders({ children, client = defaultQueryClient }: AppProvi
   const [themeMode, setThemeMode] = useState<ThemeMode>(resolveInitialTheme);
 
   useEffect(() => {
-    if (readStoredTheme() || !window.matchMedia) return;
+    if (appConfig.defaultTheme !== 'system' || readStoredTheme() || !window.matchMedia) return;
     const media = window.matchMedia('(prefers-color-scheme: dark)');
     const onChange = (event: MediaQueryListEvent) => {
       if (!readStoredTheme()) setThemeMode(event.matches ? 'dark' : 'light');

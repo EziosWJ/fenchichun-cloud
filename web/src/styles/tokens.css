@@ -1,9 +1,8 @@
 /*
  * 项目级布局 Token 与根节点颜色。
  *
- * 颜色映射的唯一来源是 src/config/theme.ts 的 appPalette。这里只声明
- * html/body 这类位于 AntD CSS 变量作用域之外的元素所需的最小颜色集合；
- * 组件和页面一律使用 --ant-* 语义变量。
+ * html/body 位于 AntD 变量作用域之外，根节点颜色需要在此声明；
+ * 与 src/config/theme.ts 的共享值由主题测试检查一致性。
  */
 :root {
   --app-header-height: 64px;
