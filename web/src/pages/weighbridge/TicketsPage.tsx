@@ -1,13 +1,13 @@
 import { useState } from 'react';
-import { Alert, Button, Collapse, Descriptions, Input, Modal, Select, Space, Tag, Typography } from 'antd';
+import { Alert, Button, Collapse, DatePicker, Descriptions, Input, Modal, Select, Space, Tag, Typography } from 'antd';
 import { useQuery } from '@tanstack/react-query';
 import type { ColumnsType } from 'antd/es/table';
+import dayjs from 'dayjs';
 import { DataTable } from '../../components/DataTable';
 import { PageHeader } from '../../components/PageHeader';
-import { FilterField } from '../../components/SearchFilterBar';
 import { useListUrlState } from '../../hooks/useListUrlState';
 import { getApiErrorMessage } from '../../lib/api/errors';
-import { tickets, totals, type Ticket, type TicketRecord } from '../../features/weighbridge/api';
+import { tickets, type Ticket, type TicketRecord } from '../../features/weighbridge/api';
 import { formatDateTime } from '../../utils/format';
 import styles from './TicketsPage.module.css';
 
@@ -25,6 +25,9 @@ function weight(value: string): string {
 }
 function source(value: string): string {
   return ({ manual: '手工录入', collected: '设备采集' } as Record<string, string>)[value] || value || '—';
+}
+function dateValue(value?: string) {
+  return value && dayjs(value).isValid() ? dayjs(value) : null;
 }
 function finalNet(ticket: Ticket): string {
   return ticket.finalNet || difference(ticket.finalGross, ticket.finalTare);
@@ -61,41 +64,23 @@ export default function TicketsPage() {
   const columns: ColumnsType<TicketRecord> = [...baseColumns, { title: '操作', key: 'actions', render: (_, row) => <Button type="link" onClick={() => setDetail(row)}>详情</Button> }];
   const params = { page: state.page, pageSize: state.pageSize, keyword: state.keyword || undefined, ...state.filters };
   const list = useQuery({ queryKey: ['weighbridge', 'tickets', params], queryFn: () => tickets(params) });
-  const summary = useQuery({ queryKey: ['weighbridge', 'totals', params], queryFn: () => totals(params) });
   return <>
-    <PageHeader title="过磅单查询" description="查看各厂已同步的过磅单和有效单统计。" />
+    <PageHeader title="过磅单查询" description="查看各厂已同步的过磅单。" />
     <Space direction="vertical" size="middle" style={{ width: '100%' }}>
       <Alert type="info" showIcon message="各厂断网或同步期间，数据可能尚未上传；作废后重开的单据可能暂时少计。" />
-      <Space wrap align="end">
-        <FilterField label="单号或车牌" wide>
-          <Input.Search aria-label="单号或车牌" placeholder="单号或车牌" value={keyword} onChange={(e) => setKeyword(e.target.value)} onSearch={(v) => actions.setKeyword(v)} allowClear />
-        </FilterField>
-        <FilterField label="厂区编码">
-          <Input aria-label="厂区编码" placeholder="厂区编码" value={state.filters.siteCode ?? ''} onChange={(e) => actions.setFilter('siteCode', e.target.value)} />
-        </FilterField>
-        <FilterField label="开始日期" date>
-          <Input aria-label="开始日期" type="date" value={state.filters.from ?? ''} onChange={(e) => actions.setFilter('from', e.target.value)} />
-        </FilterField>
-        <FilterField label="结束日期" date>
-          <Input aria-label="结束日期" type="date" value={state.filters.to ?? ''} onChange={(e) => actions.setFilter('to', e.target.value)} />
-        </FilterField>
-        <FilterField label="物料编码">
-          <Input aria-label="物料编码" placeholder="物料编码" value={state.filters.materialCode ?? ''} onChange={(e) => actions.setFilter('materialCode', e.target.value)} />
-        </FilterField>
-        <FilterField label="供收方编码">
-          <Input aria-label="供收方编码" placeholder="供收方编码" value={state.filters.partyCode ?? ''} onChange={(e) => actions.setFilter('partyCode', e.target.value)} />
-        </FilterField>
-        <FilterField label="方向">
-          <Select aria-label="方向" placeholder="全部方向" allowClear value={state.filters.direction || undefined} onChange={(v) => actions.setFilter('direction', v)} options={[{value:'inbound',label:'入厂卸货'},{value:'outbound',label:'出厂装货'}]} />
-        </FilterField>
-        <FilterField label="状态">
-          <Select aria-label="状态" placeholder="全部状态" allowClear value={state.filters.status || undefined} onChange={(v) => actions.setFilter('status', v)} options={[{value:'valid',label:'有效'},{value:'void',label:'作废'}]} />
-        </FilterField>
-        <Button onClick={() => { actions.reset(); setKeyword(''); }}>重置</Button>
-      </Space>
-      {summary.isError ? <Alert type="error" message={`统计加载失败：${getApiErrorMessage(summary.error)}`} /> : <Typography.Text type="secondary">{summary.isLoading ? '正在统计…' : (summary.data?.length ? summary.data.map((v) => `${v.direction === 'inbound' ? '入厂卸货' : '出厂装货'}，物料 ${v.materialCode}，供收方 ${v.partyCode}：${v.count} 趟，${v.netMilliTonne / 1000} 吨`).join('；') : '当前筛选条件下暂无有效单')}</Typography.Text>}
+      <div className={styles.filters} role="group" aria-label="筛选条件">
+        <Input.Search className={styles.keyword} aria-label="单号或车牌" placeholder="单号/车牌" value={keyword} onChange={(e) => setKeyword(e.target.value)} onSearch={(v) => actions.setKeyword(v)} allowClear />
+        <Input className={styles.field} aria-label="厂区编码" placeholder="厂区编码" value={state.filters.siteCode ?? ''} onChange={(e) => actions.setFilter('siteCode', e.target.value)} />
+        <DatePicker className={styles.date} aria-label="开始日期" placeholder="开始日期" format="YYYY-MM-DD" allowClear value={dateValue(state.filters.from)} onChange={(value) => actions.setFilter('from', value ? value.format('YYYY-MM-DD') : '')} />
+        <DatePicker className={styles.date} aria-label="结束日期" placeholder="结束日期" format="YYYY-MM-DD" allowClear value={dateValue(state.filters.to)} onChange={(value) => actions.setFilter('to', value ? value.format('YYYY-MM-DD') : '')} />
+        <Input className={styles.field} aria-label="物料编码" placeholder="物料编码" value={state.filters.materialCode ?? ''} onChange={(e) => actions.setFilter('materialCode', e.target.value)} />
+        <Input className={styles.field} aria-label="供收方编码" placeholder="供收方编码" value={state.filters.partyCode ?? ''} onChange={(e) => actions.setFilter('partyCode', e.target.value)} />
+        <Select className={styles.select} aria-label="方向" placeholder="方向" allowClear value={state.filters.direction || undefined} onChange={(v) => actions.setFilter('direction', v)} options={[{value:'inbound',label:'入厂卸货'},{value:'outbound',label:'出厂装货'}]} />
+        <Select className={styles.select} aria-label="状态" placeholder="状态" allowClear value={state.filters.status || undefined} onChange={(v) => actions.setFilter('status', v)} options={[{value:'valid',label:'有效'},{value:'void',label:'作废'}]} />
+        <Button className={styles.reset} onClick={() => { actions.reset(); setKeyword(''); }}>重置</Button>
+      </div>
       {list.isError && <Alert type="error" message={`单据加载失败：${getApiErrorMessage(list.error)}`} action={<Button onClick={() => void list.refetch()}>重试</Button>} />}
-      <DataTable tableKey="weighbridge-tickets" rowKey={(row) => `${row.siteCode}:${row.ticket.ticketNo}`} columns={columns} dataSource={list.data?.items ?? []} total={list.data?.total ?? 0} page={state.page} pageSize={state.pageSize} onPageChange={actions.setPage} loading={list.isLoading} onRefresh={() => { void list.refetch(); void summary.refetch(); }} />
+      <DataTable tableKey="weighbridge-tickets" rowKey={(row) => `${row.siteCode}:${row.ticket.ticketNo}`} columns={columns} dataSource={list.data?.items ?? []} total={list.data?.total ?? 0} page={state.page} pageSize={state.pageSize} onPageChange={actions.setPage} loading={list.isLoading} onRefresh={() => void list.refetch()} />
     </Space>
     <Modal title="过磅单详情" open={!!detail} onCancel={() => setDetail(null)} footer={<Button onClick={() => setDetail(null)}>关闭</Button>} width={800}>
       {detail && <div className={styles.detail}>

@@ -9,6 +9,8 @@ import {
 } from 'react';
 import { App as AntApp, ConfigProvider } from 'antd';
 import zhCN from 'antd/locale/zh_CN';
+import dayjs from 'dayjs';
+import 'dayjs/locale/zh-cn';
 import { QueryClientProvider, type QueryClient } from '@tanstack/react-query';
 import { appConfig } from '../config/app.config';
 import {
@@ -21,6 +23,8 @@ import {
 } from '../config/theme';
 import { queryClient as defaultQueryClient } from '../lib/queryClient';
 import { AppErrorBoundary } from './AppErrorBoundary';
+
+dayjs.locale('zh-cn');
 
 export type { ThemeMode } from '../config/theme';
 
