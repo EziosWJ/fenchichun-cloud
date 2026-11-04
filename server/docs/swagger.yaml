@@ -3753,6 +3753,86 @@ paths:
       summary: 用户分页
       tags:
       - 用户管理
+  /api/v1/weighbridge/analytics/flow:
+    get:
+      responses: {}
+      security:
+      - BearerAuth: []
+      summary: 进出厂分析
+      tags:
+      - 统计与分析
+  /api/v1/weighbridge/analytics/flow/export:
+    get:
+      responses: {}
+      security:
+      - BearerAuth: []
+      summary: 导出进出厂分析 CSV
+      tags:
+      - 统计与分析
+  /api/v1/weighbridge/analytics/materials:
+    get:
+      responses: {}
+      security:
+      - BearerAuth: []
+      summary: 物料分析
+      tags:
+      - 统计与分析
+  /api/v1/weighbridge/analytics/materials/export:
+    get:
+      responses: {}
+      security:
+      - BearerAuth: []
+      summary: 导出物料分析 CSV
+      tags:
+      - 统计与分析
+  /api/v1/weighbridge/analytics/overview:
+    get:
+      responses: {}
+      security:
+      - BearerAuth: []
+      summary: 经营总览
+      tags:
+      - 统计与分析
+  /api/v1/weighbridge/analytics/parties:
+    get:
+      responses: {}
+      security:
+      - BearerAuth: []
+      summary: 供收方分析
+      tags:
+      - 统计与分析
+  /api/v1/weighbridge/analytics/parties/detail:
+    get:
+      responses: {}
+      security:
+      - BearerAuth: []
+      summary: 供收方详情
+      tags:
+      - 统计与分析
+  /api/v1/weighbridge/analytics/parties/export:
+    get:
+      responses: {}
+      security:
+      - BearerAuth: []
+      summary: 导出供收方分析 CSV
+      tags:
+      - 统计与分析
+  /api/v1/weighbridge/analytics/quality:
+    get:
+      responses: {}
+      security:
+      - BearerAuth: []
+      summary: 数据质量
+      tags:
+      - 统计与分析
+  /api/v1/weighbridge/analytics/quality/export:
+    get:
+      responses: {}
+      security:
+      - BearerAuth: []
+      summary: 导出数据质量异常明细 CSV
+      tags:
+      - 统计与分析
   /api/v1/weighbridge/master/categories:
     get:
       responses:

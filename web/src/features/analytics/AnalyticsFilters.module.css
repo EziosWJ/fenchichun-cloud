@@ -1,0 +1,39 @@
+.filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.range {
+  width: 250px;
+}
+
+.select {
+  width: 180px;
+}
+
+.smallSelect {
+  width: 120px;
+}
+
+.keyword {
+  width: 200px;
+}
+
+.reset {
+  margin-left: auto;
+}
+
+@media (max-width: 768px) {
+  .range,
+  .select,
+  .smallSelect,
+  .keyword {
+    width: 100%;
+  }
+
+  .reset {
+    margin-left: 0;
+  }
+}

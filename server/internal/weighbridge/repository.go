@@ -25,26 +25,53 @@ type site struct {
 func (site) TableName() string { return "wb_cloud_site" }
 
 type cloudTicket struct {
-	ID                 int64
-	SiteCode           string
-	IssuedSiteCode     string
-	PreviousSiteCode   *string
-	TicketNo           string
-	PreviousTicketNo   *string
-	Status             string
-	Direction          string
-	Plate              string
-	IssuedAt           time.Time
-	MaterialCode       string
-	PartyCode          string
-	FinalNetMilliTonne int64
-	Snapshot           string
-	VoidReason         *string
-	VoidedBy           *string
-	VoidedAt           *time.Time
-	LatestDigest       *string
-	LatestChangeType   *string
-	LatestReceivedAt   *time.Time
+	ID                         int64
+	SiteCode                   string
+	IssuedSiteCode             string
+	PreviousSiteCode           *string
+	TicketNo                   string
+	PreviousTicketNo           *string
+	Status                     string
+	Direction                  string
+	Plate                      string
+	IssuedAt                   time.Time
+	MaterialCode               string
+	PartyCode                  string
+	FinalNetMilliTonne         int64
+	Snapshot                   string
+	VoidReason                 *string
+	VoidedBy                   *string
+	VoidedAt                   *time.Time
+	LatestDigest               *string
+	LatestChangeType           *string
+	LatestReceivedAt           *time.Time
+	OriginalGrossMilliTonne    *int64
+	OriginalTareMilliTonne     *int64
+	FinalGrossMilliTonne       *int64
+	FinalTareMilliTonne        *int64
+	PreAdjustmentNetMilliTonne *int64
+	NetAdjustmentMilliTonne    *int64
+	AdjustmentKnown            bool
+	Adjusted                   bool
+	AdjustmentMode             *string
+	AdjustmentCategory         *string
+	AdjustmentCategoryName     *string
+	FirstConfirmedAt           *time.Time
+	SecondConfirmedAt          *time.Time
+	WeighIntervalSeconds       *int64
+	IssuedLagSeconds           *int64
+	CrossDay                   bool
+	GrossSource                *string
+	TareSource                 *string
+	IssuerName                 *string
+	Driver                     *string
+	DriverPhone                *string
+	ContactName                *string
+	ContactPhone               *string
+	MaterialName               *string
+	MaterialSpec               *string
+	PartyName                  *string
+	IssuedDate                 *time.Time
 }
 
 func (cloudTicket) TableName() string { return "wb_cloud_ticket" }
@@ -149,6 +176,9 @@ func (r *Repository) ApplyChange(ctx context.Context, c Change) (ChangeReceipt, 
 				previousSiteCode = &c.PreviousSiteCode
 			}
 			ticket = cloudTicket{SiteCode: s.Code, IssuedSiteCode: c.SiteCode, PreviousSiteCode: previousSiteCode, TicketNo: c.TicketNo, PreviousTicketNo: t.PreviousTicketNo, Status: "valid", Direction: t.Direction, Plate: t.Plate, IssuedAt: t.IssuedAt, MaterialCode: t.MaterialCode, PartyCode: t.PartyCode, FinalNetMilliTonne: net, Snapshot: string(snapshot)}
+			if err := setTicketAnalytics(&ticket, *t); err != nil {
+				return ErrInvalid
+			}
 			if err := tx.Create(&ticket).Error; err != nil {
 				return err
 			}

@@ -30,6 +30,7 @@ type Store interface {
 	LookupChange(context.Context, string, string) (ChangeLookup, error)
 	SiteReceipts(context.Context, int64) ([]SiteReceipt, error)
 	TicketReceipt(context.Context, int64, string, string) (TicketReceipt, error)
+	AnalyticsStore
 }
 
 func (s *Service) TicketPage(ctx context.Context, q TicketQuery) (TicketPage, error) {

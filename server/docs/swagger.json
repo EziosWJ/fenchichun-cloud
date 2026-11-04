@@ -4129,6 +4129,146 @@
                 }
             }
         },
+        "/api/v1/weighbridge/analytics/flow": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "tags": [
+                    "统计与分析"
+                ],
+                "summary": "进出厂分析",
+                "responses": {}
+            }
+        },
+        "/api/v1/weighbridge/analytics/flow/export": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "tags": [
+                    "统计与分析"
+                ],
+                "summary": "导出进出厂分析 CSV",
+                "responses": {}
+            }
+        },
+        "/api/v1/weighbridge/analytics/materials": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "tags": [
+                    "统计与分析"
+                ],
+                "summary": "物料分析",
+                "responses": {}
+            }
+        },
+        "/api/v1/weighbridge/analytics/materials/export": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "tags": [
+                    "统计与分析"
+                ],
+                "summary": "导出物料分析 CSV",
+                "responses": {}
+            }
+        },
+        "/api/v1/weighbridge/analytics/overview": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "tags": [
+                    "统计与分析"
+                ],
+                "summary": "经营总览",
+                "responses": {}
+            }
+        },
+        "/api/v1/weighbridge/analytics/parties": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "tags": [
+                    "统计与分析"
+                ],
+                "summary": "供收方分析",
+                "responses": {}
+            }
+        },
+        "/api/v1/weighbridge/analytics/parties/detail": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "tags": [
+                    "统计与分析"
+                ],
+                "summary": "供收方详情",
+                "responses": {}
+            }
+        },
+        "/api/v1/weighbridge/analytics/parties/export": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "tags": [
+                    "统计与分析"
+                ],
+                "summary": "导出供收方分析 CSV",
+                "responses": {}
+            }
+        },
+        "/api/v1/weighbridge/analytics/quality": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "tags": [
+                    "统计与分析"
+                ],
+                "summary": "数据质量",
+                "responses": {}
+            }
+        },
+        "/api/v1/weighbridge/analytics/quality/export": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "tags": [
+                    "统计与分析"
+                ],
+                "summary": "导出数据质量异常明细 CSV",
+                "responses": {}
+            }
+        },
         "/api/v1/weighbridge/master/categories": {
             "get": {
                 "security": [
