@@ -19,6 +19,7 @@ const BACKEND_MENU_COMPONENTS = [
   'system/login-log/index',
   'system/oper-log/index',
   'monitor/server/index',
+  'weighbridge/analytics/statement/index',
 ];
 
 function menu(path: string, component: string | null = null): CurrentUserMenu {

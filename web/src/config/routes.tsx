@@ -1,5 +1,6 @@
 import { lazy, type ComponentType, type LazyExoticComponent } from 'react';
 import {
+  BarChart3,
   Bell,
   Building2,
   ClipboardList,
@@ -82,6 +83,24 @@ export const routeDefinitions: AppRouteDefinition[] = [
     menuPath: paths.weighbridgeSync,
     adminOnly: true,
     component: lazy(() => import('../pages/weighbridge/SyncPage')),
+  },
+  {
+    path: paths.analyticsStatement,
+    label: '客户对账',
+    title: '客户对账',
+    description: '按厂区与往来方汇总有效过磅单的最终净重，支持销售客户和采购供应商两个方向。',
+    icon: BarChart3,
+    menuComponent: 'weighbridge/analytics/statement/index',
+    menuPath: paths.analyticsStatement,
+    component: lazy(() => import('../pages/analytics/StatementPage')),
+  },
+  {
+    path: paths.analyticsStatementDetail,
+    label: '客户对账单',
+    title: '客户对账单',
+    hideInMenu: true,
+    parentPath: paths.analyticsStatement,
+    component: lazy(() => import('../pages/analytics/StatementDetailPage')),
   },
   {
     path: paths.dashboard,

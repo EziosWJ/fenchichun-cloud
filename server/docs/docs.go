@@ -4476,6 +4476,188 @@ const docTemplate = `{
                 }
             }
         },
+        "/api/v1/weighbridge/statements/parties": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "tags": [
+                    "统计与分析"
+                ],
+                "summary": "客户对账往来方汇总",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "inbound/outbound",
+                        "name": "direction",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "厂区编码",
+                        "name": "siteCode",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "往来方名称或编码",
+                        "name": "keyword",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "物料编码",
+                        "name": "materialCode",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "开始日期 YYYY-MM-DD（北京时间）",
+                        "name": "from",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "结束日期 YYYY-MM-DD（北京时间，包含当天）",
+                        "name": "to",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "页码",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "每页条数，1-100",
+                        "name": "pageSize",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/weighbridge.ApiEnvelope"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/weighbridge/statements/parties/detail": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "tags": [
+                    "统计与分析"
+                ],
+                "summary": "单个厂区与往来方的对账单汇总",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "inbound/outbound",
+                        "name": "direction",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "厂区编码",
+                        "name": "siteCode",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "往来方编码",
+                        "name": "partyCode",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "物料编码",
+                        "name": "materialCode",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "开始日期 YYYY-MM-DD（北京时间）",
+                        "name": "from",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "结束日期 YYYY-MM-DD（北京时间，包含当天）",
+                        "name": "to",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/weighbridge.ApiEnvelope"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/weighbridge/statements/parties/detail/export": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "produces": [
+                    "text/csv"
+                ],
+                "tags": [
+                    "统计与分析"
+                ],
+                "summary": "导出单个往来方对账单明细 CSV",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "file"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/weighbridge/statements/parties/export": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "produces": [
+                    "text/csv"
+                ],
+                "tags": [
+                    "统计与分析"
+                ],
+                "summary": "导出客户对账往来方汇总 CSV",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "file"
+                        }
+                    }
+                }
+            }
+        },
         "/api/v1/weighbridge/sync/changes": {
             "post": {
                 "description": "兼容版本 2 和 3，按厂区编码归属，重开使用 previousSiteCode 和 previousTicketNo 定位原单；版本 3 携带净重调整并以其 finalNet 作为统计净重。",

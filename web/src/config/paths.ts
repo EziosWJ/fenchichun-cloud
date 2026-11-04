@@ -21,6 +21,8 @@ export const paths = Object.freeze({
   weighbridgeMaster: '/weighbridge/master',
   weighbridgeSites: '/weighbridge/sites',
   weighbridgeSync: '/weighbridge/sync',
+  analyticsStatement: '/analytics/reconciliation',
+  analyticsStatementDetail: '/analytics/reconciliation/detail',
   accountProfile: '/account/profile',
   changePassword: '/account/change-password',
 });
