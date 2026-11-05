@@ -84,7 +84,7 @@ export default function OverviewPage() {
       <PageHeader
         title="经营总览"
         description="按出单时间汇总云端有效过磅单，展示入厂、出厂、净流入、结构与异常。过磅净流入不是库存。"
-        extra={<Button onClick={() => void overview.refetch()}>刷新</Button>}
+        extra={<Button onClick={() => void overview.refetch()} loading={overview.isFetching}>刷新</Button>}
       />
       <Space direction="vertical" size="middle" style={{ width: '100%' }}>
         <Card size="small">
@@ -117,7 +117,7 @@ export default function OverviewPage() {
             <KpiCard label="作废率" value={summary ? formatBp(summary.voidRateBp) : '—'} hint={summary ? `${summary.voidTickets} 张作废单` : undefined} />
           </Col>
           <Col xs={24} sm={12} xl={6}>
-            <KpiCard label="平均单次净重" value={summary?.avgNetPerTicketMilliTonne != null ? formatMilliTonne(summary.avgNetPerTicketMilliTonne) : '—'} suffix="吨" />
+            <KpiCard label="平均单次净重" value={summary?.avgNetPerTicketMilliTonne != null ? formatMilliTonne(summary.avgNetPerTicketMilliTonne) : '—'} suffix="吨" hint="净重 / 有效车次" />
           </Col>
           <Col xs={24} sm={12} xl={6}>
             <KpiCard label="净重调整" value={summary ? formatMilliTonne(summary.adjustmentNetMilliTonne) : '—'} suffix="吨" hint={summary ? `${summary.adjustedTickets} 张调整单` : undefined} />

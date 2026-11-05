@@ -89,7 +89,7 @@ export default function MaterialsPage() {
       <PageHeader
         title="物料分析"
         description="按物料/规格汇总入厂、出厂、净重、扣量和最后一次过磅时间；分类按当前主数据关联。"
-        extra={<Space><Button onClick={() => void materials.refetch()}>刷新</Button><Button onClick={() => void exportMaterials()} loading={exporting}>导出当前筛选 CSV</Button></Space>}
+        extra={<Space><Button onClick={() => void materials.refetch()} loading={materials.isFetching}>刷新</Button><Button onClick={() => void exportMaterials()} loading={exporting}>导出当前筛选 CSV</Button></Space>}
       />
       <Space direction="vertical" size="middle" style={{ width: '100%' }}>
         <Card size="small">

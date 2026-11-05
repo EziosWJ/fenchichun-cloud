@@ -124,7 +124,7 @@ export default function PartiesPage() {
       <PageHeader
         title="供收方分析"
         description="入厂按供货方、出厂按收货方汇总车次、净重、扣量和集中度；方向由过磅单 inbound/outbound 决定。"
-        extra={<Space><Button onClick={() => void parties.refetch()}>刷新</Button><Button onClick={() => void exportParties()} loading={exporting}>导出当前筛选 CSV</Button></Space>}
+        extra={<Space><Button onClick={() => void parties.refetch()} loading={parties.isFetching}>刷新</Button><Button onClick={() => void exportParties()} loading={exporting}>导出当前筛选 CSV</Button></Space>}
       />
       <Space direction="vertical" size="middle" style={{ width: '100%' }}>
         <Card size="small">

@@ -15,8 +15,8 @@ export function trendChartOption(trend: TrendSeries | undefined): EChartsOption 
       trigger: 'axis',
       valueFormatter: (value) => `${Number(value).toFixed(3)} 吨`,
     },
-    legend: { data: ['入厂净重', '出厂净重', '过磅净流入'] },
-    grid: { left: 48, right: 24, top: 40, bottom: 32 },
+    legend: { data: ['入厂净重', '出厂净重', '过磅净流入'], top: 4, itemGap: 20 },
+    grid: { left: 48, right: 24, top: 64, bottom: 32 },
     xAxis: { type: 'category', data: points.map((point) => point.period), boundaryGap: false },
     yAxis: {
       type: 'value',
@@ -130,8 +130,8 @@ export function materialTrendOption(series: MaterialTrendSeries[] | undefined): 
   return {
     color: palette,
     tooltip: { trigger: 'axis', valueFormatter: (value) => `${Number(value).toFixed(3)} 吨` },
-    legend: { data: rows.map((item) => item.materialName || item.materialCode) },
-    grid: { left: 48, right: 24, top: 40, bottom: 32 },
+    legend: { data: rows.map((item) => item.materialName || item.materialCode), top: 4, itemGap: 20 },
+    grid: { left: 48, right: 24, top: 64, bottom: 32 },
     xAxis: { type: 'category', data: periods, boundaryGap: false },
     yAxis: {
       type: 'value',

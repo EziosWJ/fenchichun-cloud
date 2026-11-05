@@ -89,18 +89,13 @@ export function AnalyticsFilterBar({
   };
 
   const reset = () => {
-    actions.setFilters({
+    // 一次 URL 更新完成关键字和筛选重置，避免两次 setSearchParams 互相覆盖。
+    actions.applyFilters('', {
       from: defaultFrom,
       to: defaultTo,
       compare: 'previous',
-      siteCode: '',
       direction: directionRequired ? state.filters.direction || 'inbound' : '',
-      materialCode: '',
-      categoryCode: '',
-      partyCode: '',
-      granularity: '',
     });
-    actions.setKeyword('');
   };
 
   return (

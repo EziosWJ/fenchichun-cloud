@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
-import { screen } from '@testing-library/react';
+import { screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import OverviewPage from '../../src/pages/analytics/OverviewPage';
 import FlowPage from '../../src/pages/analytics/FlowPage';
 import MaterialsPage from '../../src/pages/analytics/MaterialsPage';
@@ -204,5 +205,37 @@ describe('统计与分析页面（扩展）', () => {
     expect(await screen.findByText('数据质量')).toBeInTheDocument();
     expect(await screen.findByText('作废分析')).toBeInTheDocument();
     expect(await screen.findByText('作废原因明细')).toBeInTheDocument();
+  });
+});
+
+
+describe('经营总览交互', () => {
+  it('重置筛选并刷新数据', async () => {
+    weighing.sites.mockResolvedValue([]);
+    weighing.materials.mockResolvedValue([]);
+    weighing.categories.mockResolvedValue([]);
+    analytics.analyticsOverview.mockResolvedValue({
+      summary,
+      comparison: { previous: comparison, year: comparison },
+      trend: { granularity: 'month', points: [] },
+      materialStructure: [],
+      topMaterials: [],
+      topParties: [],
+      alerts: [],
+      freshness,
+    });
+    renderWithProviders(<OverviewPage />, {
+      route: '/analytics/overview?from=2026-10-01&to=2026-10-31&compare=year&siteCode=SITE01',
+    });
+    await waitFor(() => expect(analytics.analyticsOverview).toHaveBeenCalled());
+    const beforeRefresh = analytics.analyticsOverview.mock.calls.length;
+    await userEvent.click(screen.getByRole('button', { name: '重置' }));
+    await waitFor(() => {
+      const last = analytics.analyticsOverview.mock.calls.at(-1)?.[0] as Record<string, unknown>;
+      expect(last.siteCode).toBeUndefined();
+      expect(last.compare).toBe('previous');
+    });
+    await userEvent.click(screen.getByRole('button', { name: '刷新' }));
+    await waitFor(() => expect(analytics.analyticsOverview.mock.calls.length).toBeGreaterThan(beforeRefresh));
   });
 });

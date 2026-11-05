@@ -16,13 +16,19 @@ export function KpiCard({
   hint?: ReactNode;
 }) {
   return (
-    <Card size="small">
+    <Card
+      size="small"
+      style={{ height: '100%' }}
+      styles={{ body: { display: 'flex', flexDirection: 'column', height: '100%' } }}
+    >
       <Statistic title={label} value={value as string | number} suffix={suffix} />
-      {hint && (
-        <Typography.Text type="secondary" style={{ display: 'block', marginTop: 4, fontSize: 12 }}>
-          {hint}
-        </Typography.Text>
-      )}
+      <div style={{ minHeight: 20, marginTop: 4 }}>
+        {hint && (
+          <Typography.Text type="secondary" style={{ display: 'block', fontSize: 12 }}>
+            {hint}
+          </Typography.Text>
+        )}
+      </div>
     </Card>
   );
 }
