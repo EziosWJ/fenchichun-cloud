@@ -3777,12 +3777,28 @@ paths:
       summary: 物料分析
       tags:
       - 统计与分析
+  /api/v1/weighbridge/analytics/materials/byproduct-flow:
+    get:
+      responses: {}
+      security:
+      - BearerAuth: []
+      summary: 副产品出库流向
+      tags:
+      - 统计与分析
   /api/v1/weighbridge/analytics/materials/export:
     get:
       responses: {}
       security:
       - BearerAuth: []
       summary: 导出物料分析 CSV
+      tags:
+      - 统计与分析
+  /api/v1/weighbridge/analytics/materials/supplier-quality:
+    get:
+      responses: {}
+      security:
+      - BearerAuth: []
+      summary: 核心原料供应商扣量稳定性
       tags:
       - 统计与分析
   /api/v1/weighbridge/analytics/overview:

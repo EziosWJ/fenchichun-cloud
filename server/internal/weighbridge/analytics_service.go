@@ -18,6 +18,14 @@ type AnalyticsStore interface {
 	AnalyticsMaterialRows(context.Context, AnalyticsQuery) ([]analyticsMaterialRow, int64, error)
 	AnalyticsMaterialStructure(context.Context, AnalyticsQuery) ([]analyticsStructureRow, error)
 	AnalyticsMaterialTrend(context.Context, AnalyticsQuery, []string) ([]analyticsMaterialTrendRow, error)
+	AnalyticsSupplierQualitySummary(context.Context, AnalyticsQuery) (analyticsSupplierQualitySummaryRow, error)
+	AnalyticsSupplierQualityRows(context.Context, AnalyticsQuery) ([]analyticsSupplierQualityRow, int64, error)
+	AnalyticsSupplierQualityTrend(context.Context, AnalyticsQuery, []string) ([]analyticsSupplierRateTrendRow, error)
+	AnalyticsByproductSummary(context.Context, AnalyticsQuery) (analyticsByproductSummaryRow, error)
+	AnalyticsByproductRows(context.Context, AnalyticsQuery) ([]analyticsByproductRow, int64, error)
+	AnalyticsByproductConcentration(context.Context, AnalyticsQuery) ([]analyticsPartyConcentrationRow, error)
+	AnalyticsByproductMaterials(context.Context, AnalyticsQuery) ([]analyticsByproductMaterialRow, error)
+	AnalyticsByproductTrend(context.Context, AnalyticsQuery) ([]analyticsByproductTrendRow, error)
 
 	AnalyticsPartyTotals(context.Context, AnalyticsQuery) (analyticsPartyTotalsRow, error)
 	AnalyticsPartyRows(context.Context, AnalyticsQuery) ([]analyticsPartyRow, int64, error)
@@ -997,5 +1005,197 @@ func rateBp(numerator, denominator int64) *int64 {
 		return nil
 	}
 	value := numerator * 10000 / denominator
+	return &value
+}
+
+func (s *Service) AnalyticsSupplierQuality(ctx context.Context, q AnalyticsQuery) (AnalyticsSupplierQualityData, error) {
+	summaryRow, err := s.store.AnalyticsSupplierQualitySummary(ctx, q)
+	if err != nil {
+		return AnalyticsSupplierQualityData{}, err
+	}
+	rows, total, err := s.store.AnalyticsSupplierQualityRows(ctx, q)
+	if err != nil {
+		return AnalyticsSupplierQualityData{}, err
+	}
+	topRows, _, err := s.store.AnalyticsSupplierQualityRows(ctx, withPage(q, 1, 5, "sample"))
+	if err != nil {
+		return AnalyticsSupplierQualityData{}, err
+	}
+	chartRows, _, err := s.store.AnalyticsSupplierQualityRows(ctx, withPage(q, 1, q.TopN, "avg"))
+	if err != nil {
+		return AnalyticsSupplierQualityData{}, err
+	}
+	codes := make([]string, 0, len(topRows))
+	seen := map[string]struct{}{}
+	for _, row := range topRows {
+		if _, ok := seen[row.PartyCode]; ok {
+			continue
+		}
+		seen[row.PartyCode] = struct{}{}
+		codes = append(codes, row.PartyCode)
+	}
+	trendRows, err := s.store.AnalyticsSupplierQualityTrend(ctx, q, codes)
+	if err != nil {
+		return AnalyticsSupplierQualityData{}, err
+	}
+	freshness, err := s.store.AnalyticsFreshness(ctx)
+	if err != nil {
+		return AnalyticsSupplierQualityData{}, err
+	}
+	result := AnalyticsSupplierQualityData{
+		Summary: AnalyticsSupplierQualitySummary{
+			SupplierCount: summaryRow.SupplierCount, TicketCount: summaryRow.TicketCount,
+			SampleCount: summaryRow.SampleCount, AdjustedTickets: summaryRow.AdjustedTickets,
+			WeightedRateBp: rateBp(summaryRow.TotalAdjustmentMilliTonne, summaryRow.TotalPreAdjustmentNetMilliTonne),
+			AvgRateBp:      summaryRow.AvgRateBp, MedianRateBp: summaryRow.MedianRateBp, P90RateBp: summaryRow.P90RateBp,
+			AdjustmentCoverageBp: rateBp(summaryRow.SampleCount, summaryRow.TicketCount),
+		},
+		Records: make([]AnalyticsSupplierQualityRow, 0, len(rows)),
+		Top:     make([]AnalyticsSupplierQualityRow, 0, len(chartRows)),
+		Total:   total, Page: q.Page, PageSize: q.PageSize,
+		Trend:     buildSupplierQualityTrend(trendRows, q.Granularity),
+		Freshness: freshness,
+	}
+	for _, row := range rows {
+		result.Records = append(result.Records, supplierQualityRowFromDB(row))
+	}
+	for _, row := range chartRows {
+		result.Top = append(result.Top, supplierQualityRowFromDB(row))
+	}
+	return result, nil
+}
+
+func (s *Service) AnalyticsByproductFlow(ctx context.Context, q AnalyticsQuery) (AnalyticsByproductData, error) {
+	summaryRow, err := s.store.AnalyticsByproductSummary(ctx, q)
+	if err != nil {
+		return AnalyticsByproductData{}, err
+	}
+	rows, total, err := s.store.AnalyticsByproductRows(ctx, q)
+	if err != nil {
+		return AnalyticsByproductData{}, err
+	}
+	topRows, _, err := s.store.AnalyticsByproductRows(ctx, withPage(q, 1, q.TopN, "net"))
+	if err != nil {
+		return AnalyticsByproductData{}, err
+	}
+	concentrationRows, err := s.store.AnalyticsByproductConcentration(ctx, q)
+	if err != nil {
+		return AnalyticsByproductData{}, err
+	}
+	materialRows, err := s.store.AnalyticsByproductMaterials(ctx, q)
+	if err != nil {
+		return AnalyticsByproductData{}, err
+	}
+	trendRows, err := s.store.AnalyticsByproductTrend(ctx, q)
+	if err != nil {
+		return AnalyticsByproductData{}, err
+	}
+	freshness, err := s.store.AnalyticsFreshness(ctx)
+	if err != nil {
+		return AnalyticsByproductData{}, err
+	}
+	totalNet := summaryRow.TotalNetMilliTonne
+	summary := AnalyticsByproductSummary{
+		ActiveCustomers: summaryRow.ActiveCustomers, TicketCount: summaryRow.TicketCount,
+		TotalNetMilliTonne: totalNet, AvgNetPerCustomerMilliTonne: average(totalNet, summaryRow.ActiveCustomers),
+		MaterialCount: summaryRow.MaterialCount,
+	}
+	summary.CR3Bp, summary.CR5Bp, summary.CR10Bp, summary.HHI = concentrationMetrics(concentrationRows, totalNet)
+	if len(concentrationRows) > 0 {
+		summary.TopCustomerShareBp = rateBp(concentrationRows[0].NetMilliTonne, totalNet)
+	}
+	result := AnalyticsByproductData{
+		Summary: summary, Total: total, Page: q.Page, PageSize: q.PageSize,
+		Records:       make([]AnalyticsByproductRow, 0, len(rows)),
+		Top:           make([]AnalyticsByproductRow, 0, len(topRows)),
+		Concentration: buildPartyConcentration(concentrationRows, totalNet, 20),
+		Materials:     make([]AnalyticsByproductMaterial, 0, len(materialRows)),
+		Trend:         buildByproductTrend(trendRows, q.Granularity),
+		Freshness:     freshness,
+	}
+	for _, row := range rows {
+		result.Records = append(result.Records, byproductRowFromDB(row, totalNet))
+	}
+	for _, row := range topRows {
+		result.Top = append(result.Top, byproductRowFromDB(row, totalNet))
+	}
+	for _, row := range materialRows {
+		result.Materials = append(result.Materials, AnalyticsByproductMaterial{
+			MaterialCode: row.MaterialCode, MaterialName: row.MaterialName,
+			TicketCount: row.TicketCount, NetMilliTonne: row.NetMilliTonne,
+			ShareBp: rateBp(row.NetMilliTonne, totalNet),
+		})
+	}
+	return result, nil
+}
+
+func supplierQualityRowFromDB(row analyticsSupplierQualityRow) AnalyticsSupplierQualityRow {
+	return AnalyticsSupplierQualityRow{
+		PartyCode: row.PartyCode, PartyName: row.PartyName, Nature: row.Nature,
+		TicketCount: row.TicketCount, SampleCount: row.SampleCount, AdjustedTickets: row.AdjustedTickets,
+		AdjustmentCoverageBp: rateBp(row.SampleCount, row.TicketCount),
+		WeightedRateBp:       rateBp(row.TotalAdjustmentMilliTonne, row.TotalPreAdjustmentNetMilliTonne),
+		AvgRateBp:            row.AvgRateBp, MedianRateBp: row.MedianRateBp, P90RateBp: row.P90RateBp,
+		StddevRateBp: row.StddevRateBp, CvBp: cvBp(row.StddevRateBp, row.AvgRateBp),
+		MinRateBp: row.MinRateBp, MaxRateBp: row.MaxRateBp,
+		TotalAdjustmentMilliTonne:       row.TotalAdjustmentMilliTonne,
+		TotalPreAdjustmentNetMilliTonne: row.TotalPreAdjustmentNetMilliTonne,
+		MaterialCount:                   row.MaterialCount, MaterialNames: row.MaterialNames,
+		FirstIssuedAt: row.FirstIssuedAt, LastIssuedAt: row.LastIssuedAt,
+	}
+}
+
+func byproductRowFromDB(row analyticsByproductRow, totalNet int64) AnalyticsByproductRow {
+	return AnalyticsByproductRow{
+		PartyCode: row.PartyCode, PartyName: row.PartyName, Nature: row.Nature,
+		TicketCount: row.TicketCount, NetMilliTonne: row.NetMilliTonne,
+		AvgNetPerTicketMilliTonne: average(row.NetMilliTonne, row.TicketCount),
+		ShareBp:                   rateBp(row.NetMilliTonne, totalNet),
+		FirstIssuedAt:             row.FirstIssuedAt, LastIssuedAt: row.LastIssuedAt,
+		MaterialCount: row.MaterialCount, MaterialNames: row.MaterialNames,
+	}
+}
+
+func buildSupplierQualityTrend(rows []analyticsSupplierRateTrendRow, granularity string) []AnalyticsSupplierQualityTrend {
+	series := make([]AnalyticsSupplierQualityTrend, 0)
+	index := map[string]int{}
+	for _, row := range rows {
+		position, ok := index[row.PartyCode]
+		if !ok {
+			position = len(series)
+			index[row.PartyCode] = position
+			series = append(series, AnalyticsSupplierQualityTrend{PartyCode: row.PartyCode, PartyName: row.PartyName})
+		}
+		series[position].Points = append(series[position].Points, AnalyticsRateTrendPoint{
+			Period:      periodLabel(row.PeriodStart, granularity),
+			PeriodStart: row.PeriodStart.Format("2006-01-02"),
+			PeriodEnd:   periodEnd(row.PeriodStart, granularity).Format("2006-01-02"),
+			AvgRateBp:   row.AvgRateBp, SampleCount: row.SampleCount,
+		})
+	}
+	return series
+}
+
+func buildByproductTrend(rows []analyticsByproductTrendRow, granularity string) []AnalyticsByproductTrendPoint {
+	result := make([]AnalyticsByproductTrendPoint, 0, len(rows))
+	for _, row := range rows {
+		result = append(result, AnalyticsByproductTrendPoint{
+			Period:      periodLabel(row.PeriodStart, granularity),
+			PeriodStart: row.PeriodStart.Format("2006-01-02"),
+			PeriodEnd:   periodEnd(row.PeriodStart, granularity).Format("2006-01-02"),
+			TicketCount: row.TicketCount, NetMilliTonne: row.NetMilliTonne,
+		})
+	}
+	return result
+}
+
+func cvBp(stddev, avg *int64) *int64 {
+	if stddev == nil || avg == nil || *avg == 0 {
+		return nil
+	}
+	value := *stddev * 10000 / *avg
+	if value < 0 {
+		value = -value
+	}
 	return &value
 }

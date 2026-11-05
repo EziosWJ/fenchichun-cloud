@@ -115,6 +115,7 @@ export function AnalyticsFilterBar({
         <Button size="small" onClick={() => setPeriod(dayjs().startOf('month'), dayjs().endOf('month'))}>本月</Button>
         <Button size="small" onClick={() => setPeriod(dayjs().subtract(1, 'month').startOf('month'), dayjs().subtract(1, 'month').endOf('month'))}>上月</Button>
         <Button size="small" onClick={() => setPeriod(dayjs().subtract(2, 'month').startOf('month'), dayjs().endOf('month'))}>近3个月</Button>
+        <Button size="small" onClick={() => setPeriod(dayjs().subtract(11, 'month').startOf('month'), dayjs().endOf('month'))}>近12个月</Button>
         <Button size="small" onClick={() => setPeriod(dayjs().startOf('year'), dayjs().endOf('year'))}>本年</Button>
       </Space>
       <Select

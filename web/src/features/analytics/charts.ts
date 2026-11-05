@@ -1,5 +1,5 @@
 import type { EChartsOption } from 'echarts';
-import type { MaterialTrendSeries, StructureRow, TopRow, TrendSeries } from './api';
+import type { ByproductTrendPoint, MaterialTrendSeries, StructureRow, SupplierQualityRow, SupplierQualityTrend, TopRow, TrendSeries } from './api';
 
 const palette = ['#1677ff', '#13c2c2', '#fa8c16', '#722ed1', '#eb2f96'];
 
@@ -144,5 +144,82 @@ export function materialTrendOption(series: MaterialTrendSeries[] | undefined): 
       smooth: true,
       data: periods.map((period) => item.points.find((point) => point.period === period)?.netMilliTonne ?? 0),
     })),
+  };
+}
+
+
+export function supplierRateBarOption(rows: SupplierQualityRow[] | undefined): EChartsOption {
+  const sorted = [...(rows ?? [])]
+    .filter((row) => row.sampleCount > 0)
+    .sort((a, b) => (a.avgRateBp ?? 0) - (b.avgRateBp ?? 0));
+  return {
+    color: palette,
+    tooltip: {
+      trigger: 'axis',
+      axisPointer: { type: 'shadow' },
+      formatter: (params) => {
+        const item = (Array.isArray(params) ? params[0] : params) as { name?: string; value?: unknown };
+        return `${item?.name ?? ''}<br/>平均扣量率 ${((Number(item?.value ?? 0)) / 100).toFixed(2)}%`;
+      },
+    },
+    grid: { left: 130, right: 32, top: 16, bottom: 32 },
+    xAxis: {
+      type: 'value',
+      axisLabel: { formatter: (value: number) => `${(value / 100).toFixed(1)}%` },
+    },
+    yAxis: {
+      type: 'category',
+      data: sorted.map((row) => row.partyName || row.partyCode),
+    },
+    series: [
+      {
+        type: 'bar',
+        data: sorted.map((row) => row.avgRateBp ?? 0),
+        barMaxWidth: 24,
+        itemStyle: { borderRadius: [0, 4, 4, 0] },
+      },
+    ],
+  };
+}
+
+export function supplierQualityTrendOption(series: SupplierQualityTrend[] | undefined): EChartsOption {
+  const rows = series ?? [];
+  const periods = Array.from(new Set(rows.flatMap((item) => item.points.map((point) => point.period)))).sort();
+  return {
+    color: palette,
+    tooltip: { trigger: 'axis', valueFormatter: (value) => `${(Number(value) / 100).toFixed(2)}%` },
+    legend: { data: rows.map((item) => item.partyName || item.partyCode), top: 4, itemGap: 16, type: 'scroll' },
+    grid: { left: 52, right: 24, top: 64, bottom: 32 },
+    xAxis: { type: 'category', data: periods, boundaryGap: false },
+    yAxis: {
+      type: 'value',
+      name: '扣量率',
+      axisLabel: { formatter: (value: number) => `${(value / 100).toFixed(1)}%` },
+    },
+    series: rows.map((item) => ({
+      name: item.partyName || item.partyCode,
+      type: 'line',
+      smooth: true,
+      data: periods.map((period) => item.points.find((point) => point.period === period)?.avgRateBp ?? null),
+    })),
+  };
+}
+
+export function byproductTrendOption(points: ByproductTrendPoint[] | undefined): EChartsOption {
+  const rows = points ?? [];
+  return {
+    color: palette,
+    tooltip: { trigger: 'axis' },
+    legend: { data: ['出库净重', '出库车次'], top: 4, itemGap: 20 },
+    grid: { left: 52, right: 52, top: 64, bottom: 32 },
+    xAxis: { type: 'category', data: rows.map((point) => point.period), boundaryGap: true },
+    yAxis: [
+      { type: 'value', name: '吨', axisLabel: { formatter: (value: number) => (value / 1000).toFixed(0) } },
+      { type: 'value', name: '车', minInterval: 1 },
+    ],
+    series: [
+      { name: '出库净重', type: 'bar', data: rows.map((point) => point.netMilliTonne), barMaxWidth: 32 },
+      { name: '出库车次', type: 'line', yAxisIndex: 1, data: rows.map((point) => point.ticketCount) },
+    ],
   };
 }

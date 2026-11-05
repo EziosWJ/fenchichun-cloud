@@ -506,3 +506,126 @@ export const exportAnalyticsParties = (params: Record<string, unknown>) =>
 
 export const exportAnalyticsQuality = (params: Record<string, unknown>) =>
   getBlob(`${analyticsBase}/quality/export`, params);
+
+export interface SupplierQualitySummary {
+  supplierCount: number;
+  ticketCount: number;
+  sampleCount: number;
+  adjustedTickets: number;
+  weightedRateBp: number | null;
+  avgRateBp: number | null;
+  medianRateBp: number | null;
+  p90RateBp: number | null;
+  adjustmentCoverageBp: number | null;
+}
+
+export interface SupplierQualityRow {
+  partyCode: string;
+  partyName: string;
+  nature: string;
+  ticketCount: number;
+  sampleCount: number;
+  adjustedTickets: number;
+  adjustmentCoverageBp: number | null;
+  weightedRateBp: number | null;
+  avgRateBp: number | null;
+  medianRateBp: number | null;
+  p90RateBp: number | null;
+  stddevRateBp: number | null;
+  cvBp: number | null;
+  minRateBp: number | null;
+  maxRateBp: number | null;
+  totalAdjustmentMilliTonne: number;
+  totalPreAdjustmentNetMilliTonne: number;
+  materialCount: number;
+  materialNames: string;
+  firstIssuedAt: string | null;
+  lastIssuedAt: string | null;
+}
+
+export interface SupplierRateTrendPoint {
+  period: string;
+  periodStart: string;
+  periodEnd: string;
+  avgRateBp: number | null;
+  sampleCount: number;
+}
+
+export interface SupplierQualityTrend {
+  partyCode: string;
+  partyName: string;
+  points: SupplierRateTrendPoint[];
+}
+
+export interface SupplierQualityData {
+  summary: SupplierQualitySummary;
+  records: SupplierQualityRow[];
+  top: SupplierQualityRow[];
+  total: number;
+  page: number;
+  pageSize: number;
+  trend: SupplierQualityTrend[];
+  freshness: AnalyticsFreshness;
+}
+
+export interface ByproductSummary {
+  activeCustomers: number;
+  ticketCount: number;
+  totalNetMilliTonne: number;
+  avgNetPerCustomerMilliTonne: number | null;
+  materialCount: number;
+  cr3Bp: number | null;
+  cr5Bp: number | null;
+  cr10Bp: number | null;
+  hhi: number | null;
+  topCustomerShareBp: number | null;
+}
+
+export interface ByproductRow {
+  partyCode: string;
+  partyName: string;
+  nature: string;
+  ticketCount: number;
+  netMilliTonne: number;
+  avgNetPerTicketMilliTonne: number | null;
+  shareBp: number | null;
+  firstIssuedAt: string | null;
+  lastIssuedAt: string | null;
+  materialCount: number;
+  materialNames: string;
+}
+
+export interface ByproductMaterial {
+  materialCode: string;
+  materialName: string;
+  ticketCount: number;
+  netMilliTonne: number;
+  shareBp: number | null;
+}
+
+export interface ByproductTrendPoint {
+  period: string;
+  periodStart: string;
+  periodEnd: string;
+  ticketCount: number;
+  netMilliTonne: number;
+}
+
+export interface ByproductData {
+  summary: ByproductSummary;
+  records: ByproductRow[];
+  total: number;
+  page: number;
+  pageSize: number;
+  top: ByproductRow[];
+  concentration: PartyConcentration[];
+  materials: ByproductMaterial[];
+  trend: ByproductTrendPoint[];
+  freshness: AnalyticsFreshness;
+}
+
+export const analyticsSupplierQuality = (params: Record<string, unknown>) =>
+  get<SupplierQualityData>(`${analyticsBase}/materials/supplier-quality`, params);
+
+export const analyticsByproductFlow = (params: Record<string, unknown>) =>
+  get<ByproductData>(`${analyticsBase}/materials/byproduct-flow`, params);

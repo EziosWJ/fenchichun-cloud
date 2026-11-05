@@ -430,6 +430,8 @@ interface AlertRow {
 | GET | `/analytics/overview` | 经营总览 |
 | GET | `/analytics/flow` | 进出厂分析 |
 | GET | `/analytics/materials` | 物料分析 |
+| GET | `/analytics/materials/supplier-quality` | 核心原料供应商扣量稳定性 |
+| GET | `/analytics/materials/byproduct-flow` | 副产品出库流向 |
 | GET | `/analytics/parties` | 供收方分析 |
 | GET | `/analytics/parties/detail` | 供收方详情抽屉 |
 | GET | `/analytics/quality` | 数据质量 |
@@ -1100,3 +1102,36 @@ web/src/
 - 日聚合表、异步导出、Excel。
 - 角色权限、厂区数据范围、接口级授权。
 - 贡献度归因、Pareto/ABC、供收方留存 cohort、季节性、预测。
+
+## 12. 物料分析扩展（2026-11-05 实现）
+
+### 12.1 物料净重趋势
+
+物料分析页的“物料净重趋势”改为展示当前筛选下的**全部物料**，不再按 Top N 截取；标题同步改为“物料净重趋势（全部物料）”。物料较多时图例使用可滚动图例。
+
+### 12.2 核心原料扣量稳定性
+
+范围：物料分类 `C-C-0001`（酿酒原料）和 `C-C-0002`（酿酒辅料）的入厂有效单。
+
+口径：
+
+- 每车扣量率 = `net_adjustment_milli_tonne / pre_adjustment_net_milli_tonne`，其中扣前净重为最终毛重减最终皮重。
+- 样本：`adjustment_known=true` 且扣前净重大于 0 的有效单；旧协议未知调整单不进入样本。
+- 按供应商汇总：样本车次、总车次、调整车次、调整覆盖率、加权扣量率、平均/中位数/P90/标准差/CV/最小/最大扣量率、物料种类、首次/最后过磅时间。
+- 趋势：按样本车次 Top 5 供应商展示周期平均扣量率。
+- “个人/企业”来自当前 `wb_cloud_party.nature`，不是单据快照。
+
+接口：`GET /api/v1/weighbridge/analytics/materials/supplier-quality`
+
+### 12.3 副产品出库流向
+
+范围：物料分类 `C-C-0005`（副产品，当前为酒糟等）的出厂有效单。
+
+统计：
+
+- 按客户/个人汇总车次、出库净重、平均单车、占比、首次/最后采购时间、涉及物料。
+- 活跃客户数、CR3/CR5/CR10、HHI、第一大客户占比。
+- 按物料拆分、按月出库趋势、Top 客户出库量。
+- “核心客户”按采购量/频次识别；当前没有价格/金额字段，不能表达利润贡献或低价损失。
+
+接口：`GET /api/v1/weighbridge/analytics/materials/byproduct-flow`

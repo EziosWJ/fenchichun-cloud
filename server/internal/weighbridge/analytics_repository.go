@@ -10,7 +10,8 @@ import (
 const analyticsFrom = ` FROM wb_cloud_ticket t
 	LEFT JOIN wb_cloud_material m ON m.code = t.material_code
 	LEFT JOIN wb_cloud_category c ON c.id = m.category_id
-	LEFT JOIN wb_cloud_site s ON s.code = t.site_code `
+	LEFT JOIN wb_cloud_site s ON s.code = t.site_code
+	LEFT JOIN wb_cloud_party p ON p.code = t.party_code `
 
 type analyticsSummaryRow struct {
 	ValidTickets               int64
@@ -112,7 +113,14 @@ func analyticsWhere(q AnalyticsQuery, includeVoid bool, keywordScope string) (st
 		clauses = append(clauses, "t.material_code = ?")
 		args = append(args, q.MaterialCode)
 	}
-	if q.CategoryCode != "" {
+	if len(q.CategoryCodes) > 0 {
+		placeholders := make([]string, len(q.CategoryCodes))
+		for i, code := range q.CategoryCodes {
+			placeholders[i] = "?"
+			args = append(args, code)
+		}
+		clauses = append(clauses, "c.code IN ("+strings.Join(placeholders, ",")+")")
+	} else if q.CategoryCode != "" {
 		clauses = append(clauses, "c.code = ?")
 		args = append(args, q.CategoryCode)
 	}
@@ -135,17 +143,22 @@ func analyticsWhere(q AnalyticsQuery, includeVoid bool, keywordScope string) (st
 }
 
 func analyticsPeriodExpr(granularity string) string {
+	return analyticsPeriodExprFor("t", granularity)
+}
+
+func analyticsPeriodExprFor(alias, granularity string) string {
+	column := alias + ".issued_date"
 	switch granularity {
 	case "week":
-		return "date_trunc('week', t.issued_date)::date"
+		return "date_trunc('week', " + column + ")::date"
 	case "month":
-		return "date_trunc('month', t.issued_date)::date"
+		return "date_trunc('month', " + column + ")::date"
 	case "quarter":
-		return "date_trunc('quarter', t.issued_date)::date"
+		return "date_trunc('quarter', " + column + ")::date"
 	case "year":
-		return "date_trunc('year', t.issued_date)::date"
+		return "date_trunc('year', " + column + ")::date"
 	default:
-		return "t.issued_date"
+		return column
 	}
 }
 

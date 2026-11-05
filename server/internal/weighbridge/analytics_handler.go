@@ -17,6 +17,8 @@ func RegisterAnalyticsRoutes(authenticated gin.IRouter, handler *Handler) {
 	authenticated.GET("/weighbridge/analytics/overview", handler.analyticsOverview)
 	authenticated.GET("/weighbridge/analytics/flow", handler.analyticsFlow)
 	authenticated.GET("/weighbridge/analytics/materials", handler.analyticsMaterials)
+	authenticated.GET("/weighbridge/analytics/materials/supplier-quality", handler.analyticsSupplierQuality)
+	authenticated.GET("/weighbridge/analytics/materials/byproduct-flow", handler.analyticsByproductFlow)
 	authenticated.GET("/weighbridge/analytics/parties", handler.analyticsParties)
 	authenticated.GET("/weighbridge/analytics/parties/detail", handler.analyticsPartyDetail)
 	authenticated.GET("/weighbridge/analytics/quality", handler.analyticsQuality)
@@ -167,6 +169,36 @@ func (h *Handler) analyticsMaterials(c *gin.Context) {
 		return
 	}
 	value, err := h.service.AnalyticsMaterials(c.Request.Context(), q)
+	managementResult(c, value, err)
+}
+
+// analyticsSupplierQuality godoc
+// @Summary 核心原料供应商扣量稳定性
+// @Tags 统计与分析
+// @Security BearerAuth
+// @Router /api/v1/weighbridge/analytics/materials/supplier-quality [get]
+func (h *Handler) analyticsSupplierQuality(c *gin.Context) {
+	q, err := analyticsQuery(c)
+	if err != nil {
+		managementResult(c, nil, err)
+		return
+	}
+	value, err := h.service.AnalyticsSupplierQuality(c.Request.Context(), q)
+	managementResult(c, value, err)
+}
+
+// analyticsByproductFlow godoc
+// @Summary 副产品出库流向
+// @Tags 统计与分析
+// @Security BearerAuth
+// @Router /api/v1/weighbridge/analytics/materials/byproduct-flow [get]
+func (h *Handler) analyticsByproductFlow(c *gin.Context) {
+	q, err := analyticsQuery(c)
+	if err != nil {
+		managementResult(c, nil, err)
+		return
+	}
+	value, err := h.service.AnalyticsByproductFlow(c.Request.Context(), q)
 	managementResult(c, value, err)
 }
 

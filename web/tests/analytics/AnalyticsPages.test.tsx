@@ -13,6 +13,8 @@ const analytics = vi.hoisted(() => ({
   analyticsFlow: vi.fn(),
   exportAnalyticsFlow: vi.fn(),
   analyticsMaterials: vi.fn(),
+  analyticsSupplierQuality: vi.fn(),
+  analyticsByproductFlow: vi.fn(),
   analyticsParties: vi.fn(),
   analyticsPartyDetail: vi.fn(),
   analyticsQuality: vi.fn(),
@@ -237,5 +239,62 @@ describe('经营总览交互', () => {
     });
     await userEvent.click(screen.getByRole('button', { name: '刷新' }));
     await waitFor(() => expect(analytics.analyticsOverview.mock.calls.length).toBeGreaterThan(beforeRefresh));
+  });
+});
+
+
+describe('物料分析新增 Tab', () => {
+  it('展示核心原料供应商扣量稳定性和副产品流向', async () => {
+    weighing.sites.mockResolvedValue([]);
+    weighing.materials.mockResolvedValue([]);
+    weighing.categories.mockResolvedValue([]);
+    analytics.analyticsMaterials.mockResolvedValue({
+      summary: {
+        materialCount: 0, inboundNetMilliTonne: 0, outboundNetMilliTonne: 0,
+        adjustmentNetMilliTonne: 0, adjustmentWeightRateBp: null, adjustmentCoverageBp: null,
+        lastIssuedAt: null,
+      },
+      records: [], total: 0, page: 1, pageSize: 20, trend: [], structure: [], topAdjustments: [], freshness,
+    });
+    analytics.analyticsSupplierQuality.mockResolvedValue({
+      summary: {
+        supplierCount: 1, ticketCount: 2, sampleCount: 2, adjustedTickets: 2,
+        weightedRateBp: 300, avgRateBp: 300, medianRateBp: 300, p90RateBp: 300,
+        adjustmentCoverageBp: 10000,
+      },
+      records: [{
+        partyCode: 'P1', partyName: '供应商甲', nature: 'enterprise', ticketCount: 2, sampleCount: 2,
+        adjustedTickets: 2, adjustmentCoverageBp: 10000, weightedRateBp: 300, avgRateBp: 300,
+        medianRateBp: 300, p90RateBp: 300, stddevRateBp: 20, cvBp: 667, minRateBp: 280,
+        maxRateBp: 320, totalAdjustmentMilliTonne: 600, totalPreAdjustmentNetMilliTonne: 20000,
+        materialCount: 1, materialNames: '高粱', firstIssuedAt: '2026-11-01T02:00:00Z',
+        lastIssuedAt: '2026-11-02T02:00:00Z',
+      }],
+      top: [], total: 1, page: 1, pageSize: 10, trend: [], freshness,
+    });
+    analytics.analyticsByproductFlow.mockResolvedValue({
+      summary: {
+        activeCustomers: 1, ticketCount: 2, totalNetMilliTonne: 10000,
+        avgNetPerCustomerMilliTonne: 10000, materialCount: 1,
+        cr3Bp: 10000, cr5Bp: 10000, cr10Bp: 10000, hhi: 10000, topCustomerShareBp: 10000,
+      },
+      records: [{
+        partyCode: 'C1', partyName: '酒糟客户甲', nature: 'individual', ticketCount: 2,
+        netMilliTonne: 10000, avgNetPerTicketMilliTonne: 5000, shareBp: 10000,
+        firstIssuedAt: '2026-11-01T02:00:00Z', lastIssuedAt: '2026-11-02T02:00:00Z',
+        materialCount: 1, materialNames: '酒糟',
+      }],
+      top: [], total: 1, page: 1, pageSize: 10,
+      concentration: [], materials: [{ materialCode: 'C-M-0006', materialName: '酒糟', ticketCount: 2, netMilliTonne: 10000, shareBp: 10000 }],
+      trend: [], freshness,
+    });
+    renderWithProviders(<MaterialsPage />, { route: '/analytics/materials' });
+    await screen.findByText('物料分析');
+    await userEvent.click(screen.getByRole('tab', { name: '核心原料扣量稳定性' }));
+    expect(await screen.findByText('供应商甲')).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('tab', { name: '副产品出库流向' }));
+    expect(await screen.findByText('酒糟客户甲')).toBeInTheDocument();
+    expect(analytics.analyticsSupplierQuality).toHaveBeenCalled();
+    expect(analytics.analyticsByproductFlow).toHaveBeenCalled();
   });
 });

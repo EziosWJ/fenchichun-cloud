@@ -4179,6 +4179,20 @@ const docTemplate = `{
                 "responses": {}
             }
         },
+        "/api/v1/weighbridge/analytics/materials/byproduct-flow": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "tags": [
+                    "统计与分析"
+                ],
+                "summary": "副产品出库流向",
+                "responses": {}
+            }
+        },
         "/api/v1/weighbridge/analytics/materials/export": {
             "get": {
                 "security": [
@@ -4190,6 +4204,20 @@ const docTemplate = `{
                     "统计与分析"
                 ],
                 "summary": "导出物料分析 CSV",
+                "responses": {}
+            }
+        },
+        "/api/v1/weighbridge/analytics/materials/supplier-quality": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "tags": [
+                    "统计与分析"
+                ],
+                "summary": "核心原料供应商扣量稳定性",
                 "responses": {}
             }
         },

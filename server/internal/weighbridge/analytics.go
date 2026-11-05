@@ -5,22 +5,23 @@ import "time"
 // AnalyticsQuery is the common filter for the read-only analytics endpoints.
 // All date boundaries are converted by the handler to [From, Until).
 type AnalyticsQuery struct {
-	From         time.Time
-	Until        time.Time
-	SiteCode     string
-	Direction    string
-	MaterialCode string
-	CategoryCode string
-	PartyCode    string
-	IssuerName   string
-	Keyword      string
-	Granularity  string
-	Compare      string
-	TopN         int
-	Page         int
-	PageSize     int
-	SortBy       string
-	SortOrder    string
+	From          time.Time
+	Until         time.Time
+	SiteCode      string
+	Direction     string
+	MaterialCode  string
+	CategoryCode  string
+	CategoryCodes []string
+	PartyCode     string
+	IssuerName    string
+	Keyword       string
+	Granularity   string
+	Compare       string
+	TopN          int
+	Page          int
+	PageSize      int
+	SortBy        string
+	SortOrder     string
 }
 
 type AnalyticsFreshness struct {
@@ -434,4 +435,123 @@ type AnalyticsQualityData struct {
 	Anomalies          []AnalyticsAnomaly         `json:"anomalies"`
 	IssuerStats        []AnalyticsIssuerStat      `json:"issuerStats"`
 	Freshness          AnalyticsFreshness         `json:"freshness"`
+}
+
+// 核心原料供应商扣量稳定性
+type AnalyticsSupplierQualitySummary struct {
+	SupplierCount        int64  `json:"supplierCount"`
+	TicketCount          int64  `json:"ticketCount"`
+	SampleCount          int64  `json:"sampleCount"`
+	AdjustedTickets      int64  `json:"adjustedTickets"`
+	WeightedRateBp       *int64 `json:"weightedRateBp"`
+	AvgRateBp            *int64 `json:"avgRateBp"`
+	MedianRateBp         *int64 `json:"medianRateBp"`
+	P90RateBp            *int64 `json:"p90RateBp"`
+	AdjustmentCoverageBp *int64 `json:"adjustmentCoverageBp"`
+}
+
+type AnalyticsSupplierQualityRow struct {
+	PartyCode                       string     `json:"partyCode"`
+	PartyName                       string     `json:"partyName"`
+	Nature                          string     `json:"nature"`
+	TicketCount                     int64      `json:"ticketCount"`
+	SampleCount                     int64      `json:"sampleCount"`
+	AdjustedTickets                 int64      `json:"adjustedTickets"`
+	AdjustmentCoverageBp            *int64     `json:"adjustmentCoverageBp"`
+	WeightedRateBp                  *int64     `json:"weightedRateBp"`
+	AvgRateBp                       *int64     `json:"avgRateBp"`
+	MedianRateBp                    *int64     `json:"medianRateBp"`
+	P90RateBp                       *int64     `json:"p90RateBp"`
+	StddevRateBp                    *int64     `json:"stddevRateBp"`
+	CvBp                            *int64     `json:"cvBp"`
+	MinRateBp                       *int64     `json:"minRateBp"`
+	MaxRateBp                       *int64     `json:"maxRateBp"`
+	TotalAdjustmentMilliTonne       int64      `json:"totalAdjustmentMilliTonne"`
+	TotalPreAdjustmentNetMilliTonne int64      `json:"totalPreAdjustmentNetMilliTonne"`
+	MaterialCount                   int64      `json:"materialCount"`
+	MaterialNames                   string     `json:"materialNames"`
+	FirstIssuedAt                   *time.Time `json:"firstIssuedAt"`
+	LastIssuedAt                    *time.Time `json:"lastIssuedAt"`
+}
+
+type AnalyticsRateTrendPoint struct {
+	Period      string `json:"period"`
+	PeriodStart string `json:"periodStart"`
+	PeriodEnd   string `json:"periodEnd"`
+	AvgRateBp   *int64 `json:"avgRateBp"`
+	SampleCount int64  `json:"sampleCount"`
+}
+
+type AnalyticsSupplierQualityTrend struct {
+	PartyCode string                    `json:"partyCode"`
+	PartyName string                    `json:"partyName"`
+	Points    []AnalyticsRateTrendPoint `json:"points"`
+}
+
+type AnalyticsSupplierQualityData struct {
+	Summary   AnalyticsSupplierQualitySummary `json:"summary"`
+	Records   []AnalyticsSupplierQualityRow   `json:"records"`
+	Top       []AnalyticsSupplierQualityRow   `json:"top"`
+	Total     int64                           `json:"total"`
+	Page      int                             `json:"page"`
+	PageSize  int                             `json:"pageSize"`
+	Trend     []AnalyticsSupplierQualityTrend `json:"trend"`
+	Freshness AnalyticsFreshness              `json:"freshness"`
+}
+
+// 副产品出库流向
+type AnalyticsByproductSummary struct {
+	ActiveCustomers             int64  `json:"activeCustomers"`
+	TicketCount                 int64  `json:"ticketCount"`
+	TotalNetMilliTonne          int64  `json:"totalNetMilliTonne"`
+	AvgNetPerCustomerMilliTonne *int64 `json:"avgNetPerCustomerMilliTonne"`
+	MaterialCount               int64  `json:"materialCount"`
+	CR3Bp                       *int64 `json:"cr3Bp"`
+	CR5Bp                       *int64 `json:"cr5Bp"`
+	CR10Bp                      *int64 `json:"cr10Bp"`
+	HHI                         *int64 `json:"hhi"`
+	TopCustomerShareBp          *int64 `json:"topCustomerShareBp"`
+}
+
+type AnalyticsByproductRow struct {
+	PartyCode                 string     `json:"partyCode"`
+	PartyName                 string     `json:"partyName"`
+	Nature                    string     `json:"nature"`
+	TicketCount               int64      `json:"ticketCount"`
+	NetMilliTonne             int64      `json:"netMilliTonne"`
+	AvgNetPerTicketMilliTonne *int64     `json:"avgNetPerTicketMilliTonne"`
+	ShareBp                   *int64     `json:"shareBp"`
+	FirstIssuedAt             *time.Time `json:"firstIssuedAt"`
+	LastIssuedAt              *time.Time `json:"lastIssuedAt"`
+	MaterialCount             int64      `json:"materialCount"`
+	MaterialNames             string     `json:"materialNames"`
+}
+
+type AnalyticsByproductMaterial struct {
+	MaterialCode  string `json:"materialCode"`
+	MaterialName  string `json:"materialName"`
+	TicketCount   int64  `json:"ticketCount"`
+	NetMilliTonne int64  `json:"netMilliTonne"`
+	ShareBp       *int64 `json:"shareBp"`
+}
+
+type AnalyticsByproductTrendPoint struct {
+	Period        string `json:"period"`
+	PeriodStart   string `json:"periodStart"`
+	PeriodEnd     string `json:"periodEnd"`
+	TicketCount   int64  `json:"ticketCount"`
+	NetMilliTonne int64  `json:"netMilliTonne"`
+}
+
+type AnalyticsByproductData struct {
+	Summary       AnalyticsByproductSummary      `json:"summary"`
+	Records       []AnalyticsByproductRow        `json:"records"`
+	Total         int64                          `json:"total"`
+	Page          int                            `json:"page"`
+	PageSize      int                            `json:"pageSize"`
+	Top           []AnalyticsByproductRow        `json:"top"`
+	Concentration []AnalyticsPartyConcentration  `json:"concentration"`
+	Materials     []AnalyticsByproductMaterial   `json:"materials"`
+	Trend         []AnalyticsByproductTrendPoint `json:"trend"`
+	Freshness     AnalyticsFreshness             `json:"freshness"`
 }
