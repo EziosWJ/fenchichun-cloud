@@ -83,7 +83,7 @@ export default function OverviewPage() {
     <>
       <PageHeader
         title="经营总览"
-        description="按出单时间汇总云端有效过磅单，展示入厂、出厂、净流入、结构与异常。过磅净流入不是库存。"
+        description=""
         extra={<Button onClick={() => void overview.refetch()} loading={overview.isFetching}>刷新</Button>}
       />
       <Space direction="vertical" size="middle" style={{ width: '100%' }}>

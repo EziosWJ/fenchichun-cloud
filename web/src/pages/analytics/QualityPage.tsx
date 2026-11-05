@@ -236,7 +236,7 @@ export default function QualityPage() {
     <>
       <PageHeader
         title="数据质量"
-        description="作废、重开、净重调整、毛皮重修正、字段缺失和异常单分析；包含作废单，仅用于质量诊断。"
+        description=""
         extra={<Space><Button onClick={() => void quality.refetch()} loading={quality.isFetching}>刷新</Button><Button onClick={() => void exportQuality()} loading={exporting}>导出质量明细 CSV</Button></Space>}
       />
       <Space direction="vertical" size="middle" style={{ width: '100%' }}>

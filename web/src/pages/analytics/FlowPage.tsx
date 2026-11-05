@@ -88,7 +88,7 @@ export default function FlowPage() {
     <>
       <PageHeader
         title="进出厂分析"
-        description="按入厂/出厂方向对比车次、净重、过磅净流入和两次过磅间隔；仅统计有效单，作废单不计入流量。"
+        description=""
         extra={<Space><Button onClick={() => void flow.refetch()} loading={flow.isFetching}>刷新</Button><Button onClick={() => void exportFlow()} loading={exporting}>导出当前筛选 CSV</Button></Space>}
       />
       <Space direction="vertical" size="middle" style={{ width: '100%' }}>

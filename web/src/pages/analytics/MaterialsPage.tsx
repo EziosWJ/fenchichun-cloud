@@ -209,7 +209,7 @@ export default function MaterialsPage() {
     <>
       <PageHeader
         title="物料分析"
-        description="按物料/规格汇总入厂、出厂、净重、扣量和最后一次过磅时间；可切换查看核心原料扣量稳定性和副产品出库流向。"
+        description=""
         extra={
           <Space>
             <Button onClick={() => void activeQuery.refetch()} loading={activeQuery.isFetching}>刷新</Button>

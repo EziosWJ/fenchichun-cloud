@@ -226,7 +226,7 @@ export default function StatementPage() {
     <>
       <PageHeader
         title="客户对账"
-        description="按厂区与往来方汇总有效过磅单的最终净重，支持销售客户和采购供应商两个方向。"
+        description=""
       />
       <Space direction="vertical" size="middle" style={{ width: '100%' }}>
         <Alert
