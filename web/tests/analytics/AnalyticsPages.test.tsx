@@ -150,32 +150,33 @@ describe('统计与分析页面（扩展）', () => {
     expect(await screen.findByText('物料汇总')).toBeInTheDocument();
   });
 
-  it('供收方分析展示活跃供货方和集中度', async () => {
+  it('供收方分析展示供货方全量排名和客户 Tab', async () => {
     weighing.sites.mockResolvedValue([]);
     weighing.materials.mockResolvedValue([]);
     weighing.categories.mockResolvedValue([]);
     weighing.parties.mockResolvedValue([]);
     const partyRow = {
-      partyCode: 'P1', partyName: '供应商甲', direction: 'inbound', ticketCount: 6,
+      partyCode: 'P1', partyName: '供应商甲', nature: 'enterprise', direction: 'inbound', ticketCount: 6,
       netMilliTonne: 100000, avgNetPerTicketMilliTonne: 16666, shareBp: 10000,
       firstIssuedAt: '2026-11-01T02:00:00Z', lastIssuedAt: '2026-11-03T02:00:00Z',
+      avgIntervalSeconds: 86400, medianIntervalSeconds: 86400, activeMonths: 2, monthlyNetCvBp: 1000,
       adjustedTickets: 4, adjustmentNetMilliTonne: 2000, adjustmentWeightRateBp: 200,
       adjustmentCoverageBp: 10000, voidTickets: 0, voidRateBp: 0,
     };
     analytics.analyticsParties.mockResolvedValue({
       summary: {
         activeParties: 1, totalNetMilliTonne: 100000, avgNetPerPartyMilliTonne: 100000,
-        cr3Bp: 10000, cr5Bp: 10000, cr10Bp: 10000, hhi: 10000,
         newParties: 1, returningParties: 0, dormantParties: 0, coverageComplete: true, historyStart: '2025-12-20T01:00:00Z',
       },
-      records: [partyRow], total: 1, page: 1, pageSize: 20, top: [partyRow],
-      concentration: [{ label: '供应商甲', netMilliTonne: 100000, shareBp: 10000 }],
+      records: [partyRow], ranking: [partyRow], total: 1, page: 1, pageSize: 20,
       freshness,
     });
     renderWithProviders(<PartiesPage />, { route: '/analytics/parties' });
     expect(await screen.findByText('供收方分析')).toBeInTheDocument();
     expect(await screen.findByText('活跃供货方')).toBeInTheDocument();
     expect(await screen.findByText('供应商甲')).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: '入厂供货方' })).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: '出厂客户' })).toBeInTheDocument();
   });
 
   it('数据质量展示作废和扣量口径', async () => {

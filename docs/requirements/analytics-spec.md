@@ -640,10 +640,6 @@ interface PartiesData {
     activeParties: number;
     totalNetMilliTonne: number;
     avgNetPerPartyMilliTonne: number | null;
-    cr3Bp: number | null;
-    cr5Bp: number | null;
-    cr10Bp: number | null;
-    hhi: number | null;
     newParties: number;
     returningParties: number;
     dormantParties: number;
@@ -651,11 +647,10 @@ interface PartiesData {
     historyStart: string | null;
   };
   records: PartyRow[];
+  ranking: PartyRow[];
   total: number;
   page: number;
   pageSize: number;
-  top: PartyRow[];
-  concentration: Array<{ label: string; netMilliTonne: number; shareBp: number }>;
   freshness: Freshness;
 }
 ```
@@ -666,6 +661,7 @@ interface PartiesData {
 {
   partyCode: string;
   partyName: string;
+  nature: string;
   direction: string;
   ticketCount: number;
   netMilliTonne: number;
@@ -673,6 +669,10 @@ interface PartiesData {
   shareBp: number | null;
   firstIssuedAt: string | null;
   lastIssuedAt: string | null;
+  avgIntervalSeconds: number | null;
+  medianIntervalSeconds: number | null;
+  activeMonths: number;
+  monthlyNetCvBp: number | null;
   adjustedTickets: number;
   adjustmentNetMilliTonne: number;
   adjustmentWeightRateBp: number | null;
@@ -944,13 +944,13 @@ web/src/
 
 #### 7.5.4 供收方分析
 
-- 方向切换：供货方（入厂）/ 收货方（出厂），必选。
-- 筛选：日期、厂区、物料、关键词。
-- KPI：活跃供收方、净重、平均每户、CR3、CR5/CR10、新增/回归（数据不足显示“数据积累中”）。
-- Top 10 横向条形。
-- 汇总表：供收方、车次、净重、平均单次、占比、首次/最后过磅、扣量率、作废率。
-- 集中度面板：CR3/5/10、HHI、Pareto 曲线。
-- 详情抽屉：点击行加载 `/parties/detail`，展示趋势、主要物料、厂区分布、最近 5 张单据、质量指标。
+- 方向 Tab：入厂供货方 / 出厂客户。
+- 筛选：日期、厂区、物料、关键词；方向由 Tab 决定，不再使用方向下拉。
+- KPI：活跃供收方、累计供货/提货量、户均量、企业/个人数量、新增/回归、数据覆盖。
+- 全量排名图：展示当前方向全部供收方，不再限制 Top 10；图表支持缩放/滚动。
+- 汇总表：排名、供收方、企业/个人、频次、累计量、平均单次、占比、供货间隔/提货周期、活跃月数、月度波动 CV、平均扣重率、调整车次、作废率、最后过磅。
+- 取消集中度：不展示 CR3/CR5/CR10、HHI、Pareto，后端响应也移除相关字段。
+- 详情抽屉：展示趋势、主要物料、厂区分布、最近 5 张单据、平均扣重率、间隔和月度波动。
 - 导出：供收方汇总 CSV。
 - 新增/回归：`coverageComplete=false` 时只展示“系统内首次”，并提示历史覆盖不足。
 
@@ -1135,3 +1135,29 @@ web/src/
 - “核心客户”按采购量/频次识别；当前没有价格/金额字段，不能表达利润贡献或低价损失。
 
 接口：`GET /api/v1/weighbridge/analytics/materials/byproduct-flow`
+
+## 13. 供收方分析扩展（2026-11-05 实现）
+
+### 13.1 页面结构
+
+供收方分析改为两个方向 Tab：
+
+- 入厂供货方
+- 出厂客户
+
+方向不再使用筛选条下拉；列表以全量可排序表格为主，图表展示当前方向全部供收方，不再限制 Top 10。集中度相关字段和图表已移除。
+
+### 13.2 供应商/客户维度
+
+`PartyRow` 新增：
+
+- `nature`：企业/个人，来自当前 `wb_cloud_party.nature`。
+- `avgIntervalSeconds` / `medianIntervalSeconds`：同一供收方相邻两次有效过磅的平均/中位间隔。
+- `activeMonths`：有有效单据的月份数。
+- `monthlyNetCvBp`：月度净重变异系数，反映采购/供货波动。
+
+列表可按累计量、频次、平均单次、间隔、月度波动、作废率、最后过磅排序；“排名”按累计净重排名。供应商/客户绩效采用多维度展示，不生成不透明的综合分。
+
+### 13.3 承运商
+
+当前厂云同步契约不上送承运商编码/名称，云端过磅单快照没有承运商字段，因此本期不做承运商 Tab。后续如启用，需扩展同步字段并处理历史数据补传。

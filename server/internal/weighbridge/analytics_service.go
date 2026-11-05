@@ -29,7 +29,6 @@ type AnalyticsStore interface {
 
 	AnalyticsPartyTotals(context.Context, AnalyticsQuery) (analyticsPartyTotalsRow, error)
 	AnalyticsPartyRows(context.Context, AnalyticsQuery) ([]analyticsPartyRow, int64, error)
-	AnalyticsPartyConcentration(context.Context, AnalyticsQuery) ([]analyticsPartyConcentrationRow, error)
 	AnalyticsPartyNewCount(context.Context, AnalyticsQuery) (int64, error)
 	AnalyticsPartyCohort(context.Context, AnalyticsQuery, time.Time, time.Time) (int64, int64, error)
 	AnalyticsPartySites(context.Context, AnalyticsQuery) ([]analyticsPartySiteRowDB, error)
@@ -250,11 +249,7 @@ func (s *Service) AnalyticsParties(ctx context.Context, q AnalyticsQuery) (Analy
 	if err != nil {
 		return AnalyticsPartiesData{}, err
 	}
-	topRows, _, err := s.store.AnalyticsPartyRows(ctx, withPage(q, 1, q.TopN, "net"))
-	if err != nil {
-		return AnalyticsPartiesData{}, err
-	}
-	concentrationRows, err := s.store.AnalyticsPartyConcentration(ctx, q)
+	rankingRows, _, err := s.store.AnalyticsPartyRows(ctx, withPage(q, 1, 50000, "net"))
 	if err != nil {
 		return AnalyticsPartiesData{}, err
 	}
@@ -279,19 +274,17 @@ func (s *Service) AnalyticsParties(ctx context.Context, q AnalyticsQuery) (Analy
 		HistoryStart:     freshness.HistoryStart,
 		CoverageComplete: freshness.HistoryStart != nil && freshness.HistoryStart.Before(q.From),
 	}
-	summary.CR3Bp, summary.CR5Bp, summary.CR10Bp, summary.HHI = concentrationMetrics(concentrationRows, totalNet)
 	result := AnalyticsPartiesData{
 		Summary: summary, Total: total, Page: q.Page, PageSize: q.PageSize,
-		Records:       make([]AnalyticsPartyRow, 0, len(rows)),
-		Top:           make([]AnalyticsPartyRow, 0, len(topRows)),
-		Concentration: buildPartyConcentration(concentrationRows, totalNet, 20),
-		Freshness:     freshness,
+		Records:   make([]AnalyticsPartyRow, 0, len(rows)),
+		Ranking:   make([]AnalyticsPartyRow, 0, len(rankingRows)),
+		Freshness: freshness,
 	}
 	for _, row := range rows {
 		result.Records = append(result.Records, partyRowFromDB(row, q.Direction, totalNet))
 	}
-	for _, row := range topRows {
-		result.Top = append(result.Top, partyRowFromDB(row, q.Direction, totalNet))
+	for _, row := range rankingRows {
+		result.Ranking = append(result.Ranking, partyRowFromDB(row, q.Direction, totalNet))
 	}
 	return result, nil
 }
@@ -677,11 +670,13 @@ func materialRowFromDB(row analyticsMaterialRow, totalNet int64) AnalyticsMateri
 
 func partyRowFromDB(row analyticsPartyRow, direction string, totalNet int64) AnalyticsPartyRow {
 	return AnalyticsPartyRow{
-		PartyCode: row.PartyCode, PartyName: row.PartyName, Direction: direction,
+		PartyCode: row.PartyCode, PartyName: row.PartyName, Nature: row.Nature, Direction: direction,
 		TicketCount: row.TicketCount, NetMilliTonne: row.NetMilliTonne,
 		AvgNetPerTicketMilliTonne: average(row.NetMilliTonne, row.TicketCount),
 		ShareBp:                   rateBp(row.NetMilliTonne, totalNet),
 		FirstIssuedAt:             row.FirstIssuedAt, LastIssuedAt: row.LastIssuedAt,
+		AvgIntervalSeconds: row.AvgIntervalSeconds, MedianIntervalSeconds: row.MedianIntervalSeconds,
+		ActiveMonths: row.ActiveMonths, MonthlyNetCvBp: row.MonthlyNetCvBp,
 		AdjustedTickets: row.AdjustedTickets, AdjustmentNetMilliTonne: row.AdjustmentNetMilliTonne,
 		AdjustmentWeightRateBp: rateBp(row.AdjustmentNetMilliTonne, row.PreAdjustmentNetMilliTonne),
 		AdjustmentCoverageBp:   rateBp(row.AdjustmentKnownTickets, row.TicketCount),

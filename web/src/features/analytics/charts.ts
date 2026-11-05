@@ -223,3 +223,39 @@ export function byproductTrendOption(points: ByproductTrendPoint[] | undefined):
     ],
   };
 }
+
+export function partyRankingOption(rows: Array<{ partyName: string; partyCode: string; netMilliTonne: number }> | undefined): EChartsOption {
+  const sorted = [...(rows ?? [])]
+    .filter((row) => row.netMilliTonne > 0)
+    .sort((a, b) => a.netMilliTonne - b.netMilliTonne);
+  return {
+    color: palette,
+    tooltip: {
+      trigger: 'axis',
+      axisPointer: { type: 'shadow' },
+      valueFormatter: (value) => `${Number(value).toFixed(3)} 吨`,
+    },
+    grid: { left: 150, right: 32, top: 16, bottom: 44 },
+    dataZoom: [
+      { type: 'inside', yAxisIndex: 0 },
+      { type: 'slider', yAxisIndex: 0, width: 10, right: 4, showDetail: false },
+    ],
+    xAxis: {
+      type: 'value',
+      axisLabel: { formatter: (value: number) => (value / 1000).toFixed(0) },
+    },
+    yAxis: {
+      type: 'category',
+      data: sorted.map((row) => row.partyName || row.partyCode),
+      axisLabel: { width: 130, overflow: 'truncate' },
+    },
+    series: [
+      {
+        type: 'bar',
+        data: sorted.map((row) => row.netMilliTonne),
+        barMaxWidth: 18,
+        itemStyle: { borderRadius: [0, 4, 4, 0] },
+      },
+    ],
+  };
+}

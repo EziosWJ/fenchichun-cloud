@@ -234,10 +234,6 @@ type AnalyticsPartySummary struct {
 	ActiveParties            int64      `json:"activeParties"`
 	TotalNetMilliTonne       int64      `json:"totalNetMilliTonne"`
 	AvgNetPerPartyMilliTonne *int64     `json:"avgNetPerPartyMilliTonne"`
-	CR3Bp                    *int64     `json:"cr3Bp"`
-	CR5Bp                    *int64     `json:"cr5Bp"`
-	CR10Bp                   *int64     `json:"cr10Bp"`
-	HHI                      *int64     `json:"hhi"`
 	NewParties               int64      `json:"newParties"`
 	ReturningParties         int64      `json:"returningParties"`
 	DormantParties           int64      `json:"dormantParties"`
@@ -248,6 +244,7 @@ type AnalyticsPartySummary struct {
 type AnalyticsPartyRow struct {
 	PartyCode                 string     `json:"partyCode"`
 	PartyName                 string     `json:"partyName"`
+	Nature                    string     `json:"nature"`
 	Direction                 string     `json:"direction"`
 	TicketCount               int64      `json:"ticketCount"`
 	NetMilliTonne             int64      `json:"netMilliTonne"`
@@ -255,6 +252,10 @@ type AnalyticsPartyRow struct {
 	ShareBp                   *int64     `json:"shareBp"`
 	FirstIssuedAt             *time.Time `json:"firstIssuedAt"`
 	LastIssuedAt              *time.Time `json:"lastIssuedAt"`
+	AvgIntervalSeconds        *int64     `json:"avgIntervalSeconds"`
+	MedianIntervalSeconds     *int64     `json:"medianIntervalSeconds"`
+	ActiveMonths              int64      `json:"activeMonths"`
+	MonthlyNetCvBp            *int64     `json:"monthlyNetCvBp"`
 	AdjustedTickets           int64      `json:"adjustedTickets"`
 	AdjustmentNetMilliTonne   int64      `json:"adjustmentNetMilliTonne"`
 	AdjustmentWeightRateBp    *int64     `json:"adjustmentWeightRateBp"`
@@ -270,14 +271,13 @@ type AnalyticsPartyConcentration struct {
 }
 
 type AnalyticsPartiesData struct {
-	Summary       AnalyticsPartySummary         `json:"summary"`
-	Records       []AnalyticsPartyRow           `json:"records"`
-	Total         int64                         `json:"total"`
-	Page          int                           `json:"page"`
-	PageSize      int                           `json:"pageSize"`
-	Top           []AnalyticsPartyRow           `json:"top"`
-	Concentration []AnalyticsPartyConcentration `json:"concentration"`
-	Freshness     AnalyticsFreshness            `json:"freshness"`
+	Summary   AnalyticsPartySummary `json:"summary"`
+	Records   []AnalyticsPartyRow   `json:"records"`
+	Ranking   []AnalyticsPartyRow   `json:"ranking"`
+	Total     int64                 `json:"total"`
+	Page      int                   `json:"page"`
+	PageSize  int                   `json:"pageSize"`
+	Freshness AnalyticsFreshness    `json:"freshness"`
 }
 
 type AnalyticsPartyDetail struct {

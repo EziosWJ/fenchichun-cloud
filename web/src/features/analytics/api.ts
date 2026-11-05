@@ -272,10 +272,6 @@ export interface PartySummary {
   activeParties: number;
   totalNetMilliTonne: number;
   avgNetPerPartyMilliTonne: number | null;
-  cr3Bp: number | null;
-  cr5Bp: number | null;
-  cr10Bp: number | null;
-  hhi: number | null;
   newParties: number;
   returningParties: number;
   dormantParties: number;
@@ -286,6 +282,7 @@ export interface PartySummary {
 export interface PartyRow {
   partyCode: string;
   partyName: string;
+  nature: string;
   direction: string;
   ticketCount: number;
   netMilliTonne: number;
@@ -293,6 +290,10 @@ export interface PartyRow {
   shareBp: number | null;
   firstIssuedAt: string | null;
   lastIssuedAt: string | null;
+  avgIntervalSeconds: number | null;
+  medianIntervalSeconds: number | null;
+  activeMonths: number;
+  monthlyNetCvBp: number | null;
   adjustedTickets: number;
   adjustmentNetMilliTonne: number;
   adjustmentWeightRateBp: number | null;
@@ -310,11 +311,10 @@ export interface PartyConcentration {
 export interface PartiesData {
   summary: PartySummary;
   records: PartyRow[];
+  ranking: PartyRow[];
   total: number;
   page: number;
   pageSize: number;
-  top: PartyRow[];
-  concentration: PartyConcentration[];
   freshness: AnalyticsFreshness;
 }
 

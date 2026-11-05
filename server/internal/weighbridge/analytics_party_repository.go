@@ -20,6 +20,7 @@ type analyticsPartyTotalsRow struct {
 type analyticsPartyRow struct {
 	PartyCode                  string
 	PartyName                  string
+	Nature                     string
 	TicketCount                int64
 	NetMilliTonne              int64
 	AdjustedTickets            int64
@@ -29,6 +30,10 @@ type analyticsPartyRow struct {
 	VoidTickets                int64
 	FirstIssuedAt              *time.Time
 	LastIssuedAt               *time.Time
+	AvgIntervalSeconds         *int64
+	MedianIntervalSeconds      *int64
+	ActiveMonths               int64
+	MonthlyNetCvBp             *int64
 }
 
 type analyticsPartyConcentrationRow struct {
@@ -65,6 +70,10 @@ func analyticsPartySortExpr(sortBy, sortOrder string) string {
 		expr = "adjustment_net_milli_tonne"
 	case "void":
 		expr = "void_tickets"
+	case "interval":
+		expr = "avg_interval_seconds"
+	case "volatility":
+		expr = "monthly_net_cv_bp"
 	}
 	direction := "DESC"
 	if strings.EqualFold(sortOrder, "asc") {
@@ -97,33 +106,55 @@ func (r *Repository) AnalyticsPartyRows(ctx context.Context, q AnalyticsQuery) (
 		return nil, 0, err
 	}
 	sortExpr := analyticsPartySortExpr(q.SortBy, q.SortOrder)
-	query := `SELECT
-		t.party_code,
-		COALESCE(MAX(t.party_name), '') AS party_name,
-		COUNT(*) FILTER (WHERE t.status = 'valid') AS ticket_count,
-		COALESCE(SUM(t.final_net_milli_tonne) FILTER (WHERE t.status = 'valid'), 0) AS net_milli_tonne,
-		COUNT(*) FILTER (WHERE t.status = 'valid' AND t.adjusted) AS adjusted_tickets,
-		COUNT(*) FILTER (WHERE t.status = 'valid' AND t.adjustment_known) AS adjustment_known_tickets,
-		COALESCE(SUM(t.net_adjustment_milli_tonne) FILTER (WHERE t.status = 'valid' AND t.adjustment_known), 0) AS adjustment_net_milli_tonne,
-		COALESCE(SUM(t.pre_adjustment_net_milli_tonne) FILTER (WHERE t.status = 'valid' AND t.adjustment_known), 0) AS pre_adjustment_net_milli_tonne,
-		COUNT(*) FILTER (WHERE t.status = 'void') AS void_tickets,
-		MIN(t.issued_at) FILTER (WHERE t.status = 'valid') AS first_issued_at,
-		MAX(t.issued_at) FILTER (WHERE t.status = 'valid') AS last_issued_at` + analyticsFrom + ` WHERE ` + where + ` GROUP BY t.party_code HAVING COUNT(*) FILTER (WHERE t.status = 'valid') > 0 ORDER BY ` + sortExpr + `, t.party_code LIMIT ? OFFSET ?`
+	query := `WITH base AS (
+		SELECT t.id, t.party_code, t.party_name, p.nature, t.status, t.issued_at, t.issued_date,
+			t.final_net_milli_tonne, t.adjusted, t.adjustment_known,
+			t.net_adjustment_milli_tonne, t.pre_adjustment_net_milli_tonne` + analyticsFrom + ` WHERE ` + where + `
+	), party_base AS (
+		SELECT party_code,
+			COALESCE(MAX(party_name), '') AS party_name,
+			COALESCE(MAX(nature), '') AS nature,
+			COUNT(*) FILTER (WHERE status = 'valid') AS ticket_count,
+			COALESCE(SUM(final_net_milli_tonne) FILTER (WHERE status = 'valid'), 0) AS net_milli_tonne,
+			COUNT(*) FILTER (WHERE status = 'valid' AND adjusted) AS adjusted_tickets,
+			COUNT(*) FILTER (WHERE status = 'valid' AND adjustment_known) AS adjustment_known_tickets,
+			COALESCE(SUM(net_adjustment_milli_tonne) FILTER (WHERE status = 'valid' AND adjustment_known), 0) AS adjustment_net_milli_tonne,
+			COALESCE(SUM(pre_adjustment_net_milli_tonne) FILTER (WHERE status = 'valid' AND adjustment_known), 0) AS pre_adjustment_net_milli_tonne,
+			COUNT(*) FILTER (WHERE status = 'void') AS void_tickets,
+			MIN(issued_at) FILTER (WHERE status = 'valid') AS first_issued_at,
+			MAX(issued_at) FILTER (WHERE status = 'valid') AS last_issued_at
+		FROM base GROUP BY party_code HAVING COUNT(*) FILTER (WHERE status = 'valid') > 0
+	), interval_rows AS (
+		SELECT party_code, issued_at,
+			LAG(issued_at) OVER (PARTITION BY party_code ORDER BY issued_at, id) AS previous_issued_at
+		FROM base WHERE status = 'valid'
+	), interval_stats AS (
+		SELECT party_code,
+			ROUND(AVG(EXTRACT(EPOCH FROM (issued_at - previous_issued_at))))::bigint AS avg_interval_seconds,
+			ROUND(PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY EXTRACT(EPOCH FROM (issued_at - previous_issued_at)))::numeric)::bigint AS median_interval_seconds
+		FROM interval_rows WHERE previous_issued_at IS NOT NULL GROUP BY party_code
+	), monthly AS (
+		SELECT party_code, date_trunc('month', issued_date) AS period, SUM(final_net_milli_tonne) AS net
+		FROM base WHERE status = 'valid' GROUP BY party_code, period
+	), monthly_stats AS (
+		SELECT party_code, COUNT(*) AS active_months,
+			ROUND(STDDEV_SAMP(net) / NULLIF(AVG(net), 0) * 10000)::bigint AS monthly_net_cv_bp
+		FROM monthly GROUP BY party_code
+	)
+	SELECT
+		pb.party_code, pb.party_name, pb.nature, pb.ticket_count, pb.net_milli_tonne,
+		pb.adjusted_tickets, pb.adjustment_known_tickets, pb.adjustment_net_milli_tonne, pb.pre_adjustment_net_milli_tonne,
+		pb.void_tickets, pb.first_issued_at, pb.last_issued_at,
+		ist.avg_interval_seconds, ist.median_interval_seconds,
+		COALESCE(ms.active_months, 0) AS active_months, ms.monthly_net_cv_bp
+	FROM party_base pb
+	LEFT JOIN interval_stats ist ON ist.party_code = pb.party_code
+	LEFT JOIN monthly_stats ms ON ms.party_code = pb.party_code
+	ORDER BY ` + sortExpr + `, pb.party_code LIMIT ? OFFSET ?`
 	rows := []analyticsPartyRow{}
 	args = append(args, q.PageSize, (q.Page-1)*q.PageSize)
 	err := r.db.WithContext(ctx).Raw(query, args...).Scan(&rows).Error
 	return rows, total, err
-}
-
-func (r *Repository) AnalyticsPartyConcentration(ctx context.Context, q AnalyticsQuery) ([]analyticsPartyConcentrationRow, error) {
-	where, args := analyticsWhere(q, false, "party")
-	query := `SELECT
-		t.party_code,
-		COALESCE(MAX(t.party_name), '') AS party_name,
-		COALESCE(SUM(t.final_net_milli_tonne), 0) AS net_milli_tonne` + analyticsFrom + ` WHERE ` + where + ` GROUP BY t.party_code ORDER BY net_milli_tonne DESC, t.party_code`
-	rows := []analyticsPartyConcentrationRow{}
-	err := r.db.WithContext(ctx).Raw(query, args...).Scan(&rows).Error
-	return rows, err
 }
 
 func (r *Repository) AnalyticsPartyNewCount(ctx context.Context, q AnalyticsQuery) (int64, error) {

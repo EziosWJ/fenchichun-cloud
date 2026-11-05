@@ -20,7 +20,7 @@ export const analyticsFilterConfig = {
     compare: ['none', 'previous', 'year'],
     granularity: ['auto', 'day', 'week', 'month', 'quarter', 'year'],
   },
-  sortKeys: ['net', 'tickets', 'avg', 'adjustment', 'void', 'lastIssuedAt'],
+  sortKeys: ['net', 'tickets', 'avg', 'adjustment', 'void', 'lastIssuedAt', 'interval', 'volatility'],
   pageSizeOptions: [10, 20, 50, 100],
   defaultPageSize: 20,
 } as const;
