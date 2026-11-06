@@ -64,6 +64,9 @@ interface DataTableProps<T extends object> {
   scrollX?: number | 'max-content';
   size?: TableProps<T>['size'];
   defaultExpandAllRows?: boolean;
+  flush?: boolean;
+  onRow?: TableProps<T>['onRow'];
+  rowClassName?: TableProps<T>['rowClassName'];
 }
 
 export function DataTable<T extends object>({
@@ -91,6 +94,9 @@ export function DataTable<T extends object>({
   scrollX = 'max-content',
   size,
   defaultExpandAllRows = false,
+  flush = false,
+  onRow,
+  rowClassName,
 }: DataTableProps<T>) {
   const screens = Grid.useBreakpoint();
   const [preferences, setPreferences] = useState<TablePreferences>(() => loadTablePreferences(tableKey));
@@ -294,7 +300,11 @@ export function DataTable<T extends object>({
   const tableSize = size ?? DENSITY_TO_SIZE[preferences.density];
 
   return (
-    <Card variant="outlined" className={styles.card} styles={{ body: { padding: 0 } }}>
+    <Card
+      variant={flush ? 'borderless' : 'outlined'}
+      className={`${styles.card}${flush ? ` ${styles.flush}` : ''}`}
+      styles={{ body: { padding: 0 } }}
+    >
       <div className={styles.toolbar} role="toolbar" aria-label="表格工具栏">
         <div className={styles.toolbarTitle}>
           {title && <span className={styles.title}>{title}</span>}
@@ -397,6 +407,8 @@ export function DataTable<T extends object>({
           onChange={handleTableChange}
           scroll={{ x: scrollX }}
           defaultExpandAllRows={defaultExpandAllRows}
+          onRow={onRow}
+          rowClassName={rowClassName}
           pagination={
             onPageChange && (total ?? dataSource.length) > 0
               ? {

@@ -18,6 +18,9 @@ const weighing = vi.hoisted(() => ({
 
 vi.mock('../../src/features/analytics/api', () => analytics);
 vi.mock('../../src/features/weighbridge/api', () => weighing);
+vi.mock('../../src/components/charts/EChart', () => ({
+  EChart: ({ ariaLabel }: { ariaLabel?: string }) => <div role="img" aria-label={ariaLabel} />,
+}));
 
 const totals = {
   ticketCount: 2,
@@ -28,7 +31,7 @@ const totals = {
 };
 
 describe('客户对账页面', () => {
-  it('展示销售客户汇总并保留两个方向 Tab', async () => {
+  it('展示销售客户汇总并保留两个方向切换', async () => {
     weighing.sites.mockResolvedValue([]);
     weighing.materials.mockResolvedValue([]);
     analytics.statementParties.mockResolvedValue({
@@ -41,8 +44,8 @@ describe('客户对账页面', () => {
     });
     renderWithProviders(<StatementPage />, { route: '/analytics/reconciliation' });
     await screen.findByText('客户甲');
-    expect(screen.getByRole('tab', { name: '销售客户（出厂装货）' })).toBeInTheDocument();
-    expect(screen.getByRole('tab', { name: '采购供应商（入厂卸货）' })).toBeInTheDocument();
+    expect(screen.getByText('销售客户')).toBeInTheDocument();
+    expect(screen.getByText('采购供应商')).toBeInTheDocument();
     expect(screen.getAllByText('34.500').length).toBeGreaterThan(0);
     await waitFor(() => expect(analytics.statementParties).toHaveBeenCalled());
   });
@@ -78,9 +81,9 @@ describe('客户对账页面', () => {
       route: '/analytics/reconciliation/detail?siteCode=F001&partyCode=C-P-0001&direction=outbound&from=2026-11-01&to=2026-11-30',
       path: '/analytics/reconciliation/detail',
     });
-    await screen.findByText('客户甲（C-P-0001）');
+    await screen.findByRole('heading', { level: 2, name: /客户甲.*C-P-0001/ });
     expect(screen.getAllByText('高粱 / 散装').length).toBeGreaterThan(0);
-    expect(screen.getAllByText('2026-11-01').length).toBeGreaterThan(0);
+    expect(screen.getByLabelText('每日净重趋势图')).toBeInTheDocument();
     expect(screen.getByText('F001-20261101-0001')).toBeInTheDocument();
   });
 });
