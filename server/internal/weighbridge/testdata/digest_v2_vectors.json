@@ -1,13 +1,13 @@
 {
-  "rulesVersion": 1,
+  "rulesVersion": 2,
   "vectors": [
     {
       "name": "issue-basic",
       "purpose": "最小出单；可选文本为空字符串、可空字段为 null",
       "change": {
         "schemaVersion": 4,
-        "digestVersion": 1,
-        "digest": "2b3e99b61b4f39f4c8c5828d9a66db1d24134985c752312de1a41a30783b6e3f",
+        "digestVersion": 2,
+        "digest": "90d2aff38d8ed4f051e7403ac0ee86a04016f864936d5fab060fb7d131214fbd",
         "siteCode": "F001",
         "ticketNo": "F001-20261031-0001",
         "type": "issue",
@@ -51,15 +51,15 @@
           "contactPhone": "13900000000"
         }
       },
-      "expectedDigest": "2b3e99b61b4f39f4c8c5828d9a66db1d24134985c752312de1a41a30783b6e3f"
+      "expectedDigest": "90d2aff38d8ed4f051e7403ac0ee86a04016f864936d5fab060fb7d131214fbd"
     },
     {
       "name": "issue-normalized",
       "purpose": "同一业务内容使用不同重量写法和时区，摘要必须与 issue-basic 相同",
       "change": {
         "schemaVersion": 4,
-        "digestVersion": 1,
-        "digest": "2b3e99b61b4f39f4c8c5828d9a66db1d24134985c752312de1a41a30783b6e3f",
+        "digestVersion": 2,
+        "digest": "90d2aff38d8ed4f051e7403ac0ee86a04016f864936d5fab060fb7d131214fbd",
         "siteCode": "F001",
         "ticketNo": "F001-20261031-0001",
         "type": "issue",
@@ -103,15 +103,15 @@
           "contactPhone": "13900000000"
         }
       },
-      "expectedDigest": "2b3e99b61b4f39f4c8c5828d9a66db1d24134985c752312de1a41a30783b6e3f"
+      "expectedDigest": "90d2aff38d8ed4f051e7403ac0ee86a04016f864936d5fab060fb7d131214fbd"
     },
     {
       "name": "issue-adjusted",
       "purpose": "含净重扣减、调整人和毫秒级调整时间",
       "change": {
         "schemaVersion": 4,
-        "digestVersion": 1,
-        "digest": "61ed117d0f0b1bfb0c7983d06510b3ce0589be5a3b186c1a38684b92a882d569",
+        "digestVersion": 2,
+        "digest": "baf6c46a6b1e3d321d85b4e04d9f085fe111bbf689b24b5728e18ba9ae5ac3ac",
         "siteCode": "F001",
         "ticketNo": "F001-20261031-0001",
         "type": "issue",
@@ -155,15 +155,15 @@
           "contactPhone": "13900000000"
         }
       },
-      "expectedDigest": "61ed117d0f0b1bfb0c7983d06510b3ce0589be5a3b186c1a38684b92a882d569"
+      "expectedDigest": "baf6c46a6b1e3d321d85b4e04d9f085fe111bbf689b24b5728e18ba9ae5ac3ac"
     },
     {
       "name": "issue-adjusted-truncated",
       "purpose": "时间截断到毫秒；摘要必须与 issue-adjusted 相同",
       "change": {
         "schemaVersion": 4,
-        "digestVersion": 1,
-        "digest": "61ed117d0f0b1bfb0c7983d06510b3ce0589be5a3b186c1a38684b92a882d569",
+        "digestVersion": 2,
+        "digest": "baf6c46a6b1e3d321d85b4e04d9f085fe111bbf689b24b5728e18ba9ae5ac3ac",
         "siteCode": "F001",
         "ticketNo": "F001-20261031-0001",
         "type": "issue",
@@ -207,15 +207,15 @@
           "contactPhone": "13900000000"
         }
       },
-      "expectedDigest": "61ed117d0f0b1bfb0c7983d06510b3ce0589be5a3b186c1a38684b92a882d569"
+      "expectedDigest": "baf6c46a6b1e3d321d85b4e04d9f085fe111bbf689b24b5728e18ba9ae5ac3ac"
     },
     {
       "name": "issue-empty-adjusted-by",
       "purpose": "空字符串与 null 不同，摘要必须与 issue-basic 不同",
       "change": {
         "schemaVersion": 4,
-        "digestVersion": 1,
-        "digest": "82afb678d77bd51c4223ddda30aaaf6f2ee4a64ce8cab1213d213f421f81a290",
+        "digestVersion": 2,
+        "digest": "e54d6c3b0577192dac7e74c5563fd77fa845aff47ea3dcbe20e942876ff88cec",
         "siteCode": "F001",
         "ticketNo": "F001-20261031-0001",
         "type": "issue",
@@ -259,15 +259,15 @@
           "contactPhone": "13900000000"
         }
       },
-      "expectedDigest": "82afb678d77bd51c4223ddda30aaaf6f2ee4a64ce8cab1213d213f421f81a290"
+      "expectedDigest": "e54d6c3b0577192dac7e74c5563fd77fa845aff47ea3dcbe20e942876ff88cec"
     },
     {
       "name": "issue-delimited-text",
       "purpose": "文本包含冒号和换行；长度前缀保证无歧义",
       "change": {
         "schemaVersion": 4,
-        "digestVersion": 1,
-        "digest": "dfbd454aef19b57d7f96db290f576faf7a83278731625740b91c459a25b15da7",
+        "digestVersion": 2,
+        "digest": "322cb4aa0a1e5a923200bb70e5b5b3925ebc0212153639228b03b9f197b289e7",
         "siteCode": "F001",
         "ticketNo": "F001-20261031-0001",
         "type": "issue",
@@ -311,15 +311,15 @@
           "contactPhone": "13900000000"
         }
       },
-      "expectedDigest": "dfbd454aef19b57d7f96db290f576faf7a83278731625740b91c459a25b15da7"
+      "expectedDigest": "322cb4aa0a1e5a923200bb70e5b5b3925ebc0212153639228b03b9f197b289e7"
     },
     {
       "name": "void-basic",
-      "purpose": "作废只覆盖标识和作废信息",
+      "purpose": "作废完整业务快照及作废信息；等价时间格式一致",
       "change": {
         "schemaVersion": 4,
-        "digestVersion": 1,
-        "digest": "12f637a36002535feeddb7754c0781c9021ba23d64f6e55665a56827a2453235",
+        "digestVersion": 2,
+        "digest": "a24323e3f50bd7b90f4aaf2b3d3fb563f8d8262aca652b51da8ca3170877b6ab",
         "siteCode": "F001",
         "ticketNo": "F001-20261031-0001",
         "type": "void",
@@ -327,17 +327,56 @@
           "reason": "重量录入错误",
           "actor": "操作员",
           "at": "2026-10-30T09:00:00+08:00"
+        },
+        "ticket": {
+          "ticketNo": "F001-20261031-0001",
+          "previousTicketNo": null,
+          "title": "酒厂过磅单",
+          "plate": "晋A12345",
+          "direction": "inbound",
+          "materialCode": "C-M-0001",
+          "materialName": "高粱",
+          "materialSpec": "散装",
+          "partyCode": "C-P-0001",
+          "partyName": "供货方",
+          "firstConfirmedAt": "2026-10-30T08:00:00+08:00",
+          "secondConfirmedAt": "2026-10-30T08:10:00+08:00",
+          "issuedAt": "2026-10-30T08:10:00+08:00",
+          "issuerName": "操作员",
+          "originalGross": "30",
+          "originalTare": "9",
+          "finalGross": "30",
+          "finalTare": "10",
+          "finalNet": "20",
+          "netAdjustment": "0",
+          "netAdjustmentMode": "amount",
+          "netAdjustmentRateBp": null,
+          "netAdjustmentCategory": "",
+          "netAdjustmentCategoryName": "",
+          "previousFinalGross": null,
+          "previousFinalTare": null,
+          "previousFinalNet": null,
+          "previousNetAdjustment": null,
+          "grossSource": "collected",
+          "tareSource": "collected",
+          "adjustmentRemark": "",
+          "adjustedBy": null,
+          "adjustedAt": null,
+          "driver": "张三",
+          "driverPhone": "13800000000",
+          "contactName": "李四",
+          "contactPhone": "13900000000"
         }
       },
-      "expectedDigest": "12f637a36002535feeddb7754c0781c9021ba23d64f6e55665a56827a2453235"
+      "expectedDigest": "a24323e3f50bd7b90f4aaf2b3d3fb563f8d8262aca652b51da8ca3170877b6ab"
     },
     {
       "name": "void-normalized",
-      "purpose": "作废时间使用 UTC 等价写法；摘要必须与 void-basic 相同",
+      "purpose": "作废完整业务快照及作废信息；等价时间格式一致",
       "change": {
         "schemaVersion": 4,
-        "digestVersion": 1,
-        "digest": "12f637a36002535feeddb7754c0781c9021ba23d64f6e55665a56827a2453235",
+        "digestVersion": 2,
+        "digest": "a24323e3f50bd7b90f4aaf2b3d3fb563f8d8262aca652b51da8ca3170877b6ab",
         "siteCode": "F001",
         "ticketNo": "F001-20261031-0001",
         "type": "void",
@@ -345,17 +384,56 @@
           "reason": "重量录入错误",
           "actor": "操作员",
           "at": "2026-10-30T01:00:00.000Z"
+        },
+        "ticket": {
+          "ticketNo": "F001-20261031-0001",
+          "previousTicketNo": null,
+          "title": "酒厂过磅单",
+          "plate": "晋A12345",
+          "direction": "inbound",
+          "materialCode": "C-M-0001",
+          "materialName": "高粱",
+          "materialSpec": "散装",
+          "partyCode": "C-P-0001",
+          "partyName": "供货方",
+          "firstConfirmedAt": "2026-10-30T08:00:00+08:00",
+          "secondConfirmedAt": "2026-10-30T08:10:00+08:00",
+          "issuedAt": "2026-10-30T08:10:00+08:00",
+          "issuerName": "操作员",
+          "originalGross": "30",
+          "originalTare": "9",
+          "finalGross": "30",
+          "finalTare": "10",
+          "finalNet": "20",
+          "netAdjustment": "0",
+          "netAdjustmentMode": "amount",
+          "netAdjustmentRateBp": null,
+          "netAdjustmentCategory": "",
+          "netAdjustmentCategoryName": "",
+          "previousFinalGross": null,
+          "previousFinalTare": null,
+          "previousFinalNet": null,
+          "previousNetAdjustment": null,
+          "grossSource": "collected",
+          "tareSource": "collected",
+          "adjustmentRemark": "",
+          "adjustedBy": null,
+          "adjustedAt": null,
+          "driver": "张三",
+          "driverPhone": "13800000000",
+          "contactName": "李四",
+          "contactPhone": "13900000000"
         }
       },
-      "expectedDigest": "12f637a36002535feeddb7754c0781c9021ba23d64f6e55665a56827a2453235"
+      "expectedDigest": "a24323e3f50bd7b90f4aaf2b3d3fb563f8d8262aca652b51da8ca3170877b6ab"
     },
     {
       "name": "reopen-same-site",
       "purpose": "同厂区重开，携带原单关联和上版净重",
       "change": {
         "schemaVersion": 4,
-        "digestVersion": 1,
-        "digest": "bece0a7568457f0c8cd349dbe18a83e314b5f30181ab3ef9f7ed239013a7a41c",
+        "digestVersion": 2,
+        "digest": "fedf8924697ce8e03eebc7fc2cf0f733c08accaf0c9c637e222295c125020296",
         "siteCode": "F001",
         "ticketNo": "F001-20261031-0002",
         "type": "reopen",
@@ -400,15 +478,15 @@
           "contactPhone": "13900000000"
         }
       },
-      "expectedDigest": "bece0a7568457f0c8cd349dbe18a83e314b5f30181ab3ef9f7ed239013a7a41c"
+      "expectedDigest": "fedf8924697ce8e03eebc7fc2cf0f733c08accaf0c9c637e222295c125020296"
     },
     {
       "name": "reopen-cross-site",
       "purpose": "新单使用 F001、原单使用旧编码 F000；previousSiteCode 参与摘要",
       "change": {
         "schemaVersion": 4,
-        "digestVersion": 1,
-        "digest": "9bf2f7802cbdb3f0fffded279e084366ac16649d63222d55f5cff1f54615427d",
+        "digestVersion": 2,
+        "digest": "642539bfec15d3ee9d7dc7f4179ffdce7e135ef104a893264d41e2891138850e",
         "siteCode": "F001",
         "ticketNo": "F001-20261031-0002",
         "type": "reopen",
@@ -453,15 +531,15 @@
           "contactPhone": "13900000000"
         }
       },
-      "expectedDigest": "9bf2f7802cbdb3f0fffded279e084366ac16649d63222d55f5cff1f54615427d"
+      "expectedDigest": "642539bfec15d3ee9d7dc7f4179ffdce7e135ef104a893264d41e2891138850e"
     },
     {
       "name": "reopen-negative-adjustment",
       "purpose": "重开允许负数（上调）调整，负数按有符号千分吨规范化",
       "change": {
         "schemaVersion": 4,
-        "digestVersion": 1,
-        "digest": "dd711753dd074af0ca17b608c9b96fc4d252a83f2546f5e2ff1194ac41162623",
+        "digestVersion": 2,
+        "digest": "e2f265dfa8897d4e225344a60421320508fbf9efd7749820e5eab502b96a1781",
         "siteCode": "F001",
         "ticketNo": "F001-20261031-0002",
         "type": "reopen",
@@ -506,7 +584,65 @@
           "contactPhone": "13900000000"
         }
       },
-      "expectedDigest": "dd711753dd074af0ca17b608c9b96fc4d252a83f2546f5e2ff1194ac41162623"
+      "expectedDigest": "e2f265dfa8897d4e225344a60421320508fbf9efd7749820e5eab502b96a1781"
+    },
+    {
+      "name": "void-reopened-cross-site",
+      "purpose": "跨厂重开单作废，摘要包含原单关联和完整业务快照",
+      "change": {
+        "schemaVersion": 4,
+        "digestVersion": 2,
+        "digest": "6d3965f1fa6c004b205531f8faa4e10f4f131cff934563fb3f9c5aa59264acdd",
+        "siteCode": "F001",
+        "ticketNo": "F001-20261031-0002",
+        "type": "void",
+        "previousSiteCode": "F000",
+        "ticket": {
+          "ticketNo": "F001-20261031-0002",
+          "previousTicketNo": "F001-20261031-0001",
+          "title": "酒厂过磅单",
+          "plate": "晋A12345",
+          "direction": "inbound",
+          "materialCode": "C-M-0001",
+          "materialName": "高粱",
+          "materialSpec": "散装",
+          "partyCode": "C-P-0001",
+          "partyName": "供货方",
+          "firstConfirmedAt": "2026-10-30T08:00:00+08:00",
+          "secondConfirmedAt": "2026-10-30T08:10:00+08:00",
+          "issuedAt": "2026-10-30T08:10:00+08:00",
+          "issuerName": "操作员",
+          "originalGross": "30",
+          "originalTare": "9",
+          "finalGross": "30",
+          "finalTare": "10",
+          "finalNet": "20",
+          "netAdjustment": "0",
+          "netAdjustmentMode": "amount",
+          "netAdjustmentRateBp": null,
+          "netAdjustmentCategory": "",
+          "netAdjustmentCategoryName": "",
+          "previousFinalGross": "30",
+          "previousFinalTare": "10",
+          "previousFinalNet": "19.5",
+          "previousNetAdjustment": "0.5",
+          "grossSource": "collected",
+          "tareSource": "collected",
+          "adjustmentRemark": "",
+          "adjustedBy": null,
+          "adjustedAt": null,
+          "driver": "张三",
+          "driverPhone": "13800000000",
+          "contactName": "李四",
+          "contactPhone": "13900000000"
+        },
+        "void": {
+          "reason": "重量录入错误",
+          "actor": "操作员",
+          "at": "2026-10-30T09:00:00+08:00"
+        }
+      },
+      "expectedDigest": "6d3965f1fa6c004b205531f8faa4e10f4f131cff934563fb3f9c5aa59264acdd"
     }
   ]
 }

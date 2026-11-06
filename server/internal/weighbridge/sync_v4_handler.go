@@ -19,6 +19,22 @@ type BatchReconcileRequest struct {
 	Items []TicketRef `json:"items"`
 }
 
+const maxSyncBodyBytes = 1 << 20
+
+func bindSyncRequest(c *gin.Context, target any) bool {
+	c.Request.Body = http.MaxBytesReader(c.Writer, c.Request.Body, maxSyncBodyBytes)
+	if err := bindStrict(c, target); err != nil {
+		var tooLarge *http.MaxBytesError
+		if errors.As(err, &tooLarge) {
+			platformhttp.WriteError(c, http.StatusRequestEntityTooLarge, platformhttp.CodeRequestEntityTooLarge, "同步请求体超过大小限制", nil)
+		} else {
+			writeSyncError(c, newSyncError(SyncCategoryConfigOrData, "invalid_request", "请求不是合法的同步报文"))
+		}
+		return false
+	}
+	return true
+}
+
 // RegisterSyncV4Routes registers the digest-protocol factory endpoints. Site
 // codes are not authentication; a historical code may only be read.
 func RegisterSyncV4Routes(api gin.IRouter, handler *Handler) {
@@ -73,12 +89,12 @@ func syncActor(c *gin.Context) (int64, bool) {
 // @Success 200 {object} ChangeV4Response
 // @Failure 400 {object} ApiEnvelope
 // @Failure 409 {object} ApiEnvelope
+// @Failure 413 {object} ApiEnvelope
 // @Failure 503 {object} ApiEnvelope
 // @Router /api/v1/weighbridge/sync/v4/changes [post]
 func (h *Handler) applyChangeV4(c *gin.Context) {
 	var input ChangeV4
-	if err := bindStrict(c, &input); err != nil {
-		writeSyncError(c, newSyncError(SyncCategoryConfigOrData, "invalid_request", "请求不是合法的新协议变化报文"))
+	if !bindSyncRequest(c, &input) {
 		return
 	}
 	receipt, err := h.service.ApplyChangeV4(c.Request.Context(), input)
@@ -110,7 +126,7 @@ func (h *Handler) lookupChange(c *gin.Context) {
 // reconcileTicket godoc
 // @Summary 厂端按单号核对云端单据
 // @Tags 厂云同步
-// @Description 按出单厂区编码和单号返回云端单据状态、最新摘要和历史变化确认；历史编码只读。
+// @Description 可信网络内按出单厂区编码和单号返回云端单据快照、作废信息、最新摘要和历史变化确认；历史编码只读，厂区编码不认证来源。
 // @Param siteCode query string true "出单厂区编码"
 // @Param ticketNo query string true "单号"
 // @Success 200 {object} ApiEnvelope
@@ -132,11 +148,11 @@ func (h *Handler) reconcileTicket(c *gin.Context) {
 // @Param request body BatchReconcileRequest true "批量对账请求"
 // @Success 200 {object} ApiEnvelope
 // @Failure 400 {object} ApiEnvelope
+// @Failure 413 {object} ApiEnvelope
 // @Router /api/v1/weighbridge/sync/v4/reconcile [post]
 func (h *Handler) reconcileTickets(c *gin.Context) {
 	var input BatchReconcileRequest
-	if err := bindStrict(c, &input); err != nil {
-		writeSyncError(c, newSyncError(SyncCategoryConfigOrData, "invalid_request", "请求不是合法的批量对账报文"))
+	if !bindSyncRequest(c, &input) {
 		return
 	}
 	result, err := h.service.ReconcileTickets(c.Request.Context(), input.Items)

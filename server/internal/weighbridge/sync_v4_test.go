@@ -25,7 +25,7 @@ type digestVectorFile struct {
 
 func loadDigestVectors(t *testing.T) digestVectorFile {
 	t.Helper()
-	body, err := os.ReadFile("testdata/digest_v1_vectors.json")
+	body, err := os.ReadFile("testdata/digest_v2_vectors.json")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -99,6 +99,40 @@ func TestCanonicalDigestIgnoresSuppliedDigest(t *testing.T) {
 	}
 	if got != file.Vectors[0].ExpectedDigest {
 		t.Fatalf("supplied digest changed the canonical digest: %s", got)
+	}
+}
+
+func TestVoidDigestCoversTicketSnapshot(t *testing.T) {
+	file := loadDigestVectors(t)
+	change := file.Vectors[0].Change
+	change.Type = "void"
+	change.Void = &VoidInfo{Reason: "更正", Actor: "操作员", At: time.Date(2026, 10, 31, 2, 30, 0, 0, time.UTC)}
+	first, err := CanonicalChangeDigest(change)
+	if err != nil {
+		t.Fatalf("void with its ticket snapshot must be valid: %v", err)
+	}
+	modified := *change.Ticket
+	modified.Plate = "晋A99999"
+	change.Ticket = &modified
+	second, err := CanonicalChangeDigest(change)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if first == second {
+		t.Fatal("void digest must change when a ticket snapshot field changes")
+	}
+}
+
+func TestReconcileRejectsOversizedBodyBeforeDecoding(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	router := gin.New()
+	RegisterSyncV4Routes(router, &Handler{})
+	body := `{"items":[{"siteCode":"F001","ticketNo":"` + strings.Repeat("x", 2<<20)
+	request := httptest.NewRequest(http.MethodPost, "/weighbridge/sync/v4/reconcile", strings.NewReader(body))
+	response := httptest.NewRecorder()
+	router.ServeHTTP(response, request)
+	if response.Code != http.StatusRequestEntityTooLarge {
+		t.Fatalf("oversized request status = %d, want %d", response.Code, http.StatusRequestEntityTooLarge)
 	}
 }
 
@@ -182,14 +216,16 @@ func TestChangeV4Validation(t *testing.T) {
 	}{
 		{"schema version", issueBase, func(c *ChangeV4) { c.SchemaVersion = 3 }},
 		{"digest version", issueBase, func(c *ChangeV4) { c.DigestVersion = 0 }},
+		{"old digest version", issueBase, func(c *ChangeV4) { c.DigestVersion = 1 }},
 		{"digest uppercase", issueBase, func(c *ChangeV4) { c.Digest = strings.Repeat("A", 64) }},
 		{"digest length", issueBase, func(c *ChangeV4) { c.Digest = "abc" }},
 		{"site code", issueBase, func(c *ChangeV4) { c.SiteCode = "" }},
 		{"unknown change type", issueBase, func(c *ChangeV4) { c.Type = "cancel" }},
 		{"issue with previous ticket", issueBase, func(c *ChangeV4) { c.Ticket.PreviousTicketNo = strPtr("OTHER") }},
 		{"issue with previous site", issueBase, func(c *ChangeV4) { c.PreviousSiteCode = "F000" }},
-		{"void with ticket", issueBase, func(c *ChangeV4) {
+		{"void without ticket", issueBase, func(c *ChangeV4) {
 			c.Type = "void"
+			c.Ticket = nil
 			c.Void = &VoidInfo{Reason: "x", Actor: "y", At: time.Now()}
 		}},
 		{"void without actor", issueBase, func(c *ChangeV4) {

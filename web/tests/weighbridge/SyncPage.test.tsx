@@ -62,6 +62,20 @@ function ticketReceipt(found: boolean, siteCode = 'F001', ticketNo = 'T1') {
 }
 
 describe('云端厂云同步页面', () => {
+  it('再次查询同一单据时刷新云端状态', async () => {
+    api.syncTicketReceipt.mockReset();
+    api.syncSiteReceipts.mockResolvedValue([]);
+    api.syncTicketReceipt.mockResolvedValueOnce(ticketReceipt(true)).mockResolvedValueOnce(ticketReceipt(false));
+    renderWithProviders(<SyncPage />);
+    await userEvent.type(screen.getByLabelText('出单厂区编码'), 'F001');
+    await userEvent.type(screen.getByLabelText('单号'), 'T1');
+    await userEvent.click(screen.getByRole('button', { name: '查询' }));
+    await screen.findByText('重量录入错误');
+    await userEvent.click(screen.getByRole('button', { name: '查询' }));
+    expect(await screen.findByText(/云端未找到 F001 \/ T1/)).toBeInTheDocument();
+    expect(api.syncTicketReceipt).toHaveBeenCalledTimes(2);
+  });
+
   it('只展示云端接收结果，并按单据核对变化与原单关联', async () => {
     api.syncSiteReceipts.mockResolvedValue([siteReceipt()]);
     api.syncTicketReceipt.mockResolvedValue(ticketReceipt(true));

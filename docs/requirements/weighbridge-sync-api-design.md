@@ -71,7 +71,7 @@
 ```json
 {
   "schemaVersion": 4,
-  "digestVersion": 1,
+  "digestVersion": 2,
   "digest": "<64 位小写十六进制>",
   "siteCode": "F001",
   "ticketNo": "F001-20261031-0001",
@@ -81,15 +81,15 @@
 ```
 
 - `type` 为 `issue`（出单）、`void`（作废）或 `reopen`（重开）。
-- 出单和重开携带 `ticket`；作废携带 `void`（`reason`、`actor`、`at`），不携带 `ticket`。
+- 出单、作废和重开均携带完整单据快照 `ticket`；作废额外携带 `void`（`reason`、`actor`、`at`），云端不以作废载荷覆盖已保存的业务快照。
 - 重开还携带 `previousSiteCode`，并在 `ticket.previousTicketNo` 中携带原单号；新单按 `siteCode` 归属，原单按 `previousSiteCode` 和原单号定位。重开单允许使用新厂区编码。
 - `ticket` 的业务字段与版本 3 一致：`ticketNo`、`previousTicketNo`、`title`、`plate`、`direction`、`materialCode`、`materialName`、`materialSpec`、`partyCode`、`partyName`、`firstConfirmedAt`、`secondConfirmedAt`、`issuedAt`、`issuerName`、`originalGross`、`originalTare`、`finalGross`、`finalTare`、`finalNet`、`netAdjustment`、`netAdjustmentMode`、`netAdjustmentRateBp`、`netAdjustmentCategory`、`netAdjustmentCategoryName`、`previousFinalGross`、`previousFinalTare`、`previousFinalNet`、`previousNetAdjustment`、`grossSource`、`tareSource`、`adjustmentRemark`、`adjustedBy`、`adjustedAt`、`driver`、`driverPhone`、`contactName`、`contactPhone`。空文本为 `""`；无原单号、上版重量、比例或调整人时间时对应字段为 `null`。
 - `digest` 只做格式校验（64 位小写十六进制）；云端不验证它与内容是否匹配。摘要不提供来源认证。
 - 新协议不使用 `changeId`；同一变化重试必须使用已保存的原载荷和原摘要。
 
-### 摘要规则版本 1
+### 摘要规则版本 2
 
-摘要规则版本为 `1`，通过请求中的 `digestVersion` 标识。`schemaVersion` 和请求中的 `digest` 字段不参与摘要计算；`rulesVersion` 参与。字段集合或规范化规则变化时必须提升规则版本，旧版本摘要不可直接比较。
+摘要规则版本为 `2`，通过请求中的 `digestVersion` 标识。`schemaVersion` 和请求中的 `digest` 字段不参与摘要计算；`rulesVersion` 参与。字段集合或规范化规则变化时必须提升规则版本，旧版本摘要不可直接比较。
 
 #### 规范化输入
 
@@ -109,19 +109,11 @@ previousSiteCode
 previousTicketNo
 ```
 
-- `rulesVersion` 为十进制 `1`。
-- `previousSiteCode` 和 `previousTicketNo`：重开时写实际值；出单和作废时写 `null`。`previousTicketNo` 取 `ticket.previousTicketNo`，重开时必须非空。
+- `rulesVersion` 为十进制 `2`。
+- `previousSiteCode` 和 `previousTicketNo`：重开及重开单作废时写实际值；普通出单及其作废时写 `null`。`previousTicketNo` 取 `ticket.previousTicketNo`。
 - `ticket.ticketNo` 不重复写入摘要；它必须等于顶层 `ticketNo`，由顶层字段覆盖。
 
-作废变化（`type=void`）继续写：
-
-```text
-voidReason
-voidActor
-voidAt
-```
-
-出单和重开变化继续写以下 `ticket` 字段（顺序固定）：
+所有变化继续写以下 `ticket` 字段（顺序固定）：
 
 ```text
 title
@@ -161,6 +153,8 @@ contactName
 contactPhone
 ```
 
+作废变化在以上字段之后继续写 `voidReason`、`voidActor`、`voidAt`，按该顺序编码。
+
 #### 规范化规则
 
 - **文本**：按 UTF-8 原样编码，不做 Unicode 归一化、不去首尾空白、不改大小写。`null` 与空字符串 `""` 是不同值。
@@ -173,21 +167,22 @@ contactPhone
 
 #### 固定测试向量
 
-向量文件：`server/internal/weighbridge/testdata/digest_v1_vectors.json`，包含完整请求、用途和期望摘要；Go 参考实现为 `server/internal/weighbridge/digest.go`，单元测试为 `server/internal/weighbridge/sync_v4_test.go`。该参考实现只用于文档、向量和测试，接收路径不调用。厂端应使用同一向量校验自身实现。
+向量文件：`server/internal/weighbridge/testdata/digest_v2_vectors.json`，包含完整请求、用途和期望摘要；Go 参考实现为 `server/internal/weighbridge/digest.go`，单元测试为 `server/internal/weighbridge/sync_v4_test.go`。该参考实现只用于文档、向量和测试，接收路径不调用。厂端应使用同一向量校验自身实现。
 
-| 向量 | 用途 | 期望摘要（小写十六进制） |
+| 向量 | 用途 | 期望摘要 |
 | --- | --- | --- |
-| `issue-basic` | 最小出单；空文本与 null | `2b3e99b61b4f39f4c8c5828d9a66db1d24134985c752312de1a41a30783b6e3f` |
-| `issue-normalized` | 不同重量写法与时区，结果必须与 `issue-basic` 相同 | `2b3e99b61b4f39f4c8c5828d9a66db1d24134985c752312de1a41a30783b6e3f` |
-| `issue-adjusted` | 净重扣减、调整人、毫秒时间 | `61ed117d0f0b1bfb0c7983d06510b3ce0589be5a3b186c1a38684b92a882d569` |
-| `issue-adjusted-truncated` | 时间截断到毫秒，结果必须与 `issue-adjusted` 相同 | `61ed117d0f0b1bfb0c7983d06510b3ce0589be5a3b186c1a38684b92a882d569` |
-| `issue-empty-adjusted-by` | 空字符串与 null 不同，结果必须与 `issue-basic` 不同 | `82afb678d77bd51c4223ddda30aaaf6f2ee4a64ce8cab1213d213f421f81a290` |
-| `issue-delimited-text` | 文本含冒号、换行和非 ASCII 字符 | `dfbd454aef19b57d7f96db290f576faf7a83278731625740b91c459a25b15da7` |
-| `void-basic` | 作废只覆盖标识和作废信息 | `12f637a36002535feeddb7754c0781c9021ba23d64f6e55665a56827a2453235` |
-| `void-normalized` | 作废时间 UTC 等价写法，结果必须与 `void-basic` 相同 | `12f637a36002535feeddb7754c0781c9021ba23d64f6e55665a56827a2453235` |
-| `reopen-same-site` | 同厂区重开及上版净重 | `bece0a7568457f0c8cd349dbe18a83e314b5f30181ab3ef9f7ed239013a7a41c` |
-| `reopen-cross-site` | 新单 F001、原单旧编码 F000 | `9bf2f7802cbdb3f0fffded279e084366ac16649d63222d55f5cff1f54615427d` |
-| `reopen-negative-adjustment` | 重开允许负数（上调）调整 | `dd711753dd074af0ca17b608c9b96fc4d252a83f2546f5e2ff1194ac41162623` |
+| `issue-basic` | 最小出单；可选文本为空字符串、可空字段为 null | `90d2aff38d8ed4f051e7403ac0ee86a04016f864936d5fab060fb7d131214fbd` |
+| `issue-normalized` | 同一业务内容使用不同重量写法和时区，摘要必须与 issue-basic 相同 | `90d2aff38d8ed4f051e7403ac0ee86a04016f864936d5fab060fb7d131214fbd` |
+| `issue-adjusted` | 含净重扣减、调整人和毫秒级调整时间 | `baf6c46a6b1e3d321d85b4e04d9f085fe111bbf689b24b5728e18ba9ae5ac3ac` |
+| `issue-adjusted-truncated` | 时间截断到毫秒；摘要必须与 issue-adjusted 相同 | `baf6c46a6b1e3d321d85b4e04d9f085fe111bbf689b24b5728e18ba9ae5ac3ac` |
+| `issue-empty-adjusted-by` | 空字符串与 null 不同，摘要必须与 issue-basic 不同 | `e54d6c3b0577192dac7e74c5563fd77fa845aff47ea3dcbe20e942876ff88cec` |
+| `issue-delimited-text` | 文本包含冒号和换行；长度前缀保证无歧义 | `322cb4aa0a1e5a923200bb70e5b5b3925ebc0212153639228b03b9f197b289e7` |
+| `void-basic` | 作废完整业务快照及作废信息；等价时间格式一致 | `a24323e3f50bd7b90f4aaf2b3d3fb563f8d8262aca652b51da8ca3170877b6ab` |
+| `void-normalized` | 作废完整业务快照及作废信息；等价时间格式一致 | `a24323e3f50bd7b90f4aaf2b3d3fb563f8d8262aca652b51da8ca3170877b6ab` |
+| `reopen-same-site` | 同厂区重开，携带原单关联和上版净重 | `fedf8924697ce8e03eebc7fc2cf0f733c08accaf0c9c637e222295c125020296` |
+| `reopen-cross-site` | 新单使用 F001、原单使用旧编码 F000；previousSiteCode 参与摘要 | `642539bfec15d3ee9d7dc7f4179ffdce7e135ef104a893264d41e2891138850e` |
+| `reopen-negative-adjustment` | 重开允许负数（上调）调整，负数按有符号千分吨规范化 | `e2f265dfa8897d4e225344a60421320508fbf9efd7749820e5eab502b96a1781` |
+| `void-reopened-cross-site` | 跨厂重开单作废，摘要包含原单关联和完整业务快照 | `6d3965f1fa6c004b205531f8faa4e10f4f131cff934563fb3f9c5aa59264acdd` |
 
 ### 云端接收、去重与状态约束
 
@@ -227,12 +222,16 @@ contactPhone
 
 `reason` 是更细的原因（如 `site_not_found_or_disabled`、`ticket_missing`、`original_not_void`、`change_conflict`、`digest_reused`、`original_already_reopened`）。厂端不得只根据 HTTP 状态推断结果，必须读取 `category`。云端管理读取接口在非 `ADMIN` 账号下返回 403。
 
+单据变化及批量对账 JSON 请求体上限均为 1 MiB（1,048,576 字节）；超过上限在解码前受限，返回 HTTP 413，响应 `data` 为 `null`，厂端按数据错误提示处理，不自动循环重试。
+
 ### 厂端只读对账
 
 - `GET /api/v1/weighbridge/sync/v4/tickets?siteCode=F001&ticketNo=T1`
-  - 返回 `found`、`status`、`latestDigest`、`latestDigestVersion`、`latestChangeType`、`latestReceivedAt`、`previousSiteCode`、`previousTicketNo`、`reopenedBy` 和 `changes`（每项含 `digest`、`changeType`、`digestVersion`、`schemaVersion`、`receivedAt`）。
+  - 返回 `found`、`status`、完整单据快照 `ticket`、`voidReason`、`voidedBy`、`voidedAt`、`latestDigest`、`latestDigestVersion`、`latestChangeType`、`latestReceivedAt`、`previousSiteCode`、`previousTicketNo`、`reopenedBy` 和 `changes`（每项含 `digest`、`changeType`、`digestVersion`、`schemaVersion`、`receivedAt`）。未找到时 `ticket` 和作废信息为 `null`。
+  - `ticket.netAdjustmentCategory`、`netAdjustmentCategoryName` 为空字符串时省略；`netAdjustmentRateBp`、`previousFinalNet`、`previousNetAdjustment` 为 `null` 时省略。字段差异比较须先将这些省略值分别还原为空字符串或 `null`。
   - 厂区编码按出单时编码查询；历史编码只读，允许在改码后继续查询旧编码已接收的变化和单据。
   - 单据不存在返回 200 且 `found=false`，这是对账的正常结果；厂区编码从未登记返回 400 `config_or_data / site_not_found`。
+  - 该接口不验证厂端身份，完整快照包括司机和联系人等信息；按约定仅在可信网络内开放，并应限制网络访问范围。厂端自身仅向有权限的管理员展示差异详情。
 - `POST /api/v1/weighbridge/sync/v4/reconcile`
   - 请求为 `{"items":[{"siteCode":"F001","ticketNo":"T1"}, ...]}`，每批 1 至 200 条。
   - 按请求顺序逐项返回 `siteCode`、`ticketNo`、`found`、`status`、`latestDigest`、`latestDigestVersion`、`latestChangeType`、`latestReceivedAt`、`previousSiteCode`、`previousTicketNo`、`reopenedBy` 和 `error`。
@@ -248,8 +247,8 @@ contactPhone
 
 - 云端保留 v2/v3 的 `/api/v1/weighbridge/sync/changes` 接口和既有数据，不自动删除、不自动迁移；v4 与 v2/v3 并行存在，不能据此推定旧协议已下线。
 - v4 不兼容 v2/v3：不能把 v4 摘要当作 v2/v3 变化的重试标识，也不能用 v4 接口补传 v2/v3 载荷；反之亦然。
-- 厂端启用 v4 前必须先处理 v2/v3 待上传队列：按原协议完成上传，或由维护人员明确决定作废/保留。云端不自动清空队列、不自动转换旧变化。
-- 同一单据不要混用两种协议。已通过 v2/v3 出单的单据，其作废/重开继续使用 v2/v3 直至该单据处理完毕；新单据使用 v4。混用会使 v4 历史不完整，不得据此判为对账一致。
+- 新方案不要求厂端兼容或迁移旧单据协议；在干净环境验证。现有测试环境及数据先保留，备份、清理或重建另行决定，不自动清空队列或转换旧变化。
+- 不以混用协议的单据认定 v4 历史完整或对账一致；现有测试数据如需继续使用，须另行确定处理方案。
 - v4 写入只接受当前启用厂区编码；v2/v3 旧编码写入继续按现行规则拒绝。旧编码的已接收摘要变化只能通过 v4 只读对账查询。
 - v2/v3 接口的下线需另行发布；在明确下线前，云端不拒绝合法的 v2/v3 请求。
 
@@ -275,6 +274,6 @@ contactPhone
 ### 实施与验证记录
 
 - Schema migration：`server/migrations/schema/00013_weighbridge_sync_receipts.sql`；菜单 seed：`server/migrations/seed/00011_weighbridge_sync_menu.sql`。
-- 后端单元测试：`server/internal/weighbridge/sync_v4_test.go`；测试向量：`server/internal/weighbridge/testdata/digest_v1_vectors.json`；参考实现：`server/internal/weighbridge/digest.go`。
+- 后端单元测试：`server/internal/weighbridge/sync_v4_test.go`；测试向量：`server/internal/weighbridge/testdata/digest_v2_vectors.json`；参考实现：`server/internal/weighbridge/digest.go`。
 - PostgreSQL 集成测试：`server/integration/weighbridge_sync_integration_test.go`，覆盖出单、作废、重开、重复上传、回执丢失后的确认、前序未满足、冲突、跨编码关联、旧编码历史确认、改码后拒绝写入、事务回滚、单张/批量对账及批量上限；使用 Docker 临时隔离数据库。
 - 前端页面：`web/src/pages/weighbridge/SyncPage.tsx`；测试：`web/tests/weighbridge/SyncPage.test.tsx`。

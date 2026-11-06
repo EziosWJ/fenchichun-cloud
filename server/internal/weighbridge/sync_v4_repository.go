@@ -258,6 +258,14 @@ func (r *Repository) ReconcileTicket(ctx context.Context, siteCode, ticketNo str
 		}
 		result.Found = true
 		result.Status = ticket.Status
+		var snapshot TicketSnapshot
+		if err := json.Unmarshal([]byte(ticket.Snapshot), &snapshot); err != nil {
+			return err
+		}
+		result.Ticket = &snapshot
+		result.VoidReason = ticket.VoidReason
+		result.VoidedBy = ticket.VoidedBy
+		result.VoidedAt = ticket.VoidedAt
 		result.LatestDigest = ticket.LatestDigest
 		result.LatestChangeType = ticket.LatestChangeType
 		result.LatestReceivedAt = ticket.LatestReceivedAt

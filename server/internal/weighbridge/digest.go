@@ -11,7 +11,7 @@ import (
 const digestInputPrefix = "wb-change-digest\n"
 
 // CanonicalChangeDigest is the reference implementation of digest rules
-// version 1. The receive path never calls it: the cloud stores the digest
+// version 2. The receive path never calls it: the cloud stores the digest
 // uploaded by the factory and does not recompute it. It exists so that the
 // published test vectors and both implementations can be checked against the
 // same definition.
@@ -34,19 +34,20 @@ func CanonicalChangeDigest(c ChangeV4) (string, error) {
 	writeDigestField(&b, "siteCode", c.SiteCode)
 	writeDigestField(&b, "ticketNo", c.TicketNo)
 	writeDigestField(&b, "changeType", c.Type)
-	if c.Type == "reopen" {
+	if c.Ticket.PreviousTicketNo != nil {
 		writeDigestField(&b, "previousSiteCode", c.PreviousSiteCode)
 		writeDigestField(&b, "previousTicketNo", *c.Ticket.PreviousTicketNo)
 	} else {
 		writeDigestNull(&b, "previousSiteCode")
 		writeDigestNull(&b, "previousTicketNo")
 	}
+	if err := writeTicketDigestFields(&b, c.Ticket); err != nil {
+		return "", err
+	}
 	if c.Type == "void" {
 		writeDigestField(&b, "voidReason", c.Void.Reason)
 		writeDigestField(&b, "voidActor", c.Void.Actor)
 		writeDigestField(&b, "voidAt", canonicalDigestTime(c.Void.At))
-	} else if err := writeTicketDigestFields(&b, c.Ticket); err != nil {
-		return "", err
 	}
 	sum := sha256.Sum256([]byte(b.String()))
 	return hex.EncodeToString(sum[:]), nil

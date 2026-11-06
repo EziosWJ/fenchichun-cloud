@@ -4700,6 +4700,12 @@ const docTemplate = `{
                             "$ref": "#/definitions/weighbridge.ApiEnvelope"
                         }
                     },
+                    "413": {
+                        "description": "Request Entity Too Large",
+                        "schema": {
+                            "$ref": "#/definitions/weighbridge.ApiEnvelope"
+                        }
+                    },
                     "503": {
                         "description": "Service Unavailable",
                         "schema": {
@@ -4739,13 +4745,19 @@ const docTemplate = `{
                         "schema": {
                             "$ref": "#/definitions/weighbridge.ApiEnvelope"
                         }
+                    },
+                    "413": {
+                        "description": "Request Entity Too Large",
+                        "schema": {
+                            "$ref": "#/definitions/weighbridge.ApiEnvelope"
+                        }
                     }
                 }
             }
         },
         "/api/v1/weighbridge/sync/v4/tickets": {
             "get": {
-                "description": "按出单厂区编码和单号返回云端单据状态、最新摘要和历史变化确认；历史编码只读。",
+                "description": "可信网络内按出单厂区编码和单号返回云端单据快照、作废信息、最新摘要和历史变化确认；历史编码只读，厂区编码不认证来源。",
                 "tags": [
                     "厂云同步"
                 ],

@@ -11,7 +11,7 @@ import (
 // reconciliation reads. It does not depend on the version 2/3 change protocol.
 const (
 	SyncSchemaVersion  = 4
-	DigestRulesVersion = 1
+	DigestRulesVersion = 2
 	MaxBatchReconcile  = 200
 )
 
@@ -63,29 +63,35 @@ type ChangeV4 struct {
 }
 
 func (c ChangeV4) Validate() (int64, error) {
-	if c.SchemaVersion != SyncSchemaVersion || c.DigestVersion < 1 || !digestPattern.MatchString(c.Digest) || !identityCode.MatchString(c.SiteCode) || c.TicketNo == "" || len(c.TicketNo) > 200 {
+	if c.SchemaVersion != SyncSchemaVersion || c.DigestVersion != DigestRulesVersion || !digestPattern.MatchString(c.Digest) || !identityCode.MatchString(c.SiteCode) || c.TicketNo == "" || len(c.TicketNo) > 200 {
 		return 0, ErrInvalid
 	}
-	if c.Type == "void" {
-		if c.PreviousSiteCode != "" || c.Ticket != nil || c.Void == nil || c.Void.Reason == "" || c.Void.Actor == "" || c.Void.At.IsZero() {
-			return 0, ErrInvalid
-		}
-		return 0, nil
-	}
-	if (c.Type != "issue" && c.Type != "reopen") || c.Ticket == nil || c.Void != nil {
+	if (c.Type != "issue" && c.Type != "reopen" && c.Type != "void") || c.Ticket == nil {
 		return 0, ErrInvalid
 	}
 	t := c.Ticket
+	changeType := c.Type
+	if c.Type == "void" {
+		if c.Void == nil || c.Void.Reason == "" || c.Void.Actor == "" || c.Void.At.IsZero() {
+			return 0, ErrInvalid
+		}
+		changeType = "issue"
+		if t.PreviousTicketNo != nil {
+			changeType = "reopen"
+		}
+	} else if c.Void != nil {
+		return 0, ErrInvalid
+	}
 	if t.TicketNo != c.TicketNo || t.MaterialCode == "" || t.MaterialName == "" || t.PartyCode == "" || t.PartyName == "" || t.Plate == "" || t.Title == "" || t.IssuerName == "" || t.IssuedAt.IsZero() || t.FirstConfirmedAt.IsZero() || t.SecondConfirmedAt.IsZero() || (t.Direction != "inbound" && t.Direction != "outbound") {
 		return 0, ErrInvalid
 	}
-	if c.Type == "reopen" && (t.PreviousTicketNo == nil || *t.PreviousTicketNo == "" || !identityCode.MatchString(c.PreviousSiteCode) || (c.PreviousSiteCode == c.SiteCode && *t.PreviousTicketNo == c.TicketNo)) {
+	if changeType == "reopen" && (t.PreviousTicketNo == nil || *t.PreviousTicketNo == "" || !identityCode.MatchString(c.PreviousSiteCode) || (c.PreviousSiteCode == c.SiteCode && *t.PreviousTicketNo == c.TicketNo)) {
 		return 0, ErrInvalid
 	}
-	if c.Type == "issue" && (t.PreviousTicketNo != nil || t.PreviousFinalGross != nil || t.PreviousFinalTare != nil || t.PreviousFinalNet != nil || t.PreviousNetAdjustment != nil || c.PreviousSiteCode != "") {
+	if changeType == "issue" && (t.PreviousTicketNo != nil || t.PreviousFinalGross != nil || t.PreviousFinalTare != nil || t.PreviousFinalNet != nil || t.PreviousNetAdjustment != nil || c.PreviousSiteCode != "") {
 		return 0, ErrInvalid
 	}
-	return validateTicketWeights(t, c.Type, SyncSchemaVersion)
+	return validateTicketWeights(t, changeType, SyncSchemaVersion)
 }
 
 type ChangeReceiptV4 struct {
@@ -115,6 +121,10 @@ type TicketReconcile struct {
 	TicketNo            string               `json:"ticketNo"`
 	Found               bool                 `json:"found"`
 	Status              string               `json:"status,omitempty"`
+	Ticket              *TicketSnapshot      `json:"ticket"`
+	VoidReason          *string              `json:"voidReason"`
+	VoidedBy            *string              `json:"voidedBy"`
+	VoidedAt            *time.Time           `json:"voidedAt"`
 	LatestDigest        *string              `json:"latestDigest"`
 	LatestDigestVersion *int                 `json:"latestDigestVersion"`
 	LatestChangeType    *string              `json:"latestChangeType"`

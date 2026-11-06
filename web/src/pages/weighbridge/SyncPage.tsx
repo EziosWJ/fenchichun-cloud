@@ -150,6 +150,10 @@ export default function SyncPage() {
     const nextSite = siteCode.trim();
     const nextTicket = ticketNo.trim();
     if (!nextSite || !nextTicket) return;
+    if (query?.siteCode === nextSite && query.ticketNo === nextTicket) {
+      void ticketQuery.refetch();
+      return;
+    }
     setQuery({ siteCode: nextSite, ticketNo: nextTicket });
   };
   const openRef = (ref: SyncTicketRef) => {

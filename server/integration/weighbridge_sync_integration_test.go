@@ -29,15 +29,16 @@ func syncTicket(site, number string) *weighbridge.TicketSnapshot {
 		FirstConfirmedAt: now, SecondConfirmedAt: now, IssuedAt: now, IssuerName: "操作员",
 		OriginalGross: "30", OriginalTare: "9", FinalGross: "30", FinalTare: "10",
 		FinalNet: "20", NetAdjustment: "0", NetAdjustmentMode: "amount",
+		Driver: "测试司机", DriverPhone: "13800000000",
 	}
 }
 
 func syncIssue(site, number string, digest string) weighbridge.ChangeV4 {
-	return weighbridge.ChangeV4{SchemaVersion: 4, DigestVersion: 1, Digest: digest, SiteCode: site, TicketNo: number, Type: "issue", Ticket: syncTicket(site, number)}
+	return weighbridge.ChangeV4{SchemaVersion: 4, DigestVersion: weighbridge.DigestRulesVersion, Digest: digest, SiteCode: site, TicketNo: number, Type: "issue", Ticket: syncTicket(site, number)}
 }
 
 func syncVoid(site, number, digest string) weighbridge.ChangeV4 {
-	return weighbridge.ChangeV4{SchemaVersion: 4, DigestVersion: 1, Digest: digest, SiteCode: site, TicketNo: number, Type: "void", Void: &weighbridge.VoidInfo{Reason: "更正", Actor: "操作员", At: time.Date(2026, 10, 31, 2, 30, 0, 0, time.UTC)}}
+	return weighbridge.ChangeV4{SchemaVersion: 4, DigestVersion: weighbridge.DigestRulesVersion, Digest: digest, SiteCode: site, TicketNo: number, Type: "void", Ticket: syncTicket(site, number), Void: &weighbridge.VoidInfo{Reason: "更正", Actor: "操作员", At: time.Date(2026, 10, 31, 2, 30, 0, 0, time.UTC)}}
 }
 
 func syncReopen(site, number, previousSite, previousNumber, digest string) weighbridge.ChangeV4 {
@@ -49,7 +50,7 @@ func syncReopen(site, number, previousSite, previousNumber, digest string) weigh
 	ticket.PreviousFinalTare = &previousTare
 	ticket.PreviousFinalNet = &previousNet
 	ticket.PreviousNetAdjustment = &previousAdjustment
-	return weighbridge.ChangeV4{SchemaVersion: 4, DigestVersion: 1, Digest: digest, SiteCode: site, TicketNo: number, Type: "reopen", PreviousSiteCode: previousSite, Ticket: ticket}
+	return weighbridge.ChangeV4{SchemaVersion: 4, DigestVersion: weighbridge.DigestRulesVersion, Digest: digest, SiteCode: site, TicketNo: number, Type: "reopen", PreviousSiteCode: previousSite, Ticket: ticket}
 }
 
 func wantSyncFailure(t *testing.T, err error, category, reason string) {
@@ -135,7 +136,7 @@ func TestPostgresWeighbridgeSyncReceipts(t *testing.T) {
 		t.Fatalf("late duplicate issue = %+v, %v", receipt, err)
 	}
 	t1, err := repo.ReconcileTicket(ctx, "A", "T1")
-	if err != nil || !t1.Found || t1.Status != "void" || t1.LatestDigest == nil || *t1.LatestDigest != syncDigest(7) || t1.LatestDigestVersion == nil || *t1.LatestDigestVersion != 1 || len(t1.Changes) != 2 {
+	if err != nil || !t1.Found || t1.Status != "void" || t1.LatestDigest == nil || *t1.LatestDigest != syncDigest(7) || t1.LatestDigestVersion == nil || *t1.LatestDigestVersion != weighbridge.DigestRulesVersion || len(t1.Changes) != 2 {
 		t.Fatalf("ticket after duplicates = %+v, %v", t1, err)
 	}
 	if _, err := repo.ApplyChangeV4(ctx, syncIssue("A", "T1", syncDigest(8))); err == nil {
@@ -180,7 +181,7 @@ func TestPostgresWeighbridgeSyncReceipts(t *testing.T) {
 	if err != nil || len(batch.Items) != 4 {
 		t.Fatalf("batch reconcile = %+v, %v", batch, err)
 	}
-	if first := batch.Items[0]; !first.Found || first.Status != "void" || first.LatestDigest == nil || *first.LatestDigest != syncDigest(7) || first.LatestDigestVersion == nil || *first.LatestDigestVersion != 1 || first.Error != nil {
+	if first := batch.Items[0]; !first.Found || first.Status != "void" || first.LatestDigest == nil || *first.LatestDigest != syncDigest(7) || first.LatestDigestVersion == nil || *first.LatestDigestVersion != weighbridge.DigestRulesVersion || first.Error != nil {
 		t.Fatalf("batch hit = %+v", first)
 	}
 	if missing := batch.Items[1]; missing.Found || missing.Error != nil {
@@ -293,6 +294,16 @@ func TestPostgresWeighbridgeSyncReceipts(t *testing.T) {
 	if missing, err := repo.TicketReceipt(ctx, 1, "A", "NOPE"); err != nil || missing.Found {
 		t.Fatalf("missing ticket receipt = %+v, %v", missing, err)
 	}
+	voidReopened := reopen
+	voidReopened.Type = "void"
+	voidReopened.Digest = syncDigest(20)
+	voidReopened.Void = &weighbridge.VoidInfo{Reason: "更正重开单", Actor: "操作员", At: time.Date(2026, 10, 31, 3, 0, 0, 0, time.UTC)}
+	if _, err := repo.ApplyChangeV4(ctx, voidReopened); err != nil {
+		t.Fatalf("void cross-code reopened ticket: %v", err)
+	}
+	if current, err := repo.ReconcileTicket(ctx, "B", "T2"); err != nil || current.Status != "void" || current.PreviousSiteCode == nil || *current.PreviousSiteCode != "A" || len(current.Changes) != 2 {
+		t.Fatalf("voided reopened ticket: %+v, %v", current, err)
+	}
 
 	router := gin.New()
 	weighbridge.RegisterRoutes(router.Group("/api/v1"), weighbridge.NewHandler(weighbridge.NewService(repo)))
@@ -313,7 +324,7 @@ func TestPostgresWeighbridgeSyncReceipts(t *testing.T) {
 	if w := request(http.MethodPost, "/api/v1/weighbridge/sync/v4/changes", voidBody); w.Code != 409 || !bytes.Contains(w.Body.Bytes(), []byte(`"category":"predecessor_pending"`)) {
 		t.Fatalf("HTTP predecessor: %s", w.Body.String())
 	}
-	if w := request(http.MethodGet, "/api/v1/weighbridge/sync/v4/tickets?siteCode=A&ticketNo=T1", nil); w.Code != 200 || !bytes.Contains(w.Body.Bytes(), []byte(`"found":true`)) {
+	if w := request(http.MethodGet, "/api/v1/weighbridge/sync/v4/tickets?siteCode=A&ticketNo=T1", nil); w.Code != 200 || !bytes.Contains(w.Body.Bytes(), []byte(`"found":true`)) || !bytes.Contains(w.Body.Bytes(), []byte(`"plate":"晋A12345"`)) || !bytes.Contains(w.Body.Bytes(), []byte(`"driverPhone":"13800000000"`)) || !bytes.Contains(w.Body.Bytes(), []byte(`"voidReason":"更正"`)) {
 		t.Fatalf("HTTP reconcile: %s", w.Body.String())
 	}
 	if w := request(http.MethodGet, "/api/v1/weighbridge/sync/v4/changes?siteCode=A&digest="+syncDigest(1), nil); w.Code != 200 || !bytes.Contains(w.Body.Bytes(), []byte(`"found":true`)) {
