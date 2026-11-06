@@ -198,6 +198,9 @@ func createTicketV4(tx *gorm.DB, s *site, c ChangeV4, net int64, receivedAt time
 		LatestChangeType:   &c.Type,
 		LatestReceivedAt:   &receivedAt,
 	}
+	if err := setTicketAnalytics(&ticket, *c.Ticket); err != nil {
+		return cloudTicket{}, newSyncError(SyncCategoryConfigOrData, "invalid_request", "单据快照无法派生统计字段")
+	}
 	if err := tx.Create(&ticket).Error; err != nil {
 		if siteError(err) == ErrConflict {
 			return cloudTicket{}, newSyncError(SyncCategoryConflict, "ticket_conflict", "单据或原单关联已被其他变化占用")

@@ -3753,6 +3753,102 @@ paths:
       summary: 用户分页
       tags:
       - 用户管理
+  /api/v1/weighbridge/analytics/flow:
+    get:
+      responses: {}
+      security:
+      - BearerAuth: []
+      summary: 进出厂分析
+      tags:
+      - 统计与分析
+  /api/v1/weighbridge/analytics/flow/export:
+    get:
+      responses: {}
+      security:
+      - BearerAuth: []
+      summary: 导出进出厂分析 CSV
+      tags:
+      - 统计与分析
+  /api/v1/weighbridge/analytics/materials:
+    get:
+      responses: {}
+      security:
+      - BearerAuth: []
+      summary: 物料分析
+      tags:
+      - 统计与分析
+  /api/v1/weighbridge/analytics/materials/byproduct-flow:
+    get:
+      responses: {}
+      security:
+      - BearerAuth: []
+      summary: 副产品出库流向
+      tags:
+      - 统计与分析
+  /api/v1/weighbridge/analytics/materials/export:
+    get:
+      responses: {}
+      security:
+      - BearerAuth: []
+      summary: 导出物料分析 CSV
+      tags:
+      - 统计与分析
+  /api/v1/weighbridge/analytics/materials/supplier-quality:
+    get:
+      responses: {}
+      security:
+      - BearerAuth: []
+      summary: 核心原料供应商扣量稳定性
+      tags:
+      - 统计与分析
+  /api/v1/weighbridge/analytics/overview:
+    get:
+      responses: {}
+      security:
+      - BearerAuth: []
+      summary: 经营总览
+      tags:
+      - 统计与分析
+  /api/v1/weighbridge/analytics/parties:
+    get:
+      responses: {}
+      security:
+      - BearerAuth: []
+      summary: 供收方分析
+      tags:
+      - 统计与分析
+  /api/v1/weighbridge/analytics/parties/detail:
+    get:
+      responses: {}
+      security:
+      - BearerAuth: []
+      summary: 供收方详情
+      tags:
+      - 统计与分析
+  /api/v1/weighbridge/analytics/parties/export:
+    get:
+      responses: {}
+      security:
+      - BearerAuth: []
+      summary: 导出供收方分析 CSV
+      tags:
+      - 统计与分析
+  /api/v1/weighbridge/analytics/quality:
+    get:
+      responses: {}
+      security:
+      - BearerAuth: []
+      summary: 数据质量
+      tags:
+      - 统计与分析
+  /api/v1/weighbridge/analytics/quality/export:
+    get:
+      responses: {}
+      security:
+      - BearerAuth: []
+      summary: 导出数据质量异常明细 CSV
+      tags:
+      - 统计与分析
   /api/v1/weighbridge/master/categories:
     get:
       responses:
@@ -3954,6 +4050,120 @@ paths:
       summary: 更新厂区
       tags:
       - 厂云同步
+  /api/v1/weighbridge/statements/parties:
+    get:
+      parameters:
+      - description: inbound/outbound
+        in: query
+        name: direction
+        required: true
+        type: string
+      - description: 厂区编码
+        in: query
+        name: siteCode
+        type: string
+      - description: 往来方名称或编码
+        in: query
+        name: keyword
+        type: string
+      - description: 物料编码
+        in: query
+        name: materialCode
+        type: string
+      - description: 开始日期 YYYY-MM-DD（北京时间）
+        in: query
+        name: from
+        type: string
+      - description: 结束日期 YYYY-MM-DD（北京时间，包含当天）
+        in: query
+        name: to
+        type: string
+      - description: 页码
+        in: query
+        name: page
+        type: integer
+      - description: 每页条数，1-100
+        in: query
+        name: pageSize
+        type: integer
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/weighbridge.ApiEnvelope'
+      security:
+      - BearerAuth: []
+      summary: 客户对账往来方汇总
+      tags:
+      - 统计与分析
+  /api/v1/weighbridge/statements/parties/detail:
+    get:
+      parameters:
+      - description: inbound/outbound
+        in: query
+        name: direction
+        required: true
+        type: string
+      - description: 厂区编码
+        in: query
+        name: siteCode
+        required: true
+        type: string
+      - description: 往来方编码
+        in: query
+        name: partyCode
+        required: true
+        type: string
+      - description: 物料编码
+        in: query
+        name: materialCode
+        type: string
+      - description: 开始日期 YYYY-MM-DD（北京时间）
+        in: query
+        name: from
+        type: string
+      - description: 结束日期 YYYY-MM-DD（北京时间，包含当天）
+        in: query
+        name: to
+        type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/weighbridge.ApiEnvelope'
+      security:
+      - BearerAuth: []
+      summary: 单个厂区与往来方的对账单汇总
+      tags:
+      - 统计与分析
+  /api/v1/weighbridge/statements/parties/detail/export:
+    get:
+      produces:
+      - text/csv
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: file
+      security:
+      - BearerAuth: []
+      summary: 导出单个往来方对账单明细 CSV
+      tags:
+      - 统计与分析
+  /api/v1/weighbridge/statements/parties/export:
+    get:
+      produces:
+      - text/csv
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: file
+      security:
+      - BearerAuth: []
+      summary: 导出客户对账往来方汇总 CSV
+      tags:
+      - 统计与分析
   /api/v1/weighbridge/sync/changes:
     post:
       description: 兼容版本 2 和 3，按厂区编码归属，重开使用 previousSiteCode 和 previousTicketNo 定位原单；版本

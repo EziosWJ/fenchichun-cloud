@@ -1,0 +1,51 @@
+.tabLabel {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.tabCode {
+  color: var(--ant-color-text-tertiary);
+  font-size: 12px;
+}
+
+.filters {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+  margin-bottom: 16px;
+  overflow-x: auto;
+  padding-bottom: 2px;
+  scrollbar-width: thin;
+}
+
+.keyword {
+  flex: 1 1 170px;
+  min-width: 170px;
+  max-width: 230px;
+}
+
+.field {
+  flex: 1 1 115px;
+  min-width: 115px;
+  max-width: 150px;
+}
+
+.date {
+  flex: 1 1 125px;
+  min-width: 125px;
+  max-width: 160px;
+}
+
+.select {
+  flex: 1 1 108px;
+  min-width: 108px;
+  max-width: 150px;
+}
+
+.reset {
+  flex: 0 0 auto;
+  margin-left: auto;
+}

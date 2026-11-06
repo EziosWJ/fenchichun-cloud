@@ -20,12 +20,17 @@ type Store interface {
 	SaveParty(context.Context, string, PartyInput, audit.Event) (Party, error)
 	TicketPage(context.Context, TicketQuery) (TicketPage, error)
 	TicketTotals(context.Context, TicketQuery) ([]DirectionTotal, error)
+	StatementParties(context.Context, StatementQuery) (StatementPartyPage, error)
+	StatementPartiesAll(context.Context, StatementQuery) ([]StatementParty, StatementPageSummary, error)
+	StatementDetail(context.Context, StatementQuery) (StatementDetail, error)
+	StatementTickets(context.Context, StatementQuery) ([]StatementTicket, error)
 	ApplyChangeV4(context.Context, ChangeV4) (ChangeReceiptV4, error)
 	ReconcileTicket(context.Context, string, string) (TicketReconcile, error)
 	ReconcileTickets(context.Context, []TicketRef) (BatchTicketReconcile, error)
 	LookupChange(context.Context, string, string) (ChangeLookup, error)
 	SiteReceipts(context.Context, int64) ([]SiteReceipt, error)
 	TicketReceipt(context.Context, int64, string, string) (TicketReceipt, error)
+	AnalyticsStore
 }
 
 func (s *Service) TicketPage(ctx context.Context, q TicketQuery) (TicketPage, error) {
@@ -33,6 +38,18 @@ func (s *Service) TicketPage(ctx context.Context, q TicketQuery) (TicketPage, er
 }
 func (s *Service) TicketTotals(ctx context.Context, q TicketQuery) ([]DirectionTotal, error) {
 	return s.store.TicketTotals(ctx, q)
+}
+func (s *Service) StatementParties(ctx context.Context, q StatementQuery) (StatementPartyPage, error) {
+	return s.store.StatementParties(ctx, q)
+}
+func (s *Service) StatementPartiesAll(ctx context.Context, q StatementQuery) ([]StatementParty, StatementPageSummary, error) {
+	return s.store.StatementPartiesAll(ctx, q)
+}
+func (s *Service) StatementDetail(ctx context.Context, q StatementQuery) (StatementDetail, error) {
+	return s.store.StatementDetail(ctx, q)
+}
+func (s *Service) StatementTickets(ctx context.Context, q StatementQuery) ([]StatementTicket, error) {
+	return s.store.StatementTickets(ctx, q)
 }
 
 type Service struct{ store Store }

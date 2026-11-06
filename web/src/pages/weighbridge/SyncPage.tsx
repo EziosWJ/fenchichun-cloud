@@ -1,23 +1,40 @@
-import { useState } from 'react';
-import { Alert, Button, Descriptions, Input, Space, Table, Tag, Typography } from 'antd';
+import { useEffect, useState } from 'react';
+import { Alert, Button, DatePicker, Descriptions, Input, Modal, Select, Space, Table, Tabs, Tag, Typography } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import { useQuery } from '@tanstack/react-query';
 import dayjs from 'dayjs';
 import { DataTable } from '../../components/DataTable';
 import { PageHeader } from '../../components/PageHeader';
-import { FilterField } from '../../components/SearchFilterBar';
 import { useListUrlState } from '../../hooks/useListUrlState';
 import { getApiErrorMessage } from '../../lib/api/errors';
 import {
-  syncSiteReceipts,
+  sites,
   syncTicketReceipt,
+  tickets,
+  type Site,
   type SyncChangeConfirmation,
-  type SyncSiteReceipt,
   type SyncTicketReceipt,
   type SyncTicketRef,
+  type Ticket,
+  type TicketRecord,
 } from '../../features/weighbridge/api';
+import { formatDateTime } from '../../utils/format';
+import styles from './SyncPage.module.css';
 
-const config = { filters: {}, sortKeys: [], pageSizeOptions: [10, 20, 50], defaultPageSize: 10 } as const;
+const config = {
+  filters: {
+    direction: ['inbound', 'outbound'],
+    status: ['valid', 'void'],
+    from: 'text',
+    to: 'text',
+    materialCode: 'text',
+    partyCode: 'text',
+  },
+  sortKeys: [],
+  pageSizeOptions: [10, 20, 50],
+  defaultPageSize: 10,
+} as const;
+
 const CHANGE_TYPES: Record<string, string> = { issue: '出单', void: '作废', reopen: '重开' };
 
 function formatTime(value: string | null | undefined): string {
@@ -37,23 +54,33 @@ function digestText(value: string | null | undefined) {
   );
 }
 
+function difference(a: string, b: string): string {
+  const milli = (value: string) => {
+    const negative = value.startsWith('-');
+    const [whole, fractional = ''] = (negative ? value.slice(1) : value).split('.');
+    const result = BigInt(whole) * 1000n + BigInt((fractional + '000').slice(0, 3));
+    return negative ? -result : result;
+  };
+  const value = milli(a) - milli(b);
+  const absolute = value < 0n ? -value : value;
+  const fraction = (absolute % 1000n).toString().padStart(3, '0');
+  return `${value < 0n ? '-' : ''}${absolute / 1000n}.${fraction}`;
+}
+
+function finalNet(ticket: Ticket): string {
+  return ticket.finalNet || difference(ticket.finalGross, ticket.finalTare);
+}
+
+function dateValue(value?: string) {
+  return value && dayjs(value).isValid() ? dayjs(value) : null;
+}
+
 const changeColumns: ColumnsType<SyncChangeConfirmation> = [
   { title: '变化类型', dataIndex: 'changeType', key: 'changeType', render: (value: string) => <Tag>{changeType(value)}</Tag> },
   { title: '摘要', dataIndex: 'digest', key: 'digest', render: (value: string) => digestText(value) },
   { title: '摘要规则', dataIndex: 'digestVersion', key: 'digestVersion', render: (value: number) => `v${value}` },
   { title: '协议版本', dataIndex: 'schemaVersion', key: 'schemaVersion', render: (value: number) => `v${value}` },
   { title: '接收时间', dataIndex: 'receivedAt', key: 'receivedAt', render: (value: string) => formatTime(value) },
-];
-
-const siteColumns: ColumnsType<SyncSiteReceipt> = [
-  { title: '厂区编码', dataIndex: 'siteCode', key: 'siteCode' },
-  { title: '厂区名称', dataIndex: 'siteName', key: 'siteName' },
-  { title: '状态', dataIndex: 'enabled', key: 'enabled', render: (value: boolean) => <Tag color={value ? 'green' : 'default'}>{value ? '启用' : '停用'}</Tag> },
-  { title: '最近接收时间', dataIndex: 'lastReceivedAt', key: 'lastReceivedAt', render: (value: string | null) => formatTime(value) },
-  { title: '最近单据', dataIndex: 'lastTicketNo', key: 'lastTicketNo', render: (value: string | null) => value || '—' },
-  { title: '最近变化', dataIndex: 'lastChangeType', key: 'lastChangeType', render: (value: string | null) => changeType(value) },
-  { title: '出单编码', dataIndex: 'lastIssuedSiteCode', key: 'lastIssuedSiteCode', render: (value: string | null) => value || '—' },
-  { title: '云端已接收摘要变化数', dataIndex: 'receivedChanges', key: 'receivedChanges' },
 ];
 
 function TicketDetail({ detail, onOpenRef }: { detail: SyncTicketReceipt; onOpenRef: (ref: SyncTicketRef) => void }) {
@@ -131,113 +158,232 @@ function TicketDetail({ detail, onOpenRef }: { detail: SyncTicketReceipt; onOpen
   );
 }
 
+function tabLabel(site: Site) {
+  return (
+    <span className={styles.tabLabel}>
+      {site.name}
+      <span className={styles.tabCode}>{site.code}</span>
+      {!site.enabled && <Tag>停用</Tag>}
+    </span>
+  );
+}
+
+const baseColumns: ColumnsType<TicketRecord> = [
+  { title: '单号', key: 'ticketNo', render: (_, row) => row.ticket.ticketNo },
+  { title: '车牌', key: 'plate', render: (_, row) => row.ticket.plate },
+  { title: '方向', key: 'direction', render: (_, row) => row.ticket.direction === 'inbound' ? '入厂卸货' : '出厂装货' },
+  { title: '物料', key: 'material', render: (_, row) => [row.ticket.materialName, row.ticket.materialSpec].filter(Boolean).join(' / ') },
+  { title: '供收方', key: 'party', render: (_, row) => row.ticket.partyName },
+  { title: '毛重（吨）', key: 'gross', render: (_, row) => row.ticket.finalGross },
+  { title: '皮重（吨）', key: 'tare', render: (_, row) => row.ticket.finalTare },
+  { title: '净重（吨）', key: 'net', render: (_, row) => finalNet(row.ticket) },
+  { title: '状态', dataIndex: 'status', key: 'status', render: (value: string) => <Tag color={value === 'valid' ? 'green' : 'default'}>{value === 'valid' ? '有效' : '作废'}</Tag> },
+  { title: '出单时间', key: 'issuedAt', render: (_, row) => formatDateTime(row.ticket.issuedAt) },
+];
+
 export default function SyncPage() {
   const { state, actions } = useListUrlState(config);
-  const sitesQuery = useQuery({ queryKey: ['weighbridge', 'sync', 'sites'], queryFn: syncSiteReceipts });
-  const [siteCode, setSiteCode] = useState('');
-  const [ticketNo, setTicketNo] = useState('');
-  const [query, setQuery] = useState<SyncTicketRef | null>(null);
-  const ticketQuery = useQuery({
-    queryKey: ['weighbridge', 'sync', 'ticket', query],
-    queryFn: () => {
-      if (!query) throw new Error('missing sync ticket query');
-      return syncTicketReceipt(query.siteCode, query.ticketNo);
-    },
-    enabled: query !== null,
-  });
+  const [keyword, setKeyword] = useState(state.keyword);
+  const [activeSite, setActiveSite] = useState('');
+  const [detailQuery, setDetailQuery] = useState<SyncTicketRef | null>(null);
 
-  const search = () => {
-    const nextSite = siteCode.trim();
-    const nextTicket = ticketNo.trim();
-    if (!nextSite || !nextTicket) return;
-    if (query?.siteCode === nextSite && query.ticketNo === nextTicket) {
-      void ticketQuery.refetch();
+  const sitesQuery = useQuery({ queryKey: ['weighbridge', 'sync', 'sites'], queryFn: sites });
+  useEffect(() => {
+    const list = sitesQuery.data ?? [];
+    if (list.length === 0) {
+      if (activeSite) setActiveSite('');
       return;
     }
-    setQuery({ siteCode: nextSite, ticketNo: nextTicket });
-  };
-  const openRef = (ref: SyncTicketRef) => {
-    setSiteCode(ref.siteCode);
-    setTicketNo(ref.ticketNo);
-    setQuery({ ...ref });
-  };
+    if (!activeSite || !list.some((site) => site.code === activeSite)) {
+      setActiveSite(list[0].code);
+    }
+  }, [activeSite, sitesQuery.data]);
 
-  const rows = sitesQuery.data ?? [];
-  const columns: ColumnsType<SyncSiteReceipt> = [
-    ...siteColumns,
+  const list = useQuery({
+    queryKey: ['weighbridge', 'sync', 'tickets', activeSite, state.page, state.pageSize, state.keyword, state.filters],
+    queryFn: () => tickets({
+      page: state.page,
+      pageSize: state.pageSize,
+      keyword: state.keyword || undefined,
+      siteCode: activeSite,
+      ...state.filters,
+    }),
+    enabled: Boolean(activeSite),
+  });
+
+  const receiptQuery = useQuery({
+    queryKey: ['weighbridge', 'sync', 'ticket', detailQuery],
+    queryFn: () => {
+      if (!detailQuery) throw new Error('missing sync ticket query');
+      return syncTicketReceipt(detailQuery.siteCode, detailQuery.ticketNo);
+    },
+    enabled: detailQuery !== null,
+  });
+  const detail = receiptQuery.data?.found ? receiptQuery.data : null;
+
+  const columns: ColumnsType<TicketRecord> = [
+    ...baseColumns,
     {
       title: '操作',
       key: 'actions',
       render: (_, row) => (
-        <Button type="link" onClick={() => setSiteCode(row.lastIssuedSiteCode ?? row.siteCode)}>
-          填入出单编码
+        <Button
+          type="link"
+          onClick={() => setDetailQuery({ siteCode: row.siteCode, ticketNo: row.ticket.ticketNo })}
+        >
+          详情
         </Button>
       ),
     },
   ];
-  const detail = ticketQuery.data?.found ? ticketQuery.data : null;
+
+  const tabItems = (sitesQuery.data ?? []).map((site) => ({
+    key: site.code,
+    label: tabLabel(site),
+    children: site.code === activeSite ? (
+      <>
+        <div className={styles.filters} role="group" aria-label="筛选条件">
+          <Input.Search
+            className={styles.keyword}
+            aria-label="单号或车牌"
+            placeholder="单号/车牌"
+            value={keyword}
+            onChange={(event) => setKeyword(event.target.value)}
+            onSearch={(value) => actions.setKeyword(value)}
+            allowClear
+          />
+          <DatePicker
+            className={styles.date}
+            aria-label="开始日期"
+            placeholder="开始日期"
+            format="YYYY-MM-DD"
+            allowClear
+            value={dateValue(state.filters.from)}
+            onChange={(value) => actions.setFilter('from', value ? value.format('YYYY-MM-DD') : '')}
+          />
+          <DatePicker
+            className={styles.date}
+            aria-label="结束日期"
+            placeholder="结束日期"
+            format="YYYY-MM-DD"
+            allowClear
+            value={dateValue(state.filters.to)}
+            onChange={(value) => actions.setFilter('to', value ? value.format('YYYY-MM-DD') : '')}
+          />
+          <Input
+            className={styles.field}
+            aria-label="物料编码"
+            placeholder="物料编码"
+            value={state.filters.materialCode ?? ''}
+            onChange={(event) => actions.setFilter('materialCode', event.target.value)}
+          />
+          <Input
+            className={styles.field}
+            aria-label="供收方编码"
+            placeholder="供收方编码"
+            value={state.filters.partyCode ?? ''}
+            onChange={(event) => actions.setFilter('partyCode', event.target.value)}
+          />
+          <Select
+            className={styles.select}
+            aria-label="方向"
+            placeholder="方向"
+            allowClear
+            value={state.filters.direction || undefined}
+            onChange={(value) => actions.setFilter('direction', value)}
+            options={[{ value: 'inbound', label: '入厂卸货' }, { value: 'outbound', label: '出厂装货' }]}
+          />
+          <Select
+            className={styles.select}
+            aria-label="状态"
+            placeholder="状态"
+            allowClear
+            value={state.filters.status || undefined}
+            onChange={(value) => actions.setFilter('status', value)}
+            options={[{ value: 'valid', label: '有效' }, { value: 'void', label: '作废' }]}
+          />
+          <Button className={styles.reset} onClick={() => { actions.reset(); setKeyword(''); }}>重置</Button>
+        </div>
+        {list.isError && (
+          <Alert
+            type="error"
+            message={`单据加载失败：${getApiErrorMessage(list.error)}`}
+            action={<Button onClick={() => void list.refetch()}>重试</Button>}
+          />
+        )}
+        <DataTable
+          tableKey="weighbridge-sync-tickets"
+          rowKey={(row) => `${row.siteCode}:${row.ticket.ticketNo}`}
+          columns={columns}
+          dataSource={list.data?.items ?? []}
+          total={list.data?.total ?? 0}
+          page={state.page}
+          pageSize={state.pageSize}
+          onPageChange={actions.setPage}
+          loading={list.isLoading}
+          onRefresh={() => void list.refetch()}
+          emptyDescription="该厂区暂无已同步单据"
+        />
+      </>
+    ) : null,
+  }));
 
   return (
     <>
-      <PageHeader title="厂云同步" description="按厂区查看云端最近成功接收的变化，并按单据核对已保存的变化。只展示云端已知的接收结果。" />
+      <PageHeader title="厂云同步" description="按厂区查看云端已接收的过磅单。" />
       <Space direction="vertical" size="middle" style={{ width: '100%' }}>
         <Alert
           type="info"
           showIcon
-          message="接收时间只表示云端最近一次成功保存变化的时间，不代表厂端在线、没有积压或数据完整；云端不展示厂端待上传数量和在线状态。"
+          message="本页只展示云端已经接收并保存的单据；厂端尚未上传或上传失败的数据不会出现在这里。"
         />
-        <Typography.Title level={4}>厂区最近接收</Typography.Title>
         {sitesQuery.isError && (
           <Alert
             type="error"
-            message={`厂区接收情况加载失败：${getApiErrorMessage(sitesQuery.error)}`}
+            message={`厂区加载失败：${getApiErrorMessage(sitesQuery.error)}`}
             action={<Button onClick={() => void sitesQuery.refetch()}>重试</Button>}
           />
         )}
-        <DataTable
-          tableKey="weighbridge-sync-sites"
-          rowKey="siteCode"
-          columns={columns}
-          dataSource={rows.slice((state.page - 1) * state.pageSize, state.page * state.pageSize)}
-          total={rows.length}
-          page={state.page}
-          pageSize={state.pageSize}
-          onPageChange={actions.setPage}
-          loading={sitesQuery.isLoading}
-          onRefresh={() => void sitesQuery.refetch()}
-          emptyDescription="尚未登记厂区，或云端还没有可展示的接收记录"
-        />
-
-        <Typography.Title level={4}>按单据核对</Typography.Title>
-        <Space wrap align="end">
-          <FilterField label="出单厂区编码">
-            <Input aria-label="出单厂区编码" placeholder="出单厂区编码" value={siteCode} onChange={(event) => setSiteCode(event.target.value)} onPressEnter={search} />
-          </FilterField>
-          <FilterField label="单号">
-            <Input aria-label="单号" placeholder="单号" value={ticketNo} onChange={(event) => setTicketNo(event.target.value)} onPressEnter={search} />
-          </FilterField>
-          <Button type="primary" onClick={search} disabled={!siteCode.trim() || !ticketNo.trim()} loading={ticketQuery.isFetching}>
-            查询
-          </Button>
-        </Space>
-        {ticketQuery.isError && (
-          <Alert
-            type="error"
-            message={`单据核对失败：${getApiErrorMessage(ticketQuery.error)}`}
-            action={<Button onClick={() => void ticketQuery.refetch()}>重试</Button>}
+        {sitesQuery.isLoading && <Typography.Text type="secondary">正在加载厂区…</Typography.Text>}
+        {!sitesQuery.isLoading && !sitesQuery.isError && !(sitesQuery.data?.length) && (
+          <Alert type="info" showIcon message="尚未登记厂区" />
+        )}
+        {!!sitesQuery.data?.length && (
+          <Tabs
+            activeKey={activeSite}
+            onChange={(code) => {
+              setActiveSite(code);
+              actions.setPage(1);
+            }}
+            items={tabItems}
           />
         )}
-        {ticketQuery.isLoading && <Typography.Text type="secondary">正在查询云端已接收变化…</Typography.Text>}
-        {ticketQuery.data && !ticketQuery.data.found && (
+      </Space>
+      <Modal
+        title="单据同步详情"
+        open={detailQuery !== null}
+        onCancel={() => setDetailQuery(null)}
+        footer={<Button onClick={() => setDetailQuery(null)}>关闭</Button>}
+        width={960}
+      >
+        {receiptQuery.isLoading && <Typography.Text type="secondary">正在查询云端已接收变化…</Typography.Text>}
+        {receiptQuery.isError && (
+          <Alert
+            type="error"
+            message={`单据核对失败：${getApiErrorMessage(receiptQuery.error)}`}
+            action={<Button onClick={() => void receiptQuery.refetch()}>重试</Button>}
+          />
+        )}
+        {receiptQuery.data && !receiptQuery.data.found && detailQuery && (
           <Alert
             type="warning"
             showIcon
-            message={`云端未找到 ${ticketQuery.data.siteCode} / ${ticketQuery.data.ticketNo} 的已接收单据。`}
+            message={`云端未找到 ${detailQuery.siteCode} / ${detailQuery.ticketNo} 的已接收单据。`}
             description="缺单可能表示前序变化尚未上传或已被拒绝；请结合厂端同步状态处理，云端无法得知厂端积压。"
           />
         )}
-        {detail && <TicketDetail detail={detail} onOpenRef={openRef} />}
-      </Space>
+        {detail && <TicketDetail detail={detail} onOpenRef={setDetailQuery} />}
+      </Modal>
     </>
   );
 }

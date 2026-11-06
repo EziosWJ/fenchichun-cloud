@@ -21,6 +21,13 @@ export const paths = Object.freeze({
   weighbridgeMaster: '/weighbridge/master',
   weighbridgeSites: '/weighbridge/sites',
   weighbridgeSync: '/weighbridge/sync',
+  analyticsOverview: '/analytics/overview',
+  analyticsFlow: '/analytics/flow',
+  analyticsMaterials: '/analytics/materials',
+  analyticsParties: '/analytics/parties',
+  analyticsQuality: '/analytics/quality',
+  analyticsStatement: '/analytics/reconciliation',
+  analyticsStatementDetail: '/analytics/reconciliation/detail',
   accountProfile: '/account/profile',
   changePassword: '/account/change-password',
 });
