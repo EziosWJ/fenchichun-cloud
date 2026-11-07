@@ -41,6 +41,15 @@ export interface AppRouteDefinition {
 
 export const routeDefinitions: AppRouteDefinition[] = [
   {
+    path: '/laboratory/inspections',
+    label: '化验单',
+    title: '化验单',
+    icon: ClipboardList,
+    menuComponent: 'laboratory/inspections/index',
+    menuPath: '/laboratory/inspections',
+    component: lazy(() => import('../pages/laboratory/InspectionsPage')),
+  },
+  {
     path: paths.weighbridgeMaster,
     label: '物料分类',
     title: '物料分类',

@@ -13,6 +13,7 @@ import (
 	"fenchichun.local/server/internal/dept"
 	"fenchichun.local/server/internal/dictionary"
 	"fenchichun.local/server/internal/filemgmt"
+	"fenchichun.local/server/internal/laboratory"
 	"fenchichun.local/server/internal/logmgmt"
 	"fenchichun.local/server/internal/monitoring"
 	"fenchichun.local/server/internal/notification"
@@ -39,6 +40,7 @@ type Dependencies struct {
 	Notification *notification.Service
 	Monitoring   *monitoring.Service
 	Weighbridge  *weighbridge.Handler
+	Laboratory   *laboratory.Handler
 }
 
 // Application is the assembled HTTP application and its process logger.
@@ -94,6 +96,10 @@ func New(cfg config.Config, readiness platformhttp.ReadinessChecker, deps Depend
 	authenticated.Use(auth.BearerMiddleware(deps.Auth))
 	if deps.Weighbridge != nil {
 		weighbridge.RegisterManagementRoutes(authenticated, deps.Weighbridge)
+	}
+
+	if deps.Laboratory != nil {
+		deps.Laboratory.Register(authenticated)
 	}
 
 	system := authenticated.Group("/system")
