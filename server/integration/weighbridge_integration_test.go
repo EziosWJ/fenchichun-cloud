@@ -212,7 +212,7 @@ func TestPostgresMasterSeed(t *testing.T) {
 	if err != nil || m.Code != "C-M-0011" {
 		t.Fatalf("material sequence: %+v %v", m, err)
 	}
-	p, err := repo.SaveParty(ctx, "", weighbridge.PartyInput{Name: "新主体", Nature: "enterprise", IsSupplier: true, Enabled: true}, event)
+	p, err := repo.SaveParty(ctx, "", weighbridge.PartyInput{Name: "新主体", Nature: "enterprise", IsSupplier: true, CreditCode: "91350100M000100Y43", Enabled: true}, event)
 	if err != nil || p.Code != "C-P-0083" {
 		t.Fatalf("party sequence: %+v %v", p, err)
 	}

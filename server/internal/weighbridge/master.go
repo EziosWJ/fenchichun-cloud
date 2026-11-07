@@ -31,20 +31,22 @@ type Material struct {
 func (Material) TableName() string { return "wb_cloud_material" }
 
 type Party struct {
-	ID         int64     `json:"-"`
-	Code       string    `json:"code"`
-	Name       string    `json:"name"`
-	ShortName  string    `json:"shortName"`
-	Nature     string    `json:"nature"`
-	IsSupplier bool      `json:"isSupplier"`
-	IsCustomer bool      `json:"isCustomer"`
-	IsCarrier  bool      `json:"isCarrier"`
-	Phone      string    `json:"phone"`
-	Address    string    `json:"address"`
-	CreditCode string    `json:"creditCode"`
-	Remark     string    `json:"remark"`
-	Enabled    bool      `json:"enabled"`
-	Contacts   []Contact `json:"contacts" gorm:"-"`
+	IdentityNumber    string    `json:"-"`
+	HasIdentityNumber bool      `json:"hasIdentityNumber,omitempty" gorm:"-"`
+	ID                int64     `json:"-"`
+	Code              string    `json:"code"`
+	Name              string    `json:"name"`
+	ShortName         string    `json:"shortName"`
+	Nature            string    `json:"nature"`
+	IsSupplier        bool      `json:"isSupplier"`
+	IsCustomer        bool      `json:"isCustomer"`
+	IsCarrier         bool      `json:"isCarrier"`
+	Phone             string    `json:"phone"`
+	Address           string    `json:"address"`
+	CreditCode        string    `json:"creditCode"`
+	Remark            string    `json:"remark"`
+	Enabled           bool      `json:"enabled"`
+	Contacts          []Contact `json:"contacts" gorm:"-"`
 }
 
 func (Party) TableName() string { return "wb_cloud_party" }
@@ -133,6 +135,7 @@ func (r *Repository) Parties(ctx context.Context) ([]Party, error) {
 			byParty[c.PartyID] = append(byParty[c.PartyID], c)
 		}
 		for i := range parties {
+			parties[i].HasIdentityNumber = parties[i].IdentityNumber != ""
 			parties[i].Contacts = byParty[parties[i].ID]
 			if parties[i].Contacts == nil {
 				parties[i].Contacts = []Contact{}
