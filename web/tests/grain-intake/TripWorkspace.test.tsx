@@ -59,6 +59,19 @@ describe('exit evidence', () => {
     await user.click(await screen.findByRole('button', { name: /^确\s*认$/ }));
     await waitFor(() => expect(api.tripAction).toHaveBeenCalledWith(expect.objectContaining({ id: 1 }), 'confirm-exit', expect.objectContaining({ basis: 'rejection' })));
   });
+  it('guides the next step and jumps to the matching tab', async () => {
+    const value = evidence();
+    value.trip.stage = 'accepted';
+    value.trip.unloadedAt = null;
+    value.trip.ticketId = null;
+    api.tripDetail.mockResolvedValue(value);
+    renderWithProviders(<TripWorkspace />, { route: '/grain-intake/trips/1', path: '/grain-intake/trips/:id' });
+    await screen.findByText('下一步：确认现场卸粮');
+    const weighingTab = screen.getByRole('tab', { name: '卸粮与磅单' });
+    expect(screen.getByRole('tab', { name: '化验单（1）' })).toHaveAttribute('aria-selected', 'true');
+    await userEvent.click(screen.getByRole('button', { name: '去办理' }));
+    await waitFor(() => expect(weighingTab).toHaveAttribute('aria-selected', 'true'));
+  });
   it('hides release actions when the ticket evidence is blocked', async () => {
     const value = evidence(); value.trip.stage = 'blocked';
     api.tripDetail.mockResolvedValue(value);
