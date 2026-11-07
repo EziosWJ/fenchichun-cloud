@@ -245,6 +245,405 @@ definitions:
       remark:
         type: string
     type: object
+  grainintake.Command:
+    properties:
+      basis:
+        type: string
+      inspectionId:
+        type: integer
+      inspectionVersion:
+        type: integer
+      location:
+        type: string
+      permitId:
+        type: integer
+      ticketNo:
+        type: string
+      ticketSiteCode:
+        type: string
+      version:
+        type: integer
+    type: object
+  grainintake.Detail:
+    properties:
+      events:
+        items:
+          $ref: '#/definitions/grainintake.Event'
+        type: array
+      inspections:
+        items:
+          $ref: '#/definitions/laboratory.Inspection'
+        type: array
+      permit:
+        $ref: '#/definitions/grainintake.Permit'
+      ticket:
+        $ref: '#/definitions/weighbridge.TicketResult'
+      trip:
+        $ref: '#/definitions/grainintake.Trip'
+    type: object
+  grainintake.DetailResponse:
+    properties:
+      code:
+        type: integer
+      data:
+        $ref: '#/definitions/grainintake.Detail'
+      message:
+        type: string
+    type: object
+  grainintake.Event:
+    properties:
+      action:
+        type: string
+      actorId:
+        type: integer
+      actorName:
+        type: string
+      createdAt:
+        type: string
+      description:
+        type: string
+      id:
+        type: integer
+      tripId:
+        type: integer
+    type: object
+  grainintake.Input:
+    properties:
+      contractNo:
+        type: string
+      driver:
+        type: string
+      driverPhone:
+        type: string
+      materialCode:
+        type: string
+      partyCode:
+        type: string
+      plate:
+        type: string
+      remark:
+        type: string
+      siteCode:
+        type: string
+    type: object
+  grainintake.Permit:
+    properties:
+      approvedAt:
+        type: string
+      approvedBy:
+        type: integer
+      createdAt:
+        type: string
+      createdBy:
+        type: integer
+      exitedAt:
+        type: string
+      id:
+        type: integer
+      inspectionId:
+        type: integer
+      number:
+        type: string
+      plate:
+        type: string
+      siteCode:
+        type: string
+      stage:
+        type: string
+      status:
+        type: string
+      ticketId:
+        type: integer
+      tripId:
+        type: integer
+      tripNumber:
+        type: string
+      version:
+        type: integer
+    type: object
+  grainintake.PermitPage:
+    properties:
+      page:
+        type: integer
+      pageSize:
+        type: integer
+      records:
+        items:
+          $ref: '#/definitions/grainintake.Permit'
+        type: array
+      total:
+        type: integer
+    type: object
+  grainintake.PermitPageResponse:
+    properties:
+      code:
+        type: integer
+      data:
+        $ref: '#/definitions/grainintake.PermitPage'
+      message:
+        type: string
+    type: object
+  grainintake.SaveRequest:
+    properties:
+      contractNo:
+        type: string
+      driver:
+        type: string
+      driverPhone:
+        type: string
+      materialCode:
+        type: string
+      partyCode:
+        type: string
+      plate:
+        type: string
+      remark:
+        type: string
+      siteCode:
+        type: string
+      version:
+        type: integer
+    type: object
+  grainintake.Trip:
+    properties:
+      contractNo:
+        type: string
+      createdAt:
+        type: string
+      createdBy:
+        type: integer
+      driver:
+        type: string
+      driverPhone:
+        type: string
+      effectiveConclusion:
+        type: string
+      effectiveInspectionId:
+        type: integer
+      effectiveSelectedAt:
+        type: string
+      effectiveSelectedBy:
+        type: integer
+      exitBasis:
+        type: string
+      exitInspectionId:
+        type: integer
+      exitedAt:
+        type: string
+      exitedBy:
+        type: integer
+      id:
+        type: integer
+      materialCode:
+        type: string
+      materialName:
+        type: string
+      number:
+        type: string
+      partyCode:
+        type: string
+      partyName:
+        type: string
+      plate:
+        type: string
+      remark:
+        type: string
+      siteCode:
+        type: string
+      stage:
+        type: string
+      ticketId:
+        type: integer
+      unloadedAt:
+        type: string
+      unloadedBy:
+        type: integer
+      unloadingLocation:
+        type: string
+      updatedAt:
+        type: string
+      version:
+        type: integer
+    type: object
+  grainintake.TripPage:
+    properties:
+      page:
+        type: integer
+      pageSize:
+        type: integer
+      records:
+        items:
+          $ref: '#/definitions/grainintake.Trip'
+        type: array
+      total:
+        type: integer
+    type: object
+  grainintake.TripPageResponse:
+    properties:
+      code:
+        type: integer
+      data:
+        $ref: '#/definitions/grainintake.TripPage'
+      message:
+        type: string
+    type: object
+  laboratory.ActionRequest:
+    properties:
+      reason:
+        type: string
+      version:
+        type: integer
+    type: object
+  laboratory.Input:
+    properties:
+      bulkDensity:
+        type: string
+      conclusion:
+        type: string
+      contractNo:
+        type: string
+      driver:
+        type: string
+      driverPhone:
+        type: string
+      impurity:
+        type: string
+      materialCode:
+        type: string
+      moisture:
+        type: string
+      partyCode:
+        type: string
+      plate:
+        type: string
+      reason:
+        type: string
+      remark:
+        type: string
+      tripId:
+        type: integer
+    type: object
+  laboratory.Inspection:
+    properties:
+      bulkDensity:
+        type: string
+      conclusion:
+        type: string
+      confirmedAt:
+        type: string
+      confirmedBy:
+        type: integer
+      contractNo:
+        type: string
+      createdAt:
+        type: string
+      createdBy:
+        type: integer
+      driver:
+        type: string
+      driverPhone:
+        type: string
+      id:
+        type: integer
+      impurity:
+        type: string
+      materialCode:
+        type: string
+      materialName:
+        type: string
+      moisture:
+        type: string
+      number:
+        type: string
+      originalId:
+        type: integer
+      partyCode:
+        type: string
+      partyName:
+        type: string
+      plate:
+        type: string
+      reason:
+        type: string
+      remark:
+        type: string
+      status:
+        type: string
+      tripId:
+        type: integer
+      updatedAt:
+        type: string
+      version:
+        type: integer
+      voidReason:
+        type: string
+      voidedAt:
+        type: string
+      voidedBy:
+        type: integer
+    type: object
+  laboratory.Page:
+    properties:
+      page:
+        type: integer
+      pageSize:
+        type: integer
+      records:
+        items:
+          $ref: '#/definitions/laboratory.Inspection'
+        type: array
+      total:
+        type: integer
+    type: object
+  laboratory.PageResponse:
+    properties:
+      code:
+        type: integer
+      data:
+        $ref: '#/definitions/laboratory.Page'
+      message:
+        type: string
+    type: object
+  laboratory.Response:
+    properties:
+      code:
+        type: integer
+      data:
+        $ref: '#/definitions/laboratory.Inspection'
+      message:
+        type: string
+    type: object
+  laboratory.SaveRequest:
+    properties:
+      bulkDensity:
+        type: string
+      conclusion:
+        type: string
+      contractNo:
+        type: string
+      driver:
+        type: string
+      driverPhone:
+        type: string
+      impurity:
+        type: string
+      materialCode:
+        type: string
+      moisture:
+        type: string
+      partyCode:
+        type: string
+      plate:
+        type: string
+      reason:
+        type: string
+      remark:
+        type: string
+      tripId:
+        type: integer
+      version:
+        type: integer
+    type: object
   logmgmt.ApiEnvelope:
     properties:
       code:
@@ -1048,6 +1447,8 @@ definitions:
         type: string
       enabled:
         type: boolean
+      hasIdentityNumber:
+        type: boolean
       isCarrier:
         type: boolean
       isCustomer:
@@ -1077,6 +1478,8 @@ definitions:
         type: string
       enabled:
         type: boolean
+      identityNumber:
+        type: string
       isCarrier:
         type: boolean
       isCustomer:
@@ -1106,6 +1509,21 @@ definitions:
       siteCode:
         type: string
       ticketNo:
+        type: string
+    type: object
+  weighbridge.TicketResult:
+    properties:
+      siteCode:
+        type: string
+      status:
+        type: string
+      ticket:
+        $ref: '#/definitions/weighbridge.TicketSnapshot'
+      voidReason:
+        type: string
+      voidedAt:
+        type: string
+      voidedBy:
         type: string
     type: object
   weighbridge.TicketSnapshot:
@@ -1281,6 +1699,335 @@ paths:
       summary: 当前用户可见菜单
       tags:
       - 认证
+  /api/v1/grain-intake/exit-basis/{id}:
+    get:
+      parameters:
+      - description: 流转单ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/grainintake.DetailResponse'
+      security:
+      - BearerAuth: []
+      summary: 门卫核验正常或拒收出厂依据
+      tags:
+      - 出门证
+  /api/v1/grain-intake/permits:
+    get:
+      parameters:
+      - description: 页码
+        in: query
+        name: page
+        type: integer
+      - description: 每页条数
+        in: query
+        name: pageSize
+        type: integer
+      - description: 证号、流转单号或车牌
+        in: query
+        name: keyword
+        type: string
+      - description: 办理阶段
+        in: query
+        name: stage
+        type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/grainintake.PermitPageResponse'
+      security:
+      - BearerAuth: []
+      summary: 分页查询出门证
+      tags:
+      - 出门证
+  /api/v1/grain-intake/rejections:
+    get:
+      parameters:
+      - description: 页码
+        in: query
+        name: page
+        type: integer
+      - description: 每页条数
+        in: query
+        name: pageSize
+        type: integer
+      - description: 流转单号、车牌或供应商
+        in: query
+        name: keyword
+        type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/grainintake.TripPageResponse'
+      security:
+      - BearerAuth: []
+      summary: 门卫查询待核验拒收车辆
+      tags:
+      - 出门证
+  /api/v1/grain-intake/trips:
+    get:
+      parameters:
+      - description: 页码
+        in: query
+        name: page
+        type: integer
+      - description: 每页条数
+        in: query
+        name: pageSize
+        type: integer
+      - description: 流转单号、车牌或供应商
+        in: query
+        name: keyword
+        type: string
+      - description: 办理阶段
+        in: query
+        name: stage
+        type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/grainintake.TripPageResponse'
+      security:
+      - BearerAuth: []
+      summary: 分页查询流转单
+      tags:
+      - 原粮流转
+    post:
+      parameters:
+      - description: 厂区、车牌、粮种必填，供应商可待核实
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/grainintake.Input'
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/grainintake.DetailResponse'
+      security:
+      - BearerAuth: []
+      summary: 登记本趟流转单
+      tags:
+      - 原粮流转
+  /api/v1/grain-intake/trips/{id}:
+    get:
+      parameters:
+      - description: 流转单ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/grainintake.DetailResponse'
+      security:
+      - BearerAuth: []
+      summary: 查看流转单及其化验、磅单和出门证
+      tags:
+      - 原粮流转
+    put:
+      parameters:
+      - description: 流转单ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: 登记信息及版本
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/grainintake.SaveRequest'
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/grainintake.DetailResponse'
+      security:
+      - BearerAuth: []
+      summary: 更正流转单登记信息
+      tags:
+      - 原粮流转
+  /api/v1/grain-intake/trips/{id}/{action}:
+    post:
+      description: select-inspection要求化验菜单权限；approve-permit、confirm-exit要求出门证菜单权限；其他动作要求流转单菜单权限。拒收凭生效化验出厂，无需正常出门证。
+      parameters:
+      - description: 流转单ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: 业务动作
+        enum:
+        - link-inspection
+        - select-inspection
+        - confirm-unloading
+        - link-ticket
+        - issue-permit
+        - approve-permit
+        - confirm-exit
+        in: path
+        name: action
+        required: true
+        type: string
+      - description: 本趟版本及对应依据
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/grainintake.Command'
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/grainintake.DetailResponse'
+      security:
+      - BearerAuth: []
+      summary: 关联化验、指定生效、确认卸粮、关联磅单及出门放行
+      tags:
+      - 原粮流转
+  /api/v1/laboratory/inspections:
+    get:
+      parameters:
+      - description: 页码
+        in: query
+        name: page
+        type: integer
+      - description: 每页条数
+        in: query
+        name: pageSize
+        type: integer
+      - description: 单号、车牌、粮种或供应商
+        in: query
+        name: keyword
+        type: string
+      - description: draft/confirmed/void
+        in: query
+        name: status
+        type: string
+      - description: 流转单ID
+        in: query
+        name: tripId
+        type: integer
+      - description: 仅查询未关联流转单的化验单
+        in: query
+        name: unlinked
+        type: boolean
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/laboratory.PageResponse'
+      security:
+      - BearerAuth: []
+      summary: 分页查询独立化验单
+      tags:
+      - 化验室
+    post:
+      parameters:
+      - description: 化验单草稿（水分%、杂质%、容重g/L；最多6位小数）
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/laboratory.Input'
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/laboratory.Response'
+      security:
+      - BearerAuth: []
+      summary: 保存化验单草稿
+      tags:
+      - 化验室
+  /api/v1/laboratory/inspections/{id}:
+    get:
+      parameters:
+      - description: 化验单ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/laboratory.Response'
+      security:
+      - BearerAuth: []
+      summary: 查询独立化验单详情
+      tags:
+      - 化验室
+    put:
+      parameters:
+      - description: 化验单ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: 草稿及当前版本
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/laboratory.SaveRequest'
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/laboratory.Response'
+      security:
+      - BearerAuth: []
+      summary: 更新化验单草稿（确认后禁止修改）
+      tags:
+      - 化验室
+  /api/v1/laboratory/inspections/{id}/{action}:
+    post:
+      description: confirm要求信息完整且拒收填写原因；void仅限已确认单且须原因；delete仅限草稿；retest仅限已确认单，新建关联草稿，不改变原单。
+      parameters:
+      - description: 化验单ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: 动作
+        enum:
+        - confirm
+        - void
+        - delete
+        - retest
+        in: path
+        name: action
+        required: true
+        type: string
+      - description: 当前版本及作废原因
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/laboratory.ActionRequest'
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/laboratory.Response'
+      security:
+      - BearerAuth: []
+      summary: 确认、作废、删除草稿或建立复检单
+      tags:
+      - 化验室
   /api/v1/monitoring/history:
     get:
       parameters:

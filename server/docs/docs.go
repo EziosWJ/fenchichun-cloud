@@ -148,6 +148,533 @@ const docTemplate = `{
                 }
             }
         },
+        "/api/v1/grain-intake/exit-basis/{id}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "tags": [
+                    "出门证"
+                ],
+                "summary": "门卫核验正常或拒收出厂依据",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "流转单ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/grainintake.DetailResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/grain-intake/permits": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "tags": [
+                    "出门证"
+                ],
+                "summary": "分页查询出门证",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "页码",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "每页条数",
+                        "name": "pageSize",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "证号、流转单号或车牌",
+                        "name": "keyword",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "办理阶段",
+                        "name": "stage",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/grainintake.PermitPageResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/grain-intake/rejections": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "tags": [
+                    "出门证"
+                ],
+                "summary": "门卫查询待核验拒收车辆",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "页码",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "每页条数",
+                        "name": "pageSize",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "流转单号、车牌或供应商",
+                        "name": "keyword",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/grainintake.TripPageResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/grain-intake/trips": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "tags": [
+                    "原粮流转"
+                ],
+                "summary": "分页查询流转单",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "页码",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "每页条数",
+                        "name": "pageSize",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "流转单号、车牌或供应商",
+                        "name": "keyword",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "办理阶段",
+                        "name": "stage",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/grainintake.TripPageResponse"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "tags": [
+                    "原粮流转"
+                ],
+                "summary": "登记本趟流转单",
+                "parameters": [
+                    {
+                        "description": "厂区、车牌、粮种必填，供应商可待核实",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/grainintake.Input"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/grainintake.DetailResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/grain-intake/trips/{id}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "tags": [
+                    "原粮流转"
+                ],
+                "summary": "查看流转单及其化验、磅单和出门证",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "流转单ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/grainintake.DetailResponse"
+                        }
+                    }
+                }
+            },
+            "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "tags": [
+                    "原粮流转"
+                ],
+                "summary": "更正流转单登记信息",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "流转单ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "登记信息及版本",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/grainintake.SaveRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/grainintake.DetailResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/grain-intake/trips/{id}/{action}": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "select-inspection要求化验菜单权限；approve-permit、confirm-exit要求出门证菜单权限；其他动作要求流转单菜单权限。拒收凭生效化验出厂，无需正常出门证。",
+                "tags": [
+                    "原粮流转"
+                ],
+                "summary": "关联化验、指定生效、确认卸粮、关联磅单及出门放行",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "流转单ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "enum": [
+                            "link-inspection",
+                            "select-inspection",
+                            "confirm-unloading",
+                            "link-ticket",
+                            "issue-permit",
+                            "approve-permit",
+                            "confirm-exit"
+                        ],
+                        "type": "string",
+                        "description": "业务动作",
+                        "name": "action",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "本趟版本及对应依据",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/grainintake.Command"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/grainintake.DetailResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/laboratory/inspections": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "tags": [
+                    "化验室"
+                ],
+                "summary": "分页查询独立化验单",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "页码",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "每页条数",
+                        "name": "pageSize",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "单号、车牌、粮种或供应商",
+                        "name": "keyword",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "draft/confirmed/void",
+                        "name": "status",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "流转单ID",
+                        "name": "tripId",
+                        "in": "query"
+                    },
+                    {
+                        "type": "boolean",
+                        "description": "仅查询未关联流转单的化验单",
+                        "name": "unlinked",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/laboratory.PageResponse"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "tags": [
+                    "化验室"
+                ],
+                "summary": "保存化验单草稿",
+                "parameters": [
+                    {
+                        "description": "化验单草稿（水分%、杂质%、容重g/L；最多6位小数）",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/laboratory.Input"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/laboratory.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/laboratory/inspections/{id}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "tags": [
+                    "化验室"
+                ],
+                "summary": "查询独立化验单详情",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "化验单ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/laboratory.Response"
+                        }
+                    }
+                }
+            },
+            "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "tags": [
+                    "化验室"
+                ],
+                "summary": "更新化验单草稿（确认后禁止修改）",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "化验单ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "草稿及当前版本",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/laboratory.SaveRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/laboratory.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/laboratory/inspections/{id}/{action}": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "confirm要求信息完整且拒收填写原因；void仅限已确认单且须原因；delete仅限草稿；retest仅限已确认单，新建关联草稿，不改变原单。",
+                "tags": [
+                    "化验室"
+                ],
+                "summary": "确认、作废、删除草稿或建立复检单",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "化验单ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "enum": [
+                            "confirm",
+                            "void",
+                            "delete",
+                            "retest"
+                        ],
+                        "type": "string",
+                        "description": "动作",
+                        "name": "action",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "当前版本及作废原因",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/laboratory.ActionRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/laboratory.Response"
+                        }
+                    }
+                }
+            }
+        },
         "/api/v1/monitoring/history": {
             "get": {
                 "security": [
@@ -5565,6 +6092,614 @@ const docTemplate = `{
                 }
             }
         },
+        "grainintake.Command": {
+            "type": "object",
+            "properties": {
+                "basis": {
+                    "type": "string"
+                },
+                "inspectionId": {
+                    "type": "integer"
+                },
+                "inspectionVersion": {
+                    "type": "integer"
+                },
+                "location": {
+                    "type": "string"
+                },
+                "permitId": {
+                    "type": "integer"
+                },
+                "ticketNo": {
+                    "type": "string"
+                },
+                "ticketSiteCode": {
+                    "type": "string"
+                },
+                "version": {
+                    "type": "integer"
+                }
+            }
+        },
+        "grainintake.Detail": {
+            "type": "object",
+            "properties": {
+                "events": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/grainintake.Event"
+                    }
+                },
+                "inspections": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/laboratory.Inspection"
+                    }
+                },
+                "permit": {
+                    "$ref": "#/definitions/grainintake.Permit"
+                },
+                "ticket": {
+                    "$ref": "#/definitions/weighbridge.TicketResult"
+                },
+                "trip": {
+                    "$ref": "#/definitions/grainintake.Trip"
+                }
+            }
+        },
+        "grainintake.DetailResponse": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "integer"
+                },
+                "data": {
+                    "$ref": "#/definitions/grainintake.Detail"
+                },
+                "message": {
+                    "type": "string"
+                }
+            }
+        },
+        "grainintake.Event": {
+            "type": "object",
+            "properties": {
+                "action": {
+                    "type": "string"
+                },
+                "actorId": {
+                    "type": "integer"
+                },
+                "actorName": {
+                    "type": "string"
+                },
+                "createdAt": {
+                    "type": "string"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "tripId": {
+                    "type": "integer"
+                }
+            }
+        },
+        "grainintake.Input": {
+            "type": "object",
+            "properties": {
+                "contractNo": {
+                    "type": "string"
+                },
+                "driver": {
+                    "type": "string"
+                },
+                "driverPhone": {
+                    "type": "string"
+                },
+                "materialCode": {
+                    "type": "string"
+                },
+                "partyCode": {
+                    "type": "string"
+                },
+                "plate": {
+                    "type": "string"
+                },
+                "remark": {
+                    "type": "string"
+                },
+                "siteCode": {
+                    "type": "string"
+                }
+            }
+        },
+        "grainintake.Permit": {
+            "type": "object",
+            "properties": {
+                "approvedAt": {
+                    "type": "string"
+                },
+                "approvedBy": {
+                    "type": "integer"
+                },
+                "createdAt": {
+                    "type": "string"
+                },
+                "createdBy": {
+                    "type": "integer"
+                },
+                "exitedAt": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "inspectionId": {
+                    "type": "integer"
+                },
+                "number": {
+                    "type": "string"
+                },
+                "plate": {
+                    "type": "string"
+                },
+                "siteCode": {
+                    "type": "string"
+                },
+                "stage": {
+                    "type": "string"
+                },
+                "status": {
+                    "type": "string"
+                },
+                "ticketId": {
+                    "type": "integer"
+                },
+                "tripId": {
+                    "type": "integer"
+                },
+                "tripNumber": {
+                    "type": "string"
+                },
+                "version": {
+                    "type": "integer"
+                }
+            }
+        },
+        "grainintake.PermitPage": {
+            "type": "object",
+            "properties": {
+                "page": {
+                    "type": "integer"
+                },
+                "pageSize": {
+                    "type": "integer"
+                },
+                "records": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/grainintake.Permit"
+                    }
+                },
+                "total": {
+                    "type": "integer"
+                }
+            }
+        },
+        "grainintake.PermitPageResponse": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "integer"
+                },
+                "data": {
+                    "$ref": "#/definitions/grainintake.PermitPage"
+                },
+                "message": {
+                    "type": "string"
+                }
+            }
+        },
+        "grainintake.SaveRequest": {
+            "type": "object",
+            "properties": {
+                "contractNo": {
+                    "type": "string"
+                },
+                "driver": {
+                    "type": "string"
+                },
+                "driverPhone": {
+                    "type": "string"
+                },
+                "materialCode": {
+                    "type": "string"
+                },
+                "partyCode": {
+                    "type": "string"
+                },
+                "plate": {
+                    "type": "string"
+                },
+                "remark": {
+                    "type": "string"
+                },
+                "siteCode": {
+                    "type": "string"
+                },
+                "version": {
+                    "type": "integer"
+                }
+            }
+        },
+        "grainintake.Trip": {
+            "type": "object",
+            "properties": {
+                "contractNo": {
+                    "type": "string"
+                },
+                "createdAt": {
+                    "type": "string"
+                },
+                "createdBy": {
+                    "type": "integer"
+                },
+                "driver": {
+                    "type": "string"
+                },
+                "driverPhone": {
+                    "type": "string"
+                },
+                "effectiveConclusion": {
+                    "type": "string"
+                },
+                "effectiveInspectionId": {
+                    "type": "integer"
+                },
+                "effectiveSelectedAt": {
+                    "type": "string"
+                },
+                "effectiveSelectedBy": {
+                    "type": "integer"
+                },
+                "exitBasis": {
+                    "type": "string"
+                },
+                "exitInspectionId": {
+                    "type": "integer"
+                },
+                "exitedAt": {
+                    "type": "string"
+                },
+                "exitedBy": {
+                    "type": "integer"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "materialCode": {
+                    "type": "string"
+                },
+                "materialName": {
+                    "type": "string"
+                },
+                "number": {
+                    "type": "string"
+                },
+                "partyCode": {
+                    "type": "string"
+                },
+                "partyName": {
+                    "type": "string"
+                },
+                "plate": {
+                    "type": "string"
+                },
+                "remark": {
+                    "type": "string"
+                },
+                "siteCode": {
+                    "type": "string"
+                },
+                "stage": {
+                    "type": "string"
+                },
+                "ticketId": {
+                    "type": "integer"
+                },
+                "unloadedAt": {
+                    "type": "string"
+                },
+                "unloadedBy": {
+                    "type": "integer"
+                },
+                "unloadingLocation": {
+                    "type": "string"
+                },
+                "updatedAt": {
+                    "type": "string"
+                },
+                "version": {
+                    "type": "integer"
+                }
+            }
+        },
+        "grainintake.TripPage": {
+            "type": "object",
+            "properties": {
+                "page": {
+                    "type": "integer"
+                },
+                "pageSize": {
+                    "type": "integer"
+                },
+                "records": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/grainintake.Trip"
+                    }
+                },
+                "total": {
+                    "type": "integer"
+                }
+            }
+        },
+        "grainintake.TripPageResponse": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "integer"
+                },
+                "data": {
+                    "$ref": "#/definitions/grainintake.TripPage"
+                },
+                "message": {
+                    "type": "string"
+                }
+            }
+        },
+        "laboratory.ActionRequest": {
+            "type": "object",
+            "properties": {
+                "reason": {
+                    "type": "string"
+                },
+                "version": {
+                    "type": "integer"
+                }
+            }
+        },
+        "laboratory.Input": {
+            "type": "object",
+            "properties": {
+                "bulkDensity": {
+                    "type": "string"
+                },
+                "conclusion": {
+                    "type": "string"
+                },
+                "contractNo": {
+                    "type": "string"
+                },
+                "driver": {
+                    "type": "string"
+                },
+                "driverPhone": {
+                    "type": "string"
+                },
+                "impurity": {
+                    "type": "string"
+                },
+                "materialCode": {
+                    "type": "string"
+                },
+                "moisture": {
+                    "type": "string"
+                },
+                "partyCode": {
+                    "type": "string"
+                },
+                "plate": {
+                    "type": "string"
+                },
+                "reason": {
+                    "type": "string"
+                },
+                "remark": {
+                    "type": "string"
+                },
+                "tripId": {
+                    "type": "integer"
+                }
+            }
+        },
+        "laboratory.Inspection": {
+            "type": "object",
+            "properties": {
+                "bulkDensity": {
+                    "type": "string"
+                },
+                "conclusion": {
+                    "type": "string"
+                },
+                "confirmedAt": {
+                    "type": "string"
+                },
+                "confirmedBy": {
+                    "type": "integer"
+                },
+                "contractNo": {
+                    "type": "string"
+                },
+                "createdAt": {
+                    "type": "string"
+                },
+                "createdBy": {
+                    "type": "integer"
+                },
+                "driver": {
+                    "type": "string"
+                },
+                "driverPhone": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "impurity": {
+                    "type": "string"
+                },
+                "materialCode": {
+                    "type": "string"
+                },
+                "materialName": {
+                    "type": "string"
+                },
+                "moisture": {
+                    "type": "string"
+                },
+                "number": {
+                    "type": "string"
+                },
+                "originalId": {
+                    "type": "integer"
+                },
+                "partyCode": {
+                    "type": "string"
+                },
+                "partyName": {
+                    "type": "string"
+                },
+                "plate": {
+                    "type": "string"
+                },
+                "reason": {
+                    "type": "string"
+                },
+                "remark": {
+                    "type": "string"
+                },
+                "status": {
+                    "type": "string"
+                },
+                "tripId": {
+                    "type": "integer"
+                },
+                "updatedAt": {
+                    "type": "string"
+                },
+                "version": {
+                    "type": "integer"
+                },
+                "voidReason": {
+                    "type": "string"
+                },
+                "voidedAt": {
+                    "type": "string"
+                },
+                "voidedBy": {
+                    "type": "integer"
+                }
+            }
+        },
+        "laboratory.Page": {
+            "type": "object",
+            "properties": {
+                "page": {
+                    "type": "integer"
+                },
+                "pageSize": {
+                    "type": "integer"
+                },
+                "records": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/laboratory.Inspection"
+                    }
+                },
+                "total": {
+                    "type": "integer"
+                }
+            }
+        },
+        "laboratory.PageResponse": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "integer"
+                },
+                "data": {
+                    "$ref": "#/definitions/laboratory.Page"
+                },
+                "message": {
+                    "type": "string"
+                }
+            }
+        },
+        "laboratory.Response": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "integer"
+                },
+                "data": {
+                    "$ref": "#/definitions/laboratory.Inspection"
+                },
+                "message": {
+                    "type": "string"
+                }
+            }
+        },
+        "laboratory.SaveRequest": {
+            "type": "object",
+            "properties": {
+                "bulkDensity": {
+                    "type": "string"
+                },
+                "conclusion": {
+                    "type": "string"
+                },
+                "contractNo": {
+                    "type": "string"
+                },
+                "driver": {
+                    "type": "string"
+                },
+                "driverPhone": {
+                    "type": "string"
+                },
+                "impurity": {
+                    "type": "string"
+                },
+                "materialCode": {
+                    "type": "string"
+                },
+                "moisture": {
+                    "type": "string"
+                },
+                "partyCode": {
+                    "type": "string"
+                },
+                "plate": {
+                    "type": "string"
+                },
+                "reason": {
+                    "type": "string"
+                },
+                "remark": {
+                    "type": "string"
+                },
+                "tripId": {
+                    "type": "integer"
+                },
+                "version": {
+                    "type": "integer"
+                }
+            }
+        },
         "logmgmt.ApiEnvelope": {
             "type": "object",
             "properties": {
@@ -6797,6 +7932,9 @@ const docTemplate = `{
                 "enabled": {
                     "type": "boolean"
                 },
+                "hasIdentityNumber": {
+                    "type": "boolean"
+                },
                 "isCarrier": {
                     "type": "boolean"
                 },
@@ -6840,6 +7978,9 @@ const docTemplate = `{
                 },
                 "enabled": {
                     "type": "boolean"
+                },
+                "identityNumber": {
+                    "type": "string"
                 },
                 "isCarrier": {
                     "type": "boolean"
@@ -6885,6 +8026,29 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "ticketNo": {
+                    "type": "string"
+                }
+            }
+        },
+        "weighbridge.TicketResult": {
+            "type": "object",
+            "properties": {
+                "siteCode": {
+                    "type": "string"
+                },
+                "status": {
+                    "type": "string"
+                },
+                "ticket": {
+                    "$ref": "#/definitions/weighbridge.TicketSnapshot"
+                },
+                "voidReason": {
+                    "type": "string"
+                },
+                "voidedAt": {
+                    "type": "string"
+                },
+                "voidedBy": {
                     "type": "string"
                 }
             }
