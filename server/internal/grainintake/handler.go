@@ -221,11 +221,11 @@ func (h *Handler) save(c *gin.Context, id int64) {
 
 // command godoc
 // @Summary 关联化验、指定生效、确认卸粮、关联磅单及出门放行
-// @Description select-inspection要求化验菜单权限；approve-permit、confirm-exit要求出门证菜单权限；其他动作要求流转单菜单权限。拒收凭生效化验出厂，无需正常出门证。
+// @Description record-visual要求流转单菜单权限；select-inspection要求化验菜单权限；approve-permit、confirm-exit要求出门证菜单权限；其他动作要求流转单菜单权限。拒收凭生效化验或目测记录出厂，无需正常出门证。
 // @Tags 原粮流转
 // @Security BearerAuth
 // @Param id path int true "流转单ID"
-// @Param action path string true "业务动作" Enums(link-inspection,select-inspection,confirm-unloading,link-ticket,issue-permit,approve-permit,confirm-exit)
+// @Param action path string true "业务动作" Enums(record-visual,link-inspection,select-inspection,confirm-unloading,link-ticket,issue-permit,approve-permit,confirm-exit)
 // @Param request body Command true "本趟版本及对应依据"
 // @Success 200 {object} DetailResponse
 // @Router /api/v1/grain-intake/trips/{id}/{action} [post]

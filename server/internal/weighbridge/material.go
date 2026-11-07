@@ -12,15 +12,19 @@ import (
 )
 
 type MaterialInput struct {
-	Name         string  `json:"name"`
-	CategoryCode *string `json:"categoryCode"`
-	Spec         string  `json:"spec"`
-	Remark       string  `json:"remark"`
-	Enabled      bool    `json:"enabled"`
+	Name             string  `json:"name"`
+	InspectionMethod *string `json:"inspectionMethod" enums:"lab,visual"`
+	CategoryCode     *string `json:"categoryCode"`
+	Spec             string  `json:"spec"`
+	Remark           string  `json:"remark"`
+	Enabled          bool    `json:"enabled"`
 }
 
 func (r *Repository) SaveMaterial(ctx context.Context, code string, in MaterialInput, event audit.Event) (Material, error) {
 	if strings.TrimSpace(in.Name) == "" || utf8.RuneCountInString(in.Name) > 100 || utf8.RuneCountInString(in.Spec) > 200 || utf8.RuneCountInString(in.Remark) > 2000 {
+		return Material{}, ErrInvalid
+	}
+	if in.InspectionMethod != nil && *in.InspectionMethod != "lab" && *in.InspectionMethod != "visual" {
 		return Material{}, ErrInvalid
 	}
 	var result Material
@@ -44,7 +48,11 @@ func (r *Repository) SaveMaterial(ctx context.Context, code string, in MaterialI
 			if err := tx.Raw("INSERT INTO wb_cloud_sequence (kind, value) VALUES (?, 1) ON CONFLICT (kind) DO UPDATE SET value = wb_cloud_sequence.value + 1 RETURNING value", "material").Scan(&n).Error; err != nil {
 				return err
 			}
-			result = Material{Code: fmt.Sprintf("C-M-%04d", n), Name: in.Name, Spec: in.Spec, Remark: in.Remark, Enabled: in.Enabled}
+			method := "lab"
+			if in.InspectionMethod != nil {
+				method = *in.InspectionMethod
+			}
+			result = Material{InspectionMethod: method, Code: fmt.Sprintf("C-M-%04d", n), Name: in.Name, Spec: in.Spec, Remark: in.Remark, Enabled: in.Enabled}
 			if cat != nil {
 				result.CategoryID = &cat.ID
 			}
@@ -65,12 +73,15 @@ func (r *Repository) SaveMaterial(ctx context.Context, code string, in MaterialI
 			if cat != nil {
 				categoryID = &cat.ID
 			}
+			if in.InspectionMethod != nil {
+				result.InspectionMethod = *in.InspectionMethod
+			}
 			result.Name = in.Name
 			result.CategoryID = categoryID
 			result.Spec = in.Spec
 			result.Remark = in.Remark
 			result.Enabled = in.Enabled
-			if err := tx.Model(&result).Updates(map[string]any{"name": in.Name, "category_id": categoryID, "spec": in.Spec, "remark": in.Remark, "enabled": in.Enabled}).Error; err != nil {
+			if err := tx.Model(&result).Updates(map[string]any{"inspection_method": result.InspectionMethod, "name": in.Name, "category_id": categoryID, "spec": in.Spec, "remark": in.Remark, "enabled": in.Enabled}).Error; err != nil {
 				return err
 			}
 		}

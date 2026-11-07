@@ -447,7 +447,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "select-inspection要求化验菜单权限；approve-permit、confirm-exit要求出门证菜单权限；其他动作要求流转单菜单权限。拒收凭生效化验出厂，无需正常出门证。",
+                "description": "record-visual要求流转单菜单权限；select-inspection要求化验菜单权限；approve-permit、confirm-exit要求出门证菜单权限；其他动作要求流转单菜单权限。拒收凭生效化验或目测记录出厂，无需正常出门证。",
                 "tags": [
                     "原粮流转"
                 ],
@@ -462,6 +462,7 @@ const docTemplate = `{
                     },
                     {
                         "enum": [
+                            "record-visual",
                             "link-inspection",
                             "select-inspection",
                             "confirm-unloading",
@@ -6140,6 +6141,9 @@ const docTemplate = `{
                 "basis": {
                     "type": "string"
                 },
+                "conclusion": {
+                    "type": "string"
+                },
                 "inspectionId": {
                     "type": "integer"
                 },
@@ -6151,6 +6155,9 @@ const docTemplate = `{
                 },
                 "permitId": {
                     "type": "integer"
+                },
+                "reason": {
+                    "type": "string"
                 },
                 "ticketNo": {
                     "type": "string"
@@ -6422,6 +6429,9 @@ const docTemplate = `{
                 "id": {
                     "type": "integer"
                 },
+                "inspectionMethod": {
+                    "type": "string"
+                },
                 "materialCode": {
                     "type": "string"
                 },
@@ -6466,6 +6476,18 @@ const docTemplate = `{
                 },
                 "version": {
                     "type": "integer"
+                },
+                "visualConclusion": {
+                    "type": "string"
+                },
+                "visualInspectedAt": {
+                    "type": "string"
+                },
+                "visualInspectedBy": {
+                    "type": "integer"
+                },
+                "visualReason": {
+                    "type": "string"
                 }
             }
         },
@@ -7931,6 +7953,13 @@ const docTemplate = `{
                 "enabled": {
                     "type": "boolean"
                 },
+                "inspectionMethod": {
+                    "type": "string",
+                    "enum": [
+                        "lab",
+                        "visual"
+                    ]
+                },
                 "name": {
                     "type": "string"
                 },
@@ -7950,6 +7979,13 @@ const docTemplate = `{
                 },
                 "enabled": {
                     "type": "boolean"
+                },
+                "inspectionMethod": {
+                    "type": "string",
+                    "enum": [
+                        "lab",
+                        "visual"
+                    ]
                 },
                 "name": {
                     "type": "string"

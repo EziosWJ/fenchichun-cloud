@@ -70,11 +70,15 @@ func (s *Service) Save(ctx context.Context, id, version int64, in Input, e audit
 }
 func (s *Service) Command(ctx context.Context, id int64, action string, in Command, e audit.Event) (Detail, error) {
 	switch action {
-	case "link-inspection", "select-inspection", "confirm-unloading", "link-ticket", "issue-permit", "approve-permit", "confirm-exit":
+	case "record-visual", "link-inspection", "select-inspection", "confirm-unloading", "link-ticket", "issue-permit", "approve-permit", "confirm-exit":
 	default:
 		return Detail{}, ErrInvalid
 	}
 	in.Location = strings.TrimSpace(in.Location)
+	in.Reason = strings.TrimSpace(in.Reason)
+	if action == "record-visual" && ((in.Conclusion != "accept" && in.Conclusion != "reject") || (in.Conclusion == "reject" && in.Reason == "") || utf8.RuneCountInString(in.Reason) > 2000) {
+		return Detail{}, ErrInvalid
+	}
 	if action == "confirm-unloading" && (in.Location == "" || utf8.RuneCountInString(in.Location) > 200) {
 		return Detail{}, ErrInvalid
 	}

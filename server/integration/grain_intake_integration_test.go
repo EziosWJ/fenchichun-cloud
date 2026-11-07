@@ -252,6 +252,59 @@ func exerciseGrainIntake(t *testing.T, db *gorm.DB) {
 	if permits.Total != 2 {
 		t.Fatalf("permit list: %d", permits.Total)
 	}
+	// Visual inspection supports both rejection at the gate and the normal permit path.
+	check(db.Exec("INSERT INTO wb_cloud_material(code,name,inspection_method) VALUES ('WOOD-TEST','木片','visual')").Error)
+	createWood := func(plate string) grainintake.Detail {
+		v, err := flow.Save(ctx, 0, 0, grainintake.Input{SiteCode: "GRAIN-TEST", Plate: plate, MaterialCode: "WOOD-TEST", PartyCode: "C-P-0001"}, e)
+		check(err)
+		return v
+	}
+	wood := createWood("晋A木拒")
+	if wood.Trip.InspectionMethod != "visual" || wood.Trip.Stage != "pending_inspection" {
+		t.Fatalf("visual registration: %+v", wood.Trip)
+	}
+	_, err = flow.Command(ctx, wood.Trip.ID, "record-visual", grainintake.Command{Version: wood.Trip.Version, Conclusion: "reject"}, e)
+	if !errors.Is(err, grainintake.ErrInvalid) {
+		t.Fatalf("missing rejection reason: %v", err)
+	}
+	_, err = flow.Command(ctx, wood.Trip.ID, "confirm-unloading", grainintake.Command{Version: wood.Trip.Version, Location: "仓库"}, e)
+	if !errors.Is(err, grainintake.ErrConflict) {
+		t.Fatalf("uninspected unloading: %v", err)
+	}
+	wood = command(wood, "record-visual", grainintake.Command{Conclusion: "reject", Reason: "夹杂异物"})
+	if wood.Trip.Stage != "rejected" {
+		t.Fatalf("visual rejection stage: %s", wood.Trip.Stage)
+	}
+	page, err = flow.Rejections(ctx, gateActor, grainintake.Query{Keyword: wood.Trip.Number})
+	check(err)
+	if page.Total != 1 {
+		t.Fatal("visual rejection missing from gate list")
+	}
+	wood, err = flow.Command(ctx, wood.Trip.ID, "confirm-exit", grainintake.Command{Version: wood.Trip.Version, Basis: "rejection"}, gateEvent)
+	check(err)
+	if wood.Trip.ExitedAt == nil || wood.Permit != nil || wood.Ticket != nil || wood.Trip.ExitInspectionID != nil {
+		t.Fatal("visual rejection evidence")
+	}
+
+	wood = createWood("晋A木收")
+	wood = command(wood, "record-visual", grainintake.Command{Conclusion: "accept"})
+	firstWood := wood.Trip.VisualInspectedAt.Add(time.Microsecond)
+	wood = command(wood, "confirm-unloading", grainintake.Command{Location: "木片场"})
+	secondWood := wood.Trip.UnloadedAt.Add(time.Microsecond)
+	woodTicket := weighbridge.Change{SchemaVersion: 2, ChangeID: "WOOD-TICKET", SiteCode: "GRAIN-TEST", TicketNo: "WOOD-TICKET", Type: "issue", Ticket: &weighbridge.TicketSnapshot{TicketNo: "WOOD-TICKET", Title: "木片磅单", Plate: wood.Trip.Plate, Direction: "inbound", MaterialCode: wood.Trip.MaterialCode, MaterialName: wood.Trip.MaterialName, PartyCode: wood.Trip.PartyCode, PartyName: wood.Trip.PartyName, FirstConfirmedAt: firstWood, SecondConfirmedAt: secondWood, IssuedAt: secondWood, IssuerName: "库管", OriginalGross: "30", OriginalTare: "10", FinalGross: "30", FinalTare: "10"}}
+	_, err = wb.ApplyChange(ctx, woodTicket)
+	check(err)
+	wood = command(wood, "link-ticket", grainintake.Command{TicketSiteCode: "GRAIN-TEST", TicketNo: "WOOD-TICKET"})
+	wood = command(wood, "issue-permit", grainintake.Command{})
+	if wood.Permit.InspectionID != nil {
+		t.Fatal("visual permit has lab evidence")
+	}
+	wood = command(wood, "approve-permit", grainintake.Command{PermitID: wood.Permit.ID})
+	wood, err = flow.Command(ctx, wood.Trip.ID, "confirm-exit", grainintake.Command{Version: wood.Trip.Version, Basis: "permit", PermitID: wood.Permit.ID}, gateEvent)
+	check(err)
+	if wood.Trip.ExitedAt == nil {
+		t.Fatal("visual accepted trip did not exit")
+	}
 	if len(departed.Events) == 0 {
 		t.Fatal("missing process history")
 	}

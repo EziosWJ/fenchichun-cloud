@@ -13,6 +13,7 @@ vi.mock('../../src/pages/laboratory/InspectionsPage', () => ({ default: () => <d
 vi.mock('../../src/features/laboratory/api', () => ({ inspections: vi.fn() }));
 const trip: Trip = {
   id: 1, number: 'LZ-000001', version: 9, siteCode: 'F001', plate: '晋A12345', materialCode: 'M1', materialName: '高粱', partyCode: 'P1', partyName: '供货方', driver: '', driverPhone: '', contractNo: '', remark: '',
+  inspectionMethod: 'lab', visualConclusion: '', visualReason: '', visualInspectedAt: null, visualInspectedBy: null,
   effectiveInspectionId: 11, effectiveSelectedAt: '2026-11-06T08:00:00Z', effectiveSelectedBy: 1, effectiveConclusion: 'accept', unloadingLocation: '东仓', unloadedAt: '2026-11-06T09:00:00Z', unloadedBy: 1,
   ticketId: 21, createdBy: 1, createdAt: '2026-11-06T07:00:00Z', updatedAt: '2026-11-06T09:00:00Z', exitedAt: null, exitedBy: null, exitBasis: '', exitInspectionId: null, stage: 'permit_approved',
 };
@@ -44,6 +45,19 @@ describe('exit evidence', () => {
     expect(api.tripAction).not.toHaveBeenCalled();
     await user.click(await screen.findByRole('button', { name: /^确\s*认$/ }));
     await waitFor(() => expect(api.tripAction).toHaveBeenCalledWith(expect.objectContaining({ id: 1, version: 9 }), 'confirm-exit', { basis: 'permit', permitId: 31 }));
+  });
+  it('shows visual rejection evidence and lets gate confirm exit without a lab report', async () => {
+    const value = evidence();
+    value.trip = { ...value.trip, inspectionMethod: 'visual', visualConclusion: 'reject', visualReason: '夹杂异物', visualInspectedAt: trip.createdAt, visualInspectedBy: 1, effectiveInspectionId: null, effectiveConclusion: 'reject', stage: 'rejected', ticketId: null, unloadedAt: null };
+    value.inspections = []; value.permit = null;
+    api.tripDetail.mockResolvedValue(value);
+    const user = userEvent.setup();
+    renderWithProviders(<TripWorkspace gate />, { route: '/grain-intake/permits/1', path: '/grain-intake/permits/:id' });
+    await screen.findByText('夹杂异物');
+    await user.click(screen.getByRole('tab', { name: '出门证与出厂' }));
+    await user.click(screen.getByRole('button', { name: '确认拒收出厂' }));
+    await user.click(await screen.findByRole('button', { name: /^确\s*认$/ }));
+    await waitFor(() => expect(api.tripAction).toHaveBeenCalledWith(expect.objectContaining({ id: 1 }), 'confirm-exit', expect.objectContaining({ basis: 'rejection' })));
   });
   it('hides release actions when the ticket evidence is blocked', async () => {
     const value = evidence(); value.trip.stage = 'blocked';

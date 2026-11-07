@@ -8,6 +8,7 @@ export default function TripEditor({ original, onClose, onSaved }: { original?: 
   const { message } = App.useApp();
   const client = useQueryClient();
   const [form] = Form.useForm<TripInput>();
+  const materialCode = Form.useWatch('materialCode', form);
   const siteQuery = useQuery({ queryKey: ['weighbridge', 'sites'], queryFn: sites });
   const materialQuery = useQuery({ queryKey: ['weighbridge', 'materials'], queryFn: materials });
   const partyQuery = useQuery({ queryKey: ['weighbridge', 'parties'], queryFn: parties });
@@ -22,7 +23,7 @@ export default function TripEditor({ original, onClose, onSaved }: { original?: 
     <Form form={form} layout="vertical" initialValues={original ?? blank}>
       <Form.Item name="siteCode" label="厂区" rules={[{ required: true, message: '请选择厂区' }]}><Select loading={siteQuery.isLoading} options={(siteQuery.data ?? []).filter((v) => v.enabled || v.code === original?.siteCode).map((v) => ({ value: v.code, label: v.name, disabled: !v.enabled }))} /></Form.Item>
       <Form.Item name="plate" label="车牌号" rules={[{ required: true, whitespace: true, message: '请输入车牌号' }]}><Input maxLength={40} /></Form.Item>
-      <Form.Item name="materialCode" label="粮种（物料）" rules={[{ required: true, message: '请选择粮种' }]}><Select showSearch optionFilterProp="label" loading={materialQuery.isLoading} options={(materialQuery.data ?? []).filter((v) => v.enabled || v.code === original?.materialCode).map((v) => ({ value: v.code, label: v.name, disabled: !v.enabled }))} /></Form.Item>
+      <Form.Item name="materialCode" label="货品（物料）" rules={[{ required: true, message: '请选择货品' }]} extra={materialCode ? `检验方式：${original?.materialCode === materialCode ? (original.inspectionMethod === 'visual' ? '目测' : '化验') : (materialQuery.data?.find((v) => v.code === materialCode)?.inspectionMethod === 'visual' ? '目测' : '化验')}` : undefined}><Select showSearch optionFilterProp="label" loading={materialQuery.isLoading} options={(materialQuery.data ?? []).filter((v) => v.enabled || v.code === original?.materialCode).map((v) => ({ value: v.code, label: v.name, disabled: !v.enabled }))} /></Form.Item>
       <Form.Item name="partyCode" label="供应商" extra="暂未明确可留空，正式确认接收前须补齐。"><Select allowClear showSearch optionFilterProp="label" loading={partyQuery.isLoading} options={(partyQuery.data ?? []).filter((v) => v.isSupplier && (v.enabled || v.code === original?.partyCode)).map((v) => ({ value: v.code, label: v.name, disabled: !v.enabled }))} /></Form.Item>
       <Space wrap><Form.Item name="driver" label="司机姓名（选填）"><Input maxLength={100} /></Form.Item><Form.Item name="driverPhone" label="联系电话（选填）"><Input maxLength={50} /></Form.Item></Space>
       <Form.Item name="contractNo" label="合同编号（选填）"><Input maxLength={100} /></Form.Item>

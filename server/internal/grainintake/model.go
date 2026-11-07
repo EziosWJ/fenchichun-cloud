@@ -59,6 +59,11 @@ type Trip struct {
 	Number                string `json:"number"`
 	Version               int64  `json:"version"`
 	Input                 `gorm:"embedded"`
+	InspectionMethod      string     `json:"inspectionMethod"`
+	VisualConclusion      string     `json:"visualConclusion"`
+	VisualReason          string     `json:"visualReason"`
+	VisualInspectedAt     *time.Time `json:"visualInspectedAt"`
+	VisualInspectedBy     *int64     `json:"visualInspectedBy"`
 	MaterialName          string     `json:"materialName"`
 	PartyName             string     `json:"partyName"`
 	EffectiveInspectionID *int64     `json:"effectiveInspectionId"`
@@ -87,7 +92,7 @@ type Permit struct {
 	TripID       int64      `json:"tripId"`
 	Version      int64      `json:"version"`
 	Status       string     `json:"status"`
-	InspectionID int64      `json:"inspectionId"`
+	InspectionID *int64     `json:"inspectionId"`
 	TicketID     int64      `json:"ticketId"`
 	CreatedBy    int64      `json:"createdBy"`
 	CreatedAt    time.Time  `json:"createdAt"`
@@ -161,6 +166,8 @@ type PermitPage struct {
 	PageSize int      `json:"pageSize"`
 }
 type Command struct {
+	Conclusion        string `json:"conclusion"`
+	Reason            string `json:"reason"`
 	Version           int64  `json:"version"`
 	InspectionID      int64  `json:"inspectionId"`
 	InspectionVersion int64  `json:"inspectionVersion"`

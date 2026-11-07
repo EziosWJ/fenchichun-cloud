@@ -27,6 +27,8 @@ export default function TripWorkspace({ gate = false }: { gate?: boolean }) {
   const query = useQuery({ queryKey: ['grain-intake', 'detail', key, gate], queryFn: () => tripDetail(key, gate), enabled: Number.isSafeInteger(key) && key > 0 });
   const [editing, setEditing] = useState(false);
   const [location, setLocation] = useState('');
+  const [visualConclusion, setVisualConclusion] = useState<'accept' | 'reject'>('accept');
+  const [visualReason, setVisualReason] = useState('');
   const [ticketNo, setTicketNo] = useState('');
   const [linkOpen, setLinkOpen] = useState(false);
   const [linkKeyword, setLinkKeyword] = useState('');
@@ -66,33 +68,35 @@ export default function TripWorkspace({ gate = false }: { gate?: boolean }) {
       { title: '本趟采用', key: 'effective', render: (_, row) => row.id === trip.effectiveInspectionId ? <Tag color="green">生效</Tag> : '—' },
     ]} />;
   return <>
-    <PageHeader title={gate ? `出厂核验 · ${trip.number}` : trip.number} description="本趟化验、卸粮、磅单和出厂依据集中核对。" />
+    <PageHeader title={gate ? `出厂核验 · ${trip.number}` : trip.number} description="本趟检验、卸货、磅单和出厂依据集中核对。" />
     <Space orientation="vertical" size="middle" style={{ width: '100%' }}>
       {trip.stage === 'blocked' && <Alert type="error" title="当前依据已失效或存在冲突，暂停开证和放行，请核查磅单与化验记录。" />}
       {trip.exitedAt && <Alert type="success" title={`已于 ${formatDateTime(trip.exitedAt)} 确认出厂，本趟凭据不能再次使用。`} />}
-      <Card title={<Space><span>送粮信息</span><Tag color={trip.stage === 'blocked' ? 'red' : 'blue'}>{stageLabel(trip.stage)}</Tag></Space>} extra={!gate && canTrip && !permit && !trip.exitedAt ? <Button onClick={() => setEditing(true)}>更正登记</Button> : undefined}>
+      <Card title={<Space><span>送货信息</span><Tag color={trip.stage === 'blocked' ? 'red' : 'blue'}>{stageLabel(trip.stage)}</Tag></Space>} extra={!gate && canTrip && !permit && !trip.exitedAt ? <Button onClick={() => setEditing(true)}>更正登记</Button> : undefined}>
         <Descriptions column={3} items={[
-          { key: 'site', label: '厂区', children: trip.siteCode }, { key: 'plate', label: '车牌', children: trip.plate }, { key: 'grain', label: '粮种', children: trip.materialName },
+          { key: 'site', label: '厂区', children: trip.siteCode }, { key: 'plate', label: '车牌', children: trip.plate }, { key: 'grain', label: '货品', children: trip.materialName },
           { key: 'party', label: '供应商', children: trip.partyName || '待核实' }, { key: 'driver', label: '司机', children: `${trip.driver || '—'} ${trip.driverPhone}` }, { key: 'contract', label: '合同编号', children: trip.contractNo || '—' },
-          { key: 'created', label: '登记时间', children: formatDateTime(trip.createdAt) }, { key: 'remark', label: '备注', children: trip.remark || '—' },
+          { key: 'method', label: '检验方式', children: trip.inspectionMethod === 'visual' ? '目测' : '化验' }, { key: 'created', label: '登记时间', children: formatDateTime(trip.createdAt) }, { key: 'remark', label: '备注', children: trip.remark || '—' },
         ]} />
       </Card>
-      <Card title="当前生效化验">
+      {trip.inspectionMethod === 'visual' ? <Card title="目测结果">
+        {trip.visualInspectedAt ? <Descriptions items={[{ key: 'result', label: '结论', children: trip.visualConclusion === 'accept' ? '接收' : '拒收' }, { key: 'reason', label: '说明', children: trip.visualReason || '—' }, { key: 'time', label: '检查时间', children: formatDateTime(trip.visualInspectedAt) }, { key: 'actor', label: '检查人', children: trip.visualInspectedBy }]} /> : !gate && canTrip ? <Space wrap><Select aria-label="目测结论" value={visualConclusion} onChange={setVisualConclusion} options={[{ value: 'accept', label: '接收' }, { value: 'reject', label: '拒收' }]} /><Input aria-label="目测说明" placeholder={visualConclusion === 'reject' ? '请输入拒收原因' : '目测说明（选填）'} maxLength={2000} value={visualReason} onChange={(e) => setVisualReason(e.target.value)} /><Button type="primary" disabled={action.isPending || !trip.partyCode || (visualConclusion === 'reject' && !visualReason.trim())} onClick={() => ask('确认记录目测结果？', 'record-visual', { conclusion: visualConclusion, reason: visualReason }, '确认后不能修改，请核对货品与检查结论。')}>确认目测</Button>{!trip.partyCode && <span>请先核实供应商</span>}</Space> : <Empty description="尚未记录目测结果" />}
+      </Card> : <Card title="当前生效化验">
         {effective ? <Descriptions column={3} items={[
           { key: 'number', label: '化验单', children: effective.number }, { key: 'conclusion', label: '结论', children: effective.conclusion === 'accept' ? '接收' : '拒收' }, { key: 'selected', label: '生效时间', children: formatDateTime(trip.effectiveSelectedAt) },
           { key: 'moisture', label: '水分（%）', children: effective.moisture }, { key: 'impurity', label: '杂质（%）', children: effective.impurity }, { key: 'density', label: '容重（g/L）', children: effective.bulkDensity }, { key: 'reason', label: '原因', children: effective.reason || '—' },
         ]} /> : <Empty description="尚未指定生效化验单；确认化验单后，由化验员明确选择。" />}
-      </Card>
+      </Card>}
       <Tabs items={[
-        { key: 'inspections', label: `化验单（${query.data.inspections.length}）`, children: <Space orientation="vertical" size="middle" style={{ width: '100%' }}>
+        ...(trip.inspectionMethod === 'visual' ? [] : [{ key: 'inspections', label: `化验单（${query.data.inspections.length}）`, children: <Space orientation="vertical" size="middle" style={{ width: '100%' }}>
           {!gate && canTrip && !locked && <Button onClick={() => { setLinkKeyword(trip.plate); setLinkPage(1); setLinkOpen(true); }}>关联已有化验单</Button>}
           {labView}
-        </Space> },
+        </Space> }]),
         { key: 'weighing', label: '卸粮与磅单', children: <Space orientation="vertical" size="middle" style={{ width: '100%' }}>
           <Card title="现场卸粮确认">
             {trip.unloadedAt ? <Descriptions items={[{ key: 'location', label: '实际卸粮地点', children: trip.unloadingLocation }, { key: 'time', label: '确认时间', children: formatDateTime(trip.unloadedAt) }]} /> : <>
               <p>在现场首磅及卸粮完成后办理，不要求首磅已上传云端。</p>
-              {!gate && canTrip && !locked && effective?.conclusion === 'accept' ? <Space><Input aria-label="实际卸粮地点" placeholder="实际卸粮地点编号或名称" maxLength={200} value={location} onChange={(e) => setLocation(e.target.value)} /><Button disabled={!location.trim() || action.isPending} onClick={() => ask('确认实际卸粮完成？', 'confirm-unloading', { location }, '请确认现场已经完成首磅及卸粮，地点填写准确。')}>确认卸粮</Button></Space> : <p>待确认接收并完成现场卸粮。</p>}
+              {!gate && canTrip && !locked && trip.effectiveConclusion === 'accept' ? <Space><Input aria-label="实际卸粮地点" placeholder="实际卸粮地点编号或名称" maxLength={200} value={location} onChange={(e) => setLocation(e.target.value)} /><Button disabled={!location.trim() || action.isPending} onClick={() => ask('确认实际卸粮完成？', 'confirm-unloading', { location }, '请确认现场已经完成首磅及卸粮，地点填写准确。')}>确认卸粮</Button></Space> : <p>待确认接收并完成现场卸粮。</p>}
             </>}
           </Card>
           <Card title="关联正式磅单">
@@ -132,12 +136,12 @@ export default function TripWorkspace({ gate = false }: { gate?: boolean }) {
           {permit ? <Descriptions column={2} items={[
             { key: 'number', label: '出门证号', children: permit.number }, { key: 'status', label: '审批状态', children: permit.status === 'approved' ? '已审批' : '待审批' },
             { key: 'created', label: '开具时间', children: formatDateTime(permit.createdAt) }, { key: 'approved', label: '审批时间', children: formatDateTime(permit.approvedAt) },
-          ]} /> : effective?.conclusion === 'reject' ? <Alert type="warning" title="本趟拒收：门卫核验生效化验单及拒收说明后确认出厂，不另开正常出门证。" /> : <p>实际卸粮已确认、有效磅单已关联后，可开具正常出门证。</p>}
+          ]} /> : trip.effectiveConclusion === 'reject' ? <Alert type="warning" title="本趟拒收：门卫核验检验结论及拒收说明后确认出厂，不另开正常出门证。" /> : <p>实际卸粮已确认、有效磅单已关联后，可开具正常出门证。</p>}
           <Space wrap style={{ marginTop: 16 }}>
             {!gate && canTrip && trip.stage === 'ready' && !permit && <Button type="primary" loading={action.isPending} onClick={() => ask('开具本趟出门证？', 'issue-permit')}>开具出门证</Button>}
             {canGate && canTrip && trip.stage === 'permit_pending' && permit && <Button type="primary" loading={action.isPending} onClick={() => ask('审批通过该出门证？', 'approve-permit', { permitId: permit.id }, '审批通过仍需门卫在实际放行时确认出厂。')}>审批通过</Button>}
             {canGate && trip.stage === 'permit_approved' && permit && <Button type="primary" loading={action.isPending} onClick={() => ask('车辆实际出厂，确认放行？', 'confirm-exit', { basis: 'permit', permitId: permit.id }, '核对车辆与出门证；确认后本趟凭据不可再次使用。')}>确认出厂</Button>}
-            {canGate && trip.stage === 'rejected' && effective && <Button type="primary" loading={action.isPending} onClick={() => ask('核验拒收依据并确认车辆实际出厂？', 'confirm-exit', { basis: 'rejection', inspectionId: effective.id, inspectionVersion: effective.version }, effective.reason)}>确认拒收出厂</Button>}
+            {canGate && trip.stage === 'rejected' && (effective || trip.inspectionMethod === 'visual') && <Button type="primary" loading={action.isPending} onClick={() => ask('核验拒收依据并确认车辆实际出厂？', 'confirm-exit', { basis: 'rejection', inspectionId: effective?.id, inspectionVersion: effective?.version }, effective?.reason || trip.visualReason)}>确认拒收出厂</Button>}
           </Space>
         </Card> },
         { key: 'events', label: '过程记录', children: <Table rowKey="id" dataSource={events} pagination={{ pageSize: 10 }} columns={[{ title: '时间', dataIndex: 'createdAt', render: (v: string) => formatDateTime(v) }, { title: '操作人员', dataIndex: 'actorName', render: (v: string) => v || '系统' }, { title: '记录', dataIndex: 'description' }]} /> },

@@ -61,10 +61,10 @@ func find(tx *gorm.DB, id int64, lock bool) (Inspection, error) {
 }
 
 type tripReference struct {
-	ID                                                                        int64
-	SiteCode, Plate, MaterialCode, PartyCode, Driver, DriverPhone, ContractNo string
-	ExitedAt, UnloadedAt                                                      *time.Time
-	TicketID, EffectiveInspectionID                                           *int64
+	ID                                                                                          int64
+	SiteCode, Plate, MaterialCode, PartyCode, Driver, DriverPhone, ContractNo, InspectionMethod string
+	ExitedAt, UnloadedAt                                                                        *time.Time
+	TicketID, EffectiveInspectionID                                                             *int64
 }
 
 func inspectionTrip(tx *gorm.DB, id int64) (tripReference, error) {
@@ -79,6 +79,9 @@ func inspectionTrip(tx *gorm.DB, id int64) (tripReference, error) {
 	var n int64
 	if err := tx.Table("grain_exit_permit").Where("trip_id=?", id).Count(&n).Error; err != nil {
 		return t, err
+	}
+	if t.InspectionMethod != "lab" {
+		return t, fmt.Errorf("%w：目测流转单不能关联化验单", ErrConflict)
 	}
 	if t.ExitedAt != nil || t.UnloadedAt != nil || t.TicketID != nil || n > 0 {
 		return t, fmt.Errorf("%w：流转单已卸粮、关联磅单、开证或出厂，不能更改化验依据", ErrConflict)

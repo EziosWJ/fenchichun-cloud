@@ -7,6 +7,7 @@ export interface TripInput {
 }
 export interface Trip extends TripInput {
   id: number; number: string; version: number; materialName: string; partyName: string;
+  inspectionMethod: 'lab' | 'visual'; visualConclusion: '' | 'accept' | 'reject'; visualReason: string; visualInspectedAt: string | null; visualInspectedBy: number | null;
   effectiveInspectionId: number | null; effectiveSelectedAt: string | null; effectiveSelectedBy: number | null;
   unloadingLocation: string; unloadedAt: string | null; unloadedBy: number | null;
   ticketId: number | null; createdBy: number; createdAt: string; updatedAt: string;
@@ -15,7 +16,7 @@ export interface Trip extends TripInput {
 }
 export interface Permit {
   id: number; number: string; tripId: number; version: number; status: 'pending' | 'approved';
-  inspectionId: number; ticketId: number; createdBy: number; createdAt: string;
+  inspectionId: number | null; ticketId: number; createdBy: number; createdAt: string;
   approvedBy: number | null; approvedAt: string | null;
   tripNumber: string; plate: string; siteCode: string; exitedAt: string | null; stage: string;
 }
@@ -26,9 +27,9 @@ export interface TicketCandidate {
   partyCode: string; partyName: string; finalGross: string; finalTare: string; finalNetMilliTonne: number;
   firstConfirmedAt: string; secondConfirmedAt: string; issuedAt: string; linkable: boolean; reason: string;
 }
-export type TripAction = 'link-inspection' | 'select-inspection' | 'confirm-unloading' | 'link-ticket' | 'issue-permit' | 'approve-permit' | 'confirm-exit';
+export type TripAction = 'record-visual' | 'link-inspection' | 'select-inspection' | 'confirm-unloading' | 'link-ticket' | 'issue-permit' | 'approve-permit' | 'confirm-exit';
 export interface TripCommand {
-  inspectionId?: number; inspectionVersion?: number; location?: string;
+  inspectionId?: number; inspectionVersion?: number; location?: string; conclusion?: 'accept' | 'reject'; reason?: string;
   ticketSiteCode?: string; ticketNo?: string; basis?: 'permit' | 'rejection'; permitId?: number;
 }
 const base = '/grain-intake';
@@ -42,7 +43,7 @@ export const saveTrip = (input: TripInput, original?: Trip) => original
 export const ticketCandidates = (id: number) => get<TicketCandidate[]>(`${base}/trips/${id}/ticket-candidates`);
 export const tripAction = (trip: Trip, action: TripAction, input: TripCommand = {}) => post<TripDetail>(`${base}/trips/${trip.id}/${action}`, { ...input, version: trip.version });
 export const tripStages = [
-  { value: 'pending_inspection', label: '待化验' }, { value: 'accepted', label: '接收待完成' },
+  { value: 'pending_inspection', label: '待检验' }, { value: 'accepted', label: '接收待完成' },
   { value: 'rejected', label: '拒收待出厂' }, { value: 'ready', label: '待开证' },
   { value: 'permit_pending', label: '待审批' }, { value: 'permit_approved', label: '待放行' },
   { value: 'exited', label: '已出厂' }, { value: 'blocked', label: '需核查' },

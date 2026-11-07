@@ -32,7 +32,10 @@ const stageSQL = `CASE
  WHEN t.exited_at IS NOT NULL THEN 'exited'
  WHEN t.effective_inspection_id IS NOT NULL AND (i.id IS NULL OR i.status <> 'confirmed' OR i.trip_id <> t.id) THEN 'blocked'
  WHEN t.ticket_id IS NOT NULL AND (w.id IS NULL OR w.status <> 'valid') THEN 'blocked'
- WHEN i.id IS NULL THEN 'pending_inspection'
+ WHEN t.inspection_method='visual' AND t.visual_conclusion='' THEN 'pending_inspection'
+ WHEN t.inspection_method='lab' AND i.id IS NULL THEN 'pending_inspection'
+ WHEN t.inspection_method='visual' AND t.visual_conclusion='reject' AND t.ticket_id IS NOT NULL THEN 'blocked'
+ WHEN t.inspection_method='visual' AND t.visual_conclusion='reject' THEN 'rejected'
  WHEN i.conclusion='reject' AND t.ticket_id IS NOT NULL THEN 'blocked'
  WHEN i.conclusion='reject' THEN 'rejected'
  WHEN p.status='approved' THEN 'permit_approved'
@@ -55,7 +58,7 @@ func (r *Repository) Trips(ctx context.Context, actor int64, q Query) (TripPage,
 		}
 		query := tripQuery(tx)
 		if q.Gate {
-			query = query.Where("i.conclusion='reject' OR t.exit_basis='rejection'")
+			query = query.Where("i.conclusion='reject' OR t.visual_conclusion='reject' OR t.exit_basis='rejection'")
 		}
 		if q.Stage != "" {
 			query = query.Where("("+stageSQL+")=?", q.Stage)
@@ -67,7 +70,7 @@ func (r *Repository) Trips(ctx context.Context, actor int64, q Query) (TripPage,
 		if err := query.Count(&result.Total).Error; err != nil {
 			return err
 		}
-		return query.Select("t.*, COALESCE(i.conclusion,'') AS effective_conclusion," + stageSQL + " AS stage").Order("t.created_at DESC,t.id DESC").Offset((q.Page - 1) * q.PageSize).Limit(q.PageSize).Scan(&result.Records).Error
+		return query.Select("t.*, CASE WHEN t.inspection_method='visual' THEN t.visual_conclusion ELSE COALESCE(i.conclusion,'') END AS effective_conclusion," + stageSQL + " AS stage").Order("t.created_at DESC,t.id DESC").Offset((q.Page - 1) * q.PageSize).Limit(q.PageSize).Scan(&result.Records).Error
 	})
 	return result, err
 }
@@ -94,7 +97,7 @@ func (r *Repository) Permits(ctx context.Context, actor int64, q Query) (PermitP
 }
 func detail(tx *gorm.DB, id int64) (Detail, error) {
 	result := Detail{Inspections: []laboratory.Inspection{}, Events: []Event{}}
-	err := tripQuery(tx).Select("t.*,COALESCE(i.conclusion,'') AS effective_conclusion,"+stageSQL+" AS stage").Where("t.id=?", id).Take(&result.Trip).Error
+	err := tripQuery(tx).Select("t.*,CASE WHEN t.inspection_method='visual' THEN t.visual_conclusion ELSE COALESCE(i.conclusion,'') END AS effective_conclusion,"+stageSQL+" AS stage").Where("t.id=?", id).Take(&result.Trip).Error
 	if errors.Is(err, gorm.ErrRecordNotFound) {
 		return result, ErrNotFound
 	}
@@ -170,33 +173,33 @@ func hasPermit(tx *gorm.DB, id int64) (bool, error) {
 	err := tx.Model(&Permit{}).Where("trip_id=?", id).Count(&n).Error
 	return n > 0, err
 }
-func references(tx *gorm.DB, in Input) (string, string, error) {
+func references(tx *gorm.DB, in Input) (string, string, string, error) {
 	var n int64
 	if err := tx.Table("wb_cloud_site").Where("code=? AND enabled=true", in.SiteCode).Count(&n).Error; err != nil {
-		return "", "", err
+		return "", "", "", err
 	}
 	if n != 1 {
-		return "", "", fmt.Errorf("%w：厂区不存在或已停用", ErrInvalid)
+		return "", "", "", fmt.Errorf("%w：厂区不存在或已停用", ErrInvalid)
 	}
-	var material struct{ Name string }
+	var material struct{ Name, InspectionMethod string }
 	err := tx.Table("wb_cloud_material").Where("code=? AND enabled=true", in.MaterialCode).Take(&material).Error
 	if errors.Is(err, gorm.ErrRecordNotFound) {
-		return "", "", fmt.Errorf("%w：粮种不存在或已停用", ErrInvalid)
+		return "", "", "", fmt.Errorf("%w：粮种不存在或已停用", ErrInvalid)
 	}
 	if err != nil {
-		return "", "", err
+		return "", "", "", err
 	}
 	var party struct{ Name string }
 	if in.PartyCode != "" {
 		err = tx.Table("wb_cloud_party").Where("code=? AND enabled=true AND is_supplier=true", in.PartyCode).Take(&party).Error
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return "", "", fmt.Errorf("%w：供应商不存在或已停用", ErrInvalid)
+			return "", "", "", fmt.Errorf("%w：供应商不存在或已停用", ErrInvalid)
 		}
 		if err != nil {
-			return "", "", err
+			return "", "", "", err
 		}
 	}
-	return material.Name, party.Name, nil
+	return material.Name, party.Name, material.InspectionMethod, nil
 }
 func (r *Repository) Save(ctx context.Context, id, version int64, in Input, e audit.Event) (Detail, error) {
 	var value Detail
@@ -204,7 +207,7 @@ func (r *Repository) Save(ctx context.Context, id, version int64, in Input, e au
 		if err := access(tx, e.Metadata.ActorID, TripPermission); err != nil {
 			return err
 		}
-		material, party, err := references(tx, in)
+		material, party, method, err := references(tx, in)
 		if err != nil {
 			return err
 		}
@@ -216,7 +219,7 @@ func (r *Repository) Save(ctx context.Context, id, version int64, in Input, e au
 			if err != nil {
 				return err
 			}
-			t = Trip{Number: number, Version: 1, Input: in, MaterialName: material, PartyName: party, CreatedBy: e.Metadata.ActorID, CreatedAt: now, UpdatedAt: now}
+			t = Trip{InspectionMethod: method, Number: number, Version: 1, Input: in, MaterialName: material, PartyName: party, CreatedBy: e.Metadata.ActorID, CreatedAt: now, UpdatedAt: now}
 			if err := tx.Create(&t).Error; err != nil {
 				return err
 			}
@@ -241,11 +244,14 @@ func (r *Repository) Save(ctx context.Context, id, version int64, in Input, e au
 				if err := tx.Model(&laboratory.Inspection{}).Where("trip_id=? AND status = 'confirmed'", id).Count(&n).Error; err != nil {
 					return err
 				}
-				if n > 0 || t.TicketID != nil || t.UnloadedAt != nil {
+				if n > 0 || t.VisualInspectedAt != nil || t.TicketID != nil || t.UnloadedAt != nil {
 					return fmt.Errorf("%w：已有确认化验、卸粮或磅单，不能覆盖车牌、粮种、供应商及厂区", ErrConflict)
 				}
 			}
 			description = fmt.Sprintf("更正登记：车牌 %s→%s；粮种 %s→%s；供应商 %s→%s", t.Plate, in.Plate, t.MaterialName, material, t.PartyName, party)
+			if t.MaterialCode != in.MaterialCode {
+				t.InspectionMethod = method
+			}
 			t.Input = in
 			if coreChanged {
 				t.MaterialName = material
@@ -269,6 +275,13 @@ func (r *Repository) Save(ctx context.Context, id, version int64, in Input, e au
 // Inspection and ticket rows are locked after their trip; laboratory writes use the same order.
 func effective(tx *gorm.DB, t Trip) (laboratory.Inspection, error) {
 	var i laboratory.Inspection
+	if t.InspectionMethod == "visual" {
+		if t.VisualInspectedAt == nil || t.VisualInspectedBy == nil || (t.VisualConclusion != "accept" && t.VisualConclusion != "reject") {
+			return i, fmt.Errorf("%w：尚未确认目测结果", ErrConflict)
+		}
+		i.Conclusion, i.Reason, i.ConfirmedAt = t.VisualConclusion, t.VisualReason, t.VisualInspectedAt
+		return i, nil
+	}
 	if t.EffectiveInspectionID == nil {
 		return i, fmt.Errorf("%w：尚未选择生效化验单", ErrConflict)
 	}
@@ -326,7 +339,7 @@ func (r *Repository) Command(ctx context.Context, id int64, action string, in Co
 			if t.ExitBasis != in.Basis {
 				return ErrConflict
 			}
-			if in.Basis == "rejection" && (t.ExitInspectionID == nil || *t.ExitInspectionID != in.InspectionID) {
+			if in.Basis == "rejection" && t.InspectionMethod != "visual" && (t.ExitInspectionID == nil || *t.ExitInspectionID != in.InspectionID) {
 				return ErrConflict
 			}
 			if in.Basis == "permit" {
@@ -354,7 +367,16 @@ func (r *Repository) Command(ctx context.Context, id int64, action string, in Co
 		now, actor := time.Now().UTC(), e.Metadata.ActorID
 		description := ""
 		switch action {
+		case "record-visual":
+			if t.InspectionMethod != "visual" || t.VisualInspectedAt != nil || t.UnloadedAt != nil || t.TicketID != nil || exists || t.PartyCode == "" {
+				return fmt.Errorf("%w：请核实供应商，目测结果只能登记一次", ErrConflict)
+			}
+			t.VisualConclusion, t.VisualReason, t.VisualInspectedAt, t.VisualInspectedBy = in.Conclusion, in.Reason, &now, &actor
+			description = "记录目测结果：" + in.Conclusion + "；" + in.Reason
 		case "link-inspection":
+			if t.InspectionMethod != "lab" {
+				return ErrConflict
+			}
 			// Lock an existing retest family in ID order so its records cannot be linked to different trips concurrently.
 			var family []laboratory.Inspection
 			if err := tx.Raw(`WITH RECURSIVE family(id,original_id) AS (
@@ -391,6 +413,9 @@ func (r *Repository) Command(ctx context.Context, id int64, action string, in Co
 			}
 			description = "关联化验单 " + i.Number
 		case "select-inspection":
+			if t.InspectionMethod != "lab" {
+				return ErrConflict
+			}
 			if t.TicketID != nil || t.UnloadedAt != nil {
 				return fmt.Errorf("%w：已卸粮或关联称重依据，不能替换生效化验单", ErrConflict)
 			}
@@ -459,7 +484,7 @@ func (r *Repository) Command(ctx context.Context, id int64, action string, in Co
 			if err := json.Unmarshal([]byte(ticket.Snapshot), &snap); err != nil {
 				return err
 			}
-			if i.ConfirmedAt == nil || t.EffectiveSelectedAt == nil || snap.FirstConfirmedAt.Before(*i.ConfirmedAt) || snap.FirstConfirmedAt.Before(*t.EffectiveSelectedAt) || snap.FirstConfirmedAt.After(*t.UnloadedAt) || snap.SecondConfirmedAt.Before(*t.UnloadedAt) {
+			if ticketLinkReason(t, i.ConfirmedAt, snap) != "" {
 				return fmt.Errorf("%w：化验生效、首磅、卸粮和回磅时间顺序不一致，需核查离线期间记录", ErrConflict)
 			}
 			t.TicketID = &ticket.ID
@@ -468,7 +493,7 @@ func (r *Repository) Command(ctx context.Context, id int64, action string, in Co
 			if exists {
 				return fmt.Errorf("%w：本趟已开具出门证", ErrConflict)
 			}
-			i, err := ready(tx, t)
+			_, err := ready(tx, t)
 			if err != nil {
 				return err
 			}
@@ -476,13 +501,13 @@ func (r *Repository) Command(ctx context.Context, id int64, action string, in Co
 			if err != nil {
 				return err
 			}
-			p := Permit{Number: number, TripID: id, Version: 1, Status: "pending", InspectionID: i.ID, TicketID: *t.TicketID, CreatedBy: actor, CreatedAt: now}
+			p := Permit{Number: number, TripID: id, Version: 1, Status: "pending", InspectionID: t.EffectiveInspectionID, TicketID: *t.TicketID, CreatedBy: actor, CreatedAt: now}
 			if err := tx.Create(&p).Error; err != nil {
 				return err
 			}
 			description = "开具出门证 " + number
 		case "approve-permit":
-			i, err := ready(tx, t)
+			_, err := ready(tx, t)
 			if err != nil {
 				return err
 			}
@@ -490,7 +515,7 @@ func (r *Repository) Command(ctx context.Context, id int64, action string, in Co
 			if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).Where("trip_id=?", id).Take(&p).Error; err != nil {
 				return err
 			}
-			if p.ID != in.PermitID || p.Status != "pending" || p.InspectionID != i.ID || p.TicketID != *t.TicketID {
+			if p.ID != in.PermitID || p.Status != "pending" || !sameInspection(p.InspectionID, t.EffectiveInspectionID) || p.TicketID != *t.TicketID {
 				return ErrConflict
 			}
 			p.Status = "approved"
@@ -507,10 +532,10 @@ func (r *Repository) Command(ctx context.Context, id int64, action string, in Co
 				return err
 			}
 			if in.Basis == "rejection" {
-				if exists || t.TicketID != nil || t.UnloadedAt != nil || i.Conclusion != "reject" || i.Reason == "" || i.ID != in.InspectionID || i.Version != in.InspectionVersion {
+				if exists || t.TicketID != nil || t.UnloadedAt != nil || i.Conclusion != "reject" || i.Reason == "" || (t.InspectionMethod != "visual" && (i.ID != in.InspectionID || i.Version != in.InspectionVersion)) {
 					return ErrConflict
 				}
-				description = "核验拒收化验单 " + i.Number + "，确认出厂"
+				description = "核验拒收依据，确认出厂"
 			} else if in.Basis == "permit" {
 				if _, err := ready(tx, t); err != nil {
 					return err
@@ -519,7 +544,7 @@ func (r *Repository) Command(ctx context.Context, id int64, action string, in Co
 				if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).Where("trip_id=?", id).Take(&p).Error; err != nil {
 					return err
 				}
-				if p.Status != "approved" || p.ID != in.PermitID || p.InspectionID != i.ID || p.TicketID != *t.TicketID {
+				if p.Status != "approved" || p.ID != in.PermitID || !sameInspection(p.InspectionID, t.EffectiveInspectionID) || p.TicketID != *t.TicketID {
 					return ErrConflict
 				}
 				description = "核验出门证 " + p.Number + "，确认出厂"
@@ -529,7 +554,7 @@ func (r *Repository) Command(ctx context.Context, id int64, action string, in Co
 			t.ExitedAt = &now
 			t.ExitedBy = &actor
 			t.ExitBasis = in.Basis
-			t.ExitInspectionID = &i.ID
+			t.ExitInspectionID = t.EffectiveInspectionID
 		default:
 			return ErrInvalid
 		}
@@ -613,13 +638,18 @@ func (r *Repository) TicketCandidates(ctx context.Context, actor, tripID int64) 
 // ticketLinkReason returns an empty string when the weighing order satisfies
 // the same rules as link-ticket.
 func ticketLinkReason(t Trip, confirmedAt *time.Time, snap weighbridge.TicketSnapshot) string {
-	if t.EffectiveInspectionID == nil || t.EffectiveSelectedAt == nil || confirmedAt == nil {
+	if t.InspectionMethod == "visual" {
+		if t.VisualConclusion != "accept" || t.VisualInspectedAt == nil {
+			return "尚未确认目测接收"
+		}
+		confirmedAt = t.VisualInspectedAt
+	} else if t.EffectiveInspectionID == nil || t.EffectiveSelectedAt == nil || confirmedAt == nil {
 		return "尚未选择生效化验单"
 	}
 	if t.UnloadedAt == nil {
 		return "尚未确认卸粮"
 	}
-	if snap.FirstConfirmedAt.Before(*confirmedAt) || snap.FirstConfirmedAt.Before(*t.EffectiveSelectedAt) {
+	if snap.FirstConfirmedAt.Before(*confirmedAt) || (t.InspectionMethod != "visual" && snap.FirstConfirmedAt.Before(*t.EffectiveSelectedAt)) {
 		return "首磅早于化验生效"
 	}
 	if snap.FirstConfirmedAt.After(*t.UnloadedAt) {
@@ -629,4 +659,8 @@ func ticketLinkReason(t Trip, confirmedAt *time.Time, snap weighbridge.TicketSna
 		return "回磅早于卸粮"
 	}
 	return ""
+}
+
+func sameInspection(a, b *int64) bool {
+	return (a == nil && b == nil) || (a != nil && b != nil && *a == *b)
 }
