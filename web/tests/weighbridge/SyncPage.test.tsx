@@ -13,7 +13,7 @@ function site(code: string, name: string) {
   return { code, name, enabled: true };
 }
 
-function ticketRecord(siteCode: string, ticketNo: string, plate: string) {
+function ticketRecord(siteCode: string, ticketNo: string, plate: string, netAdjustments?: unknown[]) {
   return {
     siteCode,
     status: 'valid',
@@ -40,6 +40,7 @@ function ticketRecord(siteCode: string, ticketNo: string, plate: string) {
       netAdjustmentRateBp: null,
       netAdjustmentCategory: '',
       netAdjustmentCategoryName: '',
+      ...(netAdjustments ? { netAdjustments } : {}),
       previousFinalGross: '30',
       previousFinalTare: '10',
       previousFinalNet: '20',
@@ -61,14 +62,14 @@ function ticketRecord(siteCode: string, ticketNo: string, plate: string) {
   };
 }
 
-function ticketReceipt(found: boolean, siteCode = 'F001', ticketNo = 'T1') {
+function ticketReceipt(found: boolean, siteCode = 'F001', ticketNo = 'T1', netAdjustments?: unknown[]) {
   return {
     found,
     siteCode,
     ticketNo,
     status: found ? 'void' : null,
     ticket: found
-      ? ticketRecord(siteCode, ticketNo, '晋A12345').ticket
+      ? ticketRecord(siteCode, ticketNo, '晋A12345', netAdjustments).ticket
       : null,
     voidReason: found ? '重量录入错误' : null,
     voidedBy: found ? '操作员' : null,
@@ -141,5 +142,26 @@ describe('云端厂云同步页面', () => {
 
     expect(await screen.findByText(/厂区加载失败/)).toBeInTheDocument();
     expect(screen.getByRole('button', { name: '重试' })).toBeInTheDocument();
+  });
+
+  it('详情展示版本 5 多项净重调整明细', async () => {
+    api.syncTicketReceipt.mockImplementation((siteCode: string, ticketNo: string) => Promise.resolve(ticketReceipt(true, siteCode, ticketNo, [
+      { mode: 'percent', amount: '0.200', rateBp: 100, category: 'WATER', categoryName: '水分大', remark: '水分大' },
+      { mode: 'amount', amount: '0.5', rateBp: null, category: 'IMPURITY', categoryName: '杂质多', remark: '' },
+    ])));
+    renderWithProviders(<SyncPage />);
+    expect(await screen.findByText('晋A12345')).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', { name: '详情' }));
+    expect(await screen.findByText('净重调整明细')).toBeInTheDocument();
+    const percentRow = screen.getByText('按比例 1%').closest('tr');
+    expect(percentRow).toHaveTextContent('1');
+    expect(percentRow).toHaveTextContent('0.200');
+    expect(percentRow).toHaveTextContent('水分大');
+    const amountRow = screen.getByText('按吨').closest('tr');
+    expect(amountRow).toHaveTextContent('2');
+    expect(amountRow).toHaveTextContent('0.500');
+    expect(amountRow).toHaveTextContent('杂质多');
+    expect(amountRow).toHaveTextContent('—');
   });
 });

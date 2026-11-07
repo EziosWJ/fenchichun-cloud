@@ -32,16 +32,32 @@ function dateValue(value?: string) {
 function finalNet(ticket: Ticket): string {
   return ticket.finalNet || difference(ticket.finalGross, ticket.finalTare);
 }
+function formatRate(rateBp: number | null | undefined): string {
+  return (Number(rateBp ?? 0) / 100).toFixed(2).replace(/\.?0+$/, '');
+}
+function adjustmentModeLabel(mode: string, rateBp: number | null | undefined): string {
+  return mode === 'percent' ? `按比例 ${formatRate(rateBp)}%` : '按吨';
+}
 function formatAdjustment(ticket: Ticket): string {
   if (!ticket.netAdjustment || Number(ticket.netAdjustment) === 0) return '—';
+  const items = ticket.netAdjustments;
+  if (items) {
+    if (items.length === 0) return '—';
+    if (items.length > 1) return `${ticket.netAdjustment} 吨（多项调整）`;
+    return `${ticket.netAdjustment} 吨（${items[0].categoryName || items[0].category || '—'}）`;
+  }
   const category = ticket.netAdjustmentCategoryName || ticket.netAdjustmentCategory || '—';
   return `${ticket.netAdjustment} 吨（${category}）`;
 }
 function formatAdjustmentMode(ticket: Ticket): string {
   if (!ticket.netAdjustment || Number(ticket.netAdjustment) === 0) return '—';
-  if (ticket.netAdjustmentMode === 'percent') {
-    return `按比例 ${(Number(ticket.netAdjustmentRateBp ?? 0) / 100).toFixed(2).replace(/\.?0+$/, '')}%`;
+  const items = ticket.netAdjustments;
+  if (items) {
+    if (items.length === 0) return '—';
+    if (items.length > 1) return '多项调整';
+    return adjustmentModeLabel(items[0].mode, items[0].rateBp);
   }
+  if (ticket.netAdjustmentMode === 'percent') return `按比例 ${formatRate(ticket.netAdjustmentRateBp)}%`;
   return '按吨';
 }
 const baseColumns: ColumnsType<TicketRecord> = [
@@ -101,6 +117,17 @@ export default function TicketsPage() {
           <div className={styles.adjustment}>调整备注：{detail.ticket.adjustmentRemark || '—'} {' · '}调整人：{detail.ticket.adjustedBy || '—'} {' · '}调整时间：{detail.ticket.adjustedAt ? formatDateTime(detail.ticket.adjustedAt) : '—'}</div>
           <div className={styles.adjustment}>净重调整／方式：{formatAdjustment(detail.ticket)} / {formatAdjustmentMode(detail.ticket)}</div>
         </section>
+        {detail.ticket.netAdjustments && detail.ticket.netAdjustments.length > 0 && (
+          <section className={styles.section} aria-label="净重调整明细">
+            <h3>净重调整明细</h3>
+            <div className={styles.tableWrap}><table className={styles.weightTable}>
+              <thead><tr><th scope="col">序号</th><th scope="col">方式</th><th scope="col">折算重量（吨）</th><th scope="col">类别</th><th scope="col">备注</th></tr></thead>
+              <tbody>{detail.ticket.netAdjustments.map((item, index) => (
+                <tr key={`${index}:${item.category}`}><th scope="row">{index + 1}</th><td>{adjustmentModeLabel(item.mode, item.rateBp)}</td><td>{weight(item.amount)}</td><td>{item.categoryName || item.category || '—'}</td><td>{item.remark || '—'}</td></tr>
+              ))}</tbody>
+            </table></div>
+          </section>
+        )}
         <section className={styles.section}><h3>业务信息</h3><Descriptions size="small" layout="vertical" column={{ xs: 1, sm: 2 }} items={[
           {key:'material',label:'物料',children:`${detail.ticket.materialName} ${detail.ticket.materialSpec} (${detail.ticket.materialCode})`}, {key:'party',label:'供收方',children:`${detail.ticket.partyName} (${detail.ticket.partyCode})`},
           {key:'site',label:'出单厂区编码',children:detail.siteCode}, {key:'previous',label:'关联原单',children:detail.ticket.previousTicketNo || '—'},

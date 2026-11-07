@@ -1,6 +1,6 @@
 # 厂云同步接口设计草案
 
-本文件描述现行厂区编码归属协议（版本 3，兼容版本 2），并记录新摘要同步与对账协议（schemaVersion 4）的云端接口设计。厂端已实现版本 3，云端接收端源码已兼容版本 2 和 3；实际部署版本、隔离双端联调及长期断网、现场验收状态须另行核实。新方案目标以[厂云同步契约](cloud-sync-contract.md)为准；新方案不要求兼容或迁移现有单据协议。现行版本 3 部分描述当前实现，新协议部分为本次云端实现、等待厂端实现及双端契约测试。仅描述本次过磅同步，不定义整个平台资料模型。
+本文件描述现行厂区编码归属协议（版本 3，兼容版本 2），并记录摘要同步与对账协议（schemaVersion 4、schemaVersion 5）的云端接口设计。厂端已实现版本 3、v4 与 v5；云端接收端源码已兼容版本 2、3、v4 和 v5；实际部署版本、真实业务库连接、双端真实联调及现场验收状态须另行核实，不能据此视为已上线。新方案目标以[厂云同步契约](cloud-sync-contract.md)为准；新方案不要求兼容或迁移现有单据协议。现行版本 3 部分描述当前实现，v4 与 v5 部分为云端源码实现，已有 Go 单元测试、隔离 PostgreSQL 集成测试和 v5 HTTP 路由联调测试，尚未部署或与厂端真实联调。仅描述本次过磅同步，不定义整个平台资料模型。
 
 ## 通用约定
 
@@ -60,9 +60,163 @@
 
 云端 seed `00010_weighbridge_master_data.sql` 初始化分类、物料、主体和联系人，并推进各类编码流水；厂端 seed 00018 仅保留版本占位。已有开发库如有编码冲突，可重建隔离开发数据库后重新迁移；云端此 seed 不支持直接回滚，需恢复备份。厂端启用同步并手动完成首次同步后使用云端资料。
 
+## 多项净重调整协议（schemaVersion 5 / digestVersion 3）
+
+> 状态：云端接收端源码已实现 v5 接收、保存、展示与按合计统计，保留 v4 接收和历史确认，并新增 v5 路由；已有 Go 单元测试、隔离 PostgreSQL 仓储集成测试和 v5 HTTP 路由联调测试覆盖。尚未部署、未连接真实业务库，未完成与厂端的真实联调，未验收。厂端已实现 v5 并完成隔离测试；真实联调同样未完成。以下协议不能视为已上线。
+
+v5 复用 v4 的事务、去重、回执、前序等待、作废／重开关联校验和错误分类。`digest` 全局唯一，同一厂区、单号、变化类型构成唯一位次；v5 与 v4 共用 `wb_cloud_ticket_change` 和 `wb_cloud_ticket.latest_digest / latest_change_type / latest_received_at`，不新增或改写数据库结构。比例项基数已确认为最终毛重减最终皮重。
+
+### 接口
+
+- `POST /api/v1/weighbridge/sync/v5/changes`：上传出单、作废或重开变化；成功响应与 v4 相同，`data` 包含 `digest`、`ticketNo`、`changeType`、`receivedAt`、`duplicate`。
+- `GET /api/v1/weighbridge/sync/v5/changes?siteCode=F001&digest=<64 位摘要>`：按厂区编码和摘要查询历史确认，返回 `found` 和 `confirmation`；用于回执丢失后的只读确认。
+- `GET /api/v1/weighbridge/sync/v5/tickets?siteCode=F001&ticketNo=T1`：单张对账，返回 `found`、`status`、完整 `ticket` 快照（含按序 `netAdjustments`）、作废信息、最新摘要及历史变化；字段与 v4 单张对账一致。
+- `POST /api/v1/weighbridge/sync/v5/reconcile`：批量对账，请求 `{"items":[{"siteCode":"F001","ticketNo":"T1"}]}`，每批 1 至 200 条，按请求顺序返回摘要和状态；字段与 v4 批量对账一致。
+
+请求体上限沿用 v4 的 1 MiB，超出返回 HTTP 413 并按数据错误处理。
+
+### 变化请求
+
+```json
+{
+  "schemaVersion": 5,
+  "digestVersion": 3,
+  "digest": "<64 位小写十六进制>",
+  "siteCode": "F001",
+  "ticketNo": "F001-20261107-0002",
+  "type": "issue",
+  "ticket": {
+    "ticketNo": "F001-20261107-0002",
+    "...": "其余业务字段与 v4 ticket 相同",
+    "finalNet": "19.3",
+    "netAdjustment": "0.7",
+    "netAdjustments": [
+      {"mode": "percent", "amount": "0.2", "rateBp": 100, "category": "WATER", "categoryName": "水分大", "remark": "水分大"},
+      {"mode": "amount", "amount": "0.5", "rateBp": null, "category": "IMPURITY", "categoryName": "杂质多", "remark": ""}
+    ]
+  }
+}
+```
+
+- `type` 为 `issue`、`void` 或 `reopen`；出单、作废和重开均携带完整 `ticket` 快照，作废额外携带 `void`（`reason`、`actor`、`at`）。
+- 重开及带原单的作废携带 `previousSiteCode`，并在 `ticket.previousTicketNo` 中携带原单号；原单须已作废且不能被重复重开。
+- `ticket` 保留 `netAdjustment`（各项有符号折算吨数合计）与 `finalNet`，并携带必填数组 `netAdjustments`。每项含 `mode`（`amount`／`percent`）、`amount`（有符号吨字符串，正数扣减、负数上调）、`rateBp`（比例项整数，0.01% 单位，范围 −10000 至 10000；按吨项为 `null`）、`category`、`categoryName`、`remark`。
+- 空数组表示无调整；缺失数组或 `null` 不合法，不能当作无调整。非零项 `category` 必填，`categoryName` 为出单时快照。
+- v5 不再使用 v4 的 `netAdjustmentMode`、`netAdjustmentRateBp`、`netAdjustmentCategory`、`netAdjustmentCategoryName` 描述整单；厂端载荷中这些字段为空值，云端不据此解释整单（接收校验要求其为空）。`adjustmentRemark` 沿用 v4 毛皮更正备注语义，单项备注放在明细中。
+
+### 响应
+
+- `POST /v5/changes` 成功返回 `{code:200,message,data}`，`data` 为 `digest`、`ticketNo`、`changeType`、`receivedAt`、`duplicate`；重复摘要返回原确认，`receivedAt` 为原接收时间。
+- `GET /v5/changes` 返回 `found`；找到时为 `confirmation`（含 `digest`、`ticketNo`、`changeType`、`digestVersion`、`schemaVersion`、`receivedAt`），未找到时为 `null`。
+- `GET /v5/tickets` 返回与 v4 单张对账相同的字段；`ticket` 快照按原数组顺序包含 `netAdjustments`，v4 快照保持原字段形状。
+- `POST /v5/reconcile` 返回与 v4 批量对账相同的逐项字段；不返回 `changes` 历史，需要历史确认时使用单张对账或摘要查询。
+- 业务失败返回 `{code,message,data}`，`data` 包含机器可读分类；厂端必须读取 `category`，不能只根据 HTTP 状态推断结果。
+
+### 校验
+
+- 逐项校验 `mode` 与 `amount`、`rateBp` 的一致性：按吨项 `rateBp` 必须为 `null`，比例项 `rateBp` 必须非空且在范围内。
+- 比例项 `amount` 必须等于 `round((finalGross − finalTare) × rateBp ÷ 10000)`，每项独立四舍五入到 0.001 吨（half away from zero）。
+- 各项 `amount` 之和必须等于 `netAdjustment`；`finalNet` 必须等于 `finalGross − finalTare − netAdjustment`，且满足既有最终净重大于 0、小于最终毛重的约束。
+- 新出单和更正重开均由厂端校验只允许扣减；云端接收仍兼容原协议允许的历史上调重开和已入队变化，因为新旧报文无法可靠区分。
+- 非零项 `category` 必填；原始和最终毛皮重、上版重量及重开关联的校验沿用 v4。
+- 校验失败返回 HTTP 400 `config_or_data / invalid_request`。云端保存厂端上传的 `digest`，不重新计算摘要，也不另存完整载荷用于逐字段去重。
+
+### 去重、状态约束与错误分类
+
+去重顺序与状态约束沿用 v4：
+
+1. `siteCode` 必须是当前启用厂区编码，否则按配置/数据错误拒绝；旧编码不能写入新变化。
+2. 同一 `digest` 已存在且厂区、单号、变化类型一致：返回原确认（`duplicate=true`，`receivedAt` 为原接收时间），不重复执行业务。
+3. 同一 `(siteCode, ticketNo, type)` 已存在但摘要不同：返回内容冲突，不覆盖。
+4. 状态约束：`issue` 要求新单不存在；`void` 要求原单存在且为 `valid`；`reopen` 要求新单不存在、原单厂区编码为已知历史编码、原单存在且已作废、原单未被重开。
+
+失败响应继续使用 `{code,message,data}`，`data` 包含机器可读分类：
+
+| `category` | HTTP | `retryable` | 含义 | 厂端处理 |
+| --- | --- | --- | --- | --- |
+| `temporary` | 503 | true | 云端暂时不可用或事务未完成，结果未知 | 按退避重试原变化；不生成新摘要 |
+| `predecessor_pending` | 409 | true | 出单或作废前序尚未获得确认 | 等待前序确认后重试；不跳过前序 |
+| `config_or_data` | 400 | false | 厂区编码不存在/停用、协议或字段不符合约定 | 提示管理员处理；不自动循环重试 |
+| `conflict` | 409 | false | 摘要、单号或状态冲突，不能覆盖 | 暂停该单据及依赖它的重开；其他单据继续 |
+
+v5 的 `digestVersion=3` 与 v4 的 `digestVersion=2` 不可直接比较；同一 `(siteCode, ticketNo, type)` 位次在 v4/v5 间共用，按位次与摘要判定重复或冲突。
+
+### 摘要规则版本 3
+
+摘要输入为以下字节串的 SHA-256，输出 64 位小写十六进制。
+
+1. 固定前缀 `wb-change-digest\n`（UTF-8）。
+2. 按固定顺序写入字段。每个字段编码为：字段名 ASCII 字节 + `:` + 值 UTF-8 字节长度（十进制） + `:` + 值 UTF-8 字节 + `\n`；空值编码为字段名 + `:null\n`。
+
+固定字段顺序：
+
+```text
+rulesVersion
+siteCode
+ticketNo
+changeType
+previousSiteCode
+previousTicketNo
+ticket.title ... ticket.netAdjustment（与版本 2 相同的字段顺序）
+netAdjustmentsCount
+netAdjustments.<i>.mode
+netAdjustments.<i>.amount
+netAdjustments.<i>.rateBp
+netAdjustments.<i>.category
+netAdjustments.<i>.categoryName
+netAdjustments.<i>.remark
+previousFinalGross
+previousFinalTare
+previousFinalNet
+previousNetAdjustment
+grossSource
+tareSource
+adjustmentRemark
+adjustedBy
+adjustedAt
+driver
+driverPhone
+contactName
+contactPhone
+voidReason（仅作废）
+voidActor（仅作废）
+voidAt（仅作废）
+```
+
+- `rulesVersion` 为十进制 `3`；`previousSiteCode` 和 `previousTicketNo` 无原单时写 `null`。
+- `ticket` 字段顺序与版本 2 相同，仍包含 `netAdjustment` 与 `finalNet`，但不再写入 v4 的四个单据级单项字段。
+- `netAdjustmentsCount` 后按数组顺序逐项写入六个字段；`amount` 规范化为三位小数字符串，按吨项 `rateBp` 写 `null`。顺序参与摘要，同一合计但明细或顺序不同视为不同变化。
+- 重量、时间和可空字段的规范化沿用版本 2：重量统一为三位小数，时间转换为 UTC 并截断到毫秒。
+- 作废保留该版快照，因此上述明细进入作废摘要；上版净重调整仍只写合计 `previousNetAdjustment`。
+
+### 固定测试向量
+
+厂端向量文件为 `server/internal/weighing/testdata/digest_v3_vectors.json`；云端复制为 `server/internal/weighbridge/testdata/digest_v3_vectors.json`，两份文件逐字节一致。参考实现为 `server/internal/weighbridge/digest.go` 的 `CanonicalChangeDigestV3`，只用于文档、向量和测试，接收路径不调用。
+
+| 向量 | 用途 | expectedDigest |
+| --- | --- | --- |
+| `issue-basic` | 最小 v5 出单；`netAdjustments` 为空数组 | `bb2b2bae029babdf632c54f2a45c5ab42f650366689a138c9d19ccec6a74f789` |
+| `issue-multi-items` | 比例扣水分 + 按吨扣杂质；合计与明细均参与摘要 | `fd1b85bcf8081a638ae887d94e7d8f34674038b75cd448579fb9ac64e0fd7f65` |
+
+两个向量均为自洽报文：明细合计等于 `netAdjustment`，`finalNet` 等于 `finalGross − finalTare − netAdjustment`，比例项折算与 `rateBp` 一致。`expectedDigest` 直接按文件字面载荷计算，厂端生产函数 `computeChangeDigestV5` 与云端 `CanonicalChangeDigestV3` 结果一致。
+
+### 存储、展示与统计
+
+- 使用现有 `wb_cloud_ticket.snapshot` 保存完整 v5 `ticket`（含明细及顺序），不新增或改写数据库结构；旧 v4 快照保持原样并可查询。
+- 单据详情展示各项调整；总体查询、汇总和供应商统计继续使用合计与最终净重。
+- 按类别、方式报表将含多项调整的单据归为“多项调整”（内部 `mode`／`category` 编码为 `multi`，展示名“多项调整”），重量使用该单调整合计，不拆分类别统计；单调整项按该项归类。
+- 历史 v4 单项按原字段展示为一项，无调整展示为空；更老协议继续标记未知。
+
+### 兼容与边界
+
+- v4 接口与摘要规则保持原样，v5 作为新协议并行存在；不迁移 v2/v3/v4 历史数据。
+- 厂端已入队的旧变化保留原协议、载荷及摘要并按原版本重试；新单据及新变化按 v5 上传，不降级为丢失明细的旧载荷。
+- 更新后操作人员不再对旧单执行作废或重开；旧云端单据仍可查询，历史快照不改写。不存在需要上传的 v4 待处理变化。
+- 云端继续保存厂端摘要而不独立重算；摘要一致不表示云端已独立校验业务内容。v4 与 v5 摘要版本不同时不得直接判为内容冲突。
+
 ## 新协议：摘要同步与对账（schemaVersion 4）
 
-> 状态：云端接收、确认与对账查询已在源码实现，并通过隔离 PostgreSQL 测试；厂端尚未实现，双端契约测试和现场验收未完成。新协议与版本 2/3 单据协议并行存在，不要求兼容或迁移旧单据；既有 v2/v3 接口、迁移和数据保留，不能据此推定双端已完成或已部署。厂端四项发布内容见 [v4 厂端对接发布包](weighbridge-sync-v4-factory-release.md)。
+> 状态：云端接收、确认与对账查询已在源码实现，并通过隔离 PostgreSQL 测试；厂端已实现并完成隔离双端测试；实际部署、长期断网运行及现场验收应按两端当前交付记录核实。新协议与版本 2/3 单据协议并行存在，不要求兼容或迁移旧单据；既有 v2/v3 接口、迁移和数据保留，不能据此推定双端已完成或已部署。厂端四项发布内容见 [v4 厂端对接发布包](weighbridge-sync-v4-factory-release.md)。
 
 新协议使用厂端计算的 SHA-256 摘要作为变化标识和对账依据，不再使用随机 `changeId`。云端保存厂端上传的摘要，不重新计算，也不保存完整变化载荷用于逐字段去重。新协议接口位于 `/api/v1/weighbridge/sync/v4/...`，不复用版本 2/3 的 `/sync/changes` 请求结构。
 
@@ -265,15 +419,16 @@ contactPhone
 
 ### 与契约的边界及已知限制
 
-- 本次不迁移 v2/v3 单据。旧单据的 `latestDigest` 为 `null`，也不会出现在新协议的历史变化表中；其业务数据仍可通过既有过磅单查询查看。新协议历史只包含按 v4 接收的变化。厂端应对同一单据统一使用一种单据协议；云端不阻止 v2/v3 与 v4 混用，但混用会使新协议历史不完整，不应据此判断对账结果。
+- 本次不迁移 v2/v3 单据。旧单据的 `latestDigest` 为 `null`，也不会出现在新协议的历史变化表中；其业务数据仍可通过既有过磅单查询查看。新协议历史包含按 v4 或 v5 接收的变化。厂端应对同一单据统一使用一种单据协议；云端不阻止 v2/v3 与 v4/v5 混用，但混用会使新协议历史不完整，不应据此判断对账结果。
 - 云端保存厂端上传的摘要，不重新计算；因此必须由厂端保证规范化实现正确。协议演进或摘要规则版本不同导致不可比较时，由厂端显示待核查。
 - 云端不提供覆盖、删除或修改厂端单据的业务操作，也不提供“直接修复云端单据”的按钮；差异处理由管理员和厂端按契约流程进行。
 - 第一阶段不自动清理历史摘要；后续清理策略另行确定。
-- 已实现：接收、去重、状态约束、事务回滚、错误分类、单张/批量/旧编码只读对账、管理页查询、后端菜单与前端路由、固定测试向量。待完成：厂端实现、双端契约测试、长期断网与现场验收。
+- 已实现：接收、去重、状态约束、事务回滚、错误分类、单张/批量/旧编码只读对账、管理页查询、后端菜单与前端路由、固定测试向量；v5 接收、保存、展示与按合计统计，v4 历史确认与 v5 路由复用同一套事务和对账逻辑。待完成：部署、连接真实业务库、双端真实联调、长期断网与现场验收。
 
 ### 实施与验证记录
 
 - Schema migration：`server/migrations/schema/00013_weighbridge_sync_receipts.sql`；菜单 seed：`server/migrations/seed/00011_weighbridge_sync_menu.sql`。
 - 后端单元测试：`server/internal/weighbridge/sync_v4_test.go`；测试向量：`server/internal/weighbridge/testdata/digest_v2_vectors.json`；参考实现：`server/internal/weighbridge/digest.go`。
-- PostgreSQL 集成测试：`server/integration/weighbridge_sync_integration_test.go`，覆盖出单、作废、重开、重复上传、回执丢失后的确认、前序未满足、冲突、跨编码关联、旧编码历史确认、改码后拒绝写入、事务回滚、单张/批量对账及批量上限；使用 Docker 临时隔离数据库。
+- v5 实现：接收类型与校验 `server/internal/weighbridge/sync_v5.go`、路由 `server/internal/weighbridge/sync_v5_handler.go`、共享事务 `server/internal/weighbridge/sync_v4_repository.go`；摘要参考实现 `server/internal/weighbridge/digest.go` 的 `CanonicalChangeDigestV3`；共享向量 `server/internal/weighbridge/testdata/digest_v3_vectors.json`；报表多项归类见 `server/internal/weighbridge/analytics_fields.go`。
+- PostgreSQL 集成测试：`server/integration/weighbridge_sync_integration_test.go`，覆盖出单、作废、重开、重复上传、回执丢失后的确认、前序未满足、冲突、跨编码关联、旧编码历史确认、改码后拒绝写入、事务回滚、单张/批量对账及批量上限；v5 专项集成测试为 `server/integration/weighbridge_sync_v5_integration_test.go`；均使用 Docker 临时隔离数据库。
 - 前端页面：`web/src/pages/weighbridge/SyncPage.tsx`；测试：`web/tests/weighbridge/SyncPage.test.tsx`。
