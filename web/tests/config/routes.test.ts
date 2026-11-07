@@ -66,7 +66,7 @@ describe('local route and backend menu mapping', () => {
     routeDefinitions
       .filter((route) => route.menuPath)
       .forEach((route) => {
-        expect(findRouteDefinition(route.menuPath!)?.route.path).toBe(route.path);
+        expect(findRouteDefinition(route.menuPath!)?.route.path).toBe(route.parentPath ?? route.path);
       });
   });
 
@@ -74,6 +74,15 @@ describe('local route and backend menu mapping', () => {
     expect(findRouteDefinition('/notifications/12')?.route.path).toBe('/notifications/:id');
     expect(getActiveMenuPath('/notifications/12')).toBe('/notifications');
     expect(getActiveMenuPath('/system/user')).toBe('/system/user');
+  });
+
+  it('guards grain detail URLs with their parent menu permissions', () => {
+    for (const path of ['/grain-intake/trips', '/grain-intake/permits']) {
+      const detail = findRouteDefinition(`${path}/1`)!.route;
+      expect(canAccessRoute(detail, [], viewer)).toBe(false);
+      expect(canAccessRoute(detail, [menu(path)], viewer)).toBe(true);
+      expect(getActiveMenuPath(`${path}/1`)).toBe(path);
+    }
   });
 
   it('builds breadcrumbs from the backend menu hierarchy', () => {

@@ -18,6 +18,7 @@ import (
 	"fenchichun.local/server/internal/dept"
 	"fenchichun.local/server/internal/dictionary"
 	"fenchichun.local/server/internal/filemgmt"
+	"fenchichun.local/server/internal/grainintake"
 	"fenchichun.local/server/internal/laboratory"
 	"fenchichun.local/server/internal/logmgmt"
 	"fenchichun.local/server/internal/monitoring"
@@ -129,6 +130,7 @@ func main() {
 		Log:          logService,
 		Notification: notificationService,
 		Monitoring:   monitoringService,
+		GrainIntake:  grainintake.NewHandler(grainintake.NewService(grainintake.NewRepository(database.GORM))),
 		Laboratory:   laboratory.NewHandler(laboratory.NewService(laboratory.NewRepository(database.GORM))),
 		Weighbridge:  weighbridge.NewHandler(weighbridge.NewService(weighbridge.NewRepository(database.GORM))),
 	})

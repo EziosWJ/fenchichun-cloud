@@ -1,0 +1,126 @@
+import { useState } from 'react';
+import { Alert, App, Button, Card, Descriptions, Empty, Input, Modal, Space, Table, Tabs, Tag } from 'antd';
+import type { ColumnsType } from 'antd/es/table';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useParams } from 'react-router-dom';
+import { tripAction, tripDetail, stageLabel, type TripAction, type TripCommand } from '../../features/grain-intake/api';
+import { inspections, type Inspection } from '../../features/laboratory/api';
+import { DataTable } from '../../components/DataTable';
+import { PageHeader } from '../../components/PageHeader';
+import { getApiErrorMessage } from '../../lib/api/errors';
+import { collectMenuPaths } from '../../lib/menus';
+import { useAuthStore } from '../../stores/useAuthStore';
+import { formatDateTime } from '../../utils/format';
+import InspectionsPage from '../laboratory/InspectionsPage';
+import TripEditor from './TripEditor';
+
+export default function TripWorkspace({ gate = false }: { gate?: boolean }) {
+  const { id } = useParams();
+  const key = Number(id);
+  const { message, modal } = App.useApp();
+  const client = useQueryClient();
+  const menuPaths = collectMenuPaths(useAuthStore((s) => s.menus));
+  const canTrip = menuPaths.has('/grain-intake/trips');
+  const canLab = menuPaths.has('/laboratory/inspections');
+  const canGate = menuPaths.has('/grain-intake/permits');
+  const query = useQuery({ queryKey: ['grain-intake', 'detail', key, gate], queryFn: () => tripDetail(key, gate), enabled: Number.isSafeInteger(key) && key > 0 });
+  const [editing, setEditing] = useState(false);
+  const [location, setLocation] = useState('');
+  const [ticketSite, setTicketSite] = useState('');
+  const [ticketNo, setTicketNo] = useState('');
+  const [linkOpen, setLinkOpen] = useState(false);
+  const [linkKeyword, setLinkKeyword] = useState('');
+  const [linkPage, setLinkPage] = useState(1);
+  const linkParams = { page: linkPage, pageSize: 10, keyword: linkKeyword, unlinked: true };
+  const candidates = useQuery({ queryKey: ['laboratory', 'unlinked', linkParams], queryFn: () => inspections(linkParams), enabled: linkOpen });
+  const refresh = () => { void client.invalidateQueries({ queryKey: ['grain-intake'] }); void client.invalidateQueries({ queryKey: ['laboratory'] }); };
+  const action = useMutation({
+    mutationFn: ({ kind, input }: { kind: TripAction; input?: TripCommand }) => tripAction(query.data!.trip, kind, input),
+    onSuccess: () => { message.success('办理成功'); setLinkOpen(false); refresh(); },
+    onError: (error) => { message.error(getApiErrorMessage(error)); refresh(); },
+  });
+  if (!Number.isSafeInteger(key) || key <= 0) return <Alert type="error" title="流转单地址无效" />;
+  if (query.isLoading) return <Card loading />;
+  if (query.isError) return <Alert type="error" title={getApiErrorMessage(query.error)} action={<Button onClick={() => void query.refetch()}>重试</Button>} />;
+  if (!query.data) return <Empty description="未找到流转单" />;
+  const { trip, permit, ticket, events } = query.data;
+  const effective = query.data.inspections.find((i) => i.id === trip.effectiveInspectionId);
+  const locked = !!(trip.unloadedAt || trip.ticketId || permit || trip.exitedAt);
+  const ask = (title: string, kind: TripAction, input?: TripCommand, content?: string) => modal.confirm({ title, content, okText: '确认', cancelText: '取消', onOk: () => action.mutateAsync({ kind, input }).then(() => undefined) });
+  const linkColumns: ColumnsType<Inspection> = [
+    { title: '单号', dataIndex: 'number' }, { title: '车牌', dataIndex: 'plate' }, { title: '粮种', dataIndex: 'materialName' }, { title: '供应商', dataIndex: 'partyName' },
+    { title: '操作', key: 'action', render: (_, row) => <Button disabled={action.isPending || row.status === 'void' || row.plate !== trip.plate || row.materialCode !== trip.materialCode || row.partyCode !== trip.partyCode} onClick={() => ask(`关联 ${row.number}？`, 'link-inspection', { inspectionId: row.id, inspectionVersion: row.version })}>关联</Button> },
+  ];
+  const labView = canLab && !gate
+    ? <InspectionsPage trip={trip} locked={locked} onMakeEffective={(row) => ask(`将 ${row.number} 设为本趟唯一生效化验单？`, 'select-inspection', { inspectionId: row.id, inspectionVersion: row.version }, '原化验结果保留，新建复检不会自动替换生效结果。')} />
+    : <Table rowKey="id" dataSource={query.data.inspections} pagination={false} columns={[
+      { title: '化验单号', dataIndex: 'number' }, { title: '状态', dataIndex: 'status', render: (v: string) => ({ draft: '草稿', confirmed: '已确认', void: '已作废' })[v] },
+      { title: '水分（%）', dataIndex: 'moisture' }, { title: '杂质（%）', dataIndex: 'impurity' }, { title: '容重（g/L）', dataIndex: 'bulkDensity' },
+      { title: '结论', dataIndex: 'conclusion', render: (v: string) => v === 'accept' ? '接收' : v === 'reject' ? '拒收' : '—' }, { title: '原因', dataIndex: 'reason' },
+      { title: '本趟采用', key: 'effective', render: (_, row) => row.id === trip.effectiveInspectionId ? <Tag color="green">生效</Tag> : '—' },
+    ]} />;
+  return <>
+    <PageHeader title={gate ? `出厂核验 · ${trip.number}` : trip.number} description="本趟化验、卸粮、磅单和出厂依据集中核对。" />
+    <Space orientation="vertical" size="middle" style={{ width: '100%' }}>
+      {trip.stage === 'blocked' && <Alert type="error" title="当前依据已失效或存在冲突，暂停开证和放行，请核查磅单与化验记录。" />}
+      {trip.exitedAt && <Alert type="success" title={`已于 ${formatDateTime(trip.exitedAt)} 确认出厂，本趟凭据不能再次使用。`} />}
+      <Card title={<Space><span>送粮信息</span><Tag color={trip.stage === 'blocked' ? 'red' : 'blue'}>{stageLabel(trip.stage)}</Tag></Space>} extra={!gate && canTrip && !permit && !trip.exitedAt ? <Button onClick={() => setEditing(true)}>更正登记</Button> : undefined}>
+        <Descriptions column={3} items={[
+          { key: 'site', label: '厂区', children: trip.siteCode }, { key: 'plate', label: '车牌', children: trip.plate }, { key: 'grain', label: '粮种', children: trip.materialName },
+          { key: 'party', label: '供应商', children: trip.partyName || '待核实' }, { key: 'driver', label: '司机', children: `${trip.driver || '—'} ${trip.driverPhone}` }, { key: 'contract', label: '合同编号', children: trip.contractNo || '—' },
+          { key: 'created', label: '登记时间', children: formatDateTime(trip.createdAt) }, { key: 'remark', label: '备注', children: trip.remark || '—' },
+        ]} />
+      </Card>
+      <Card title="当前生效化验">
+        {effective ? <Descriptions column={3} items={[
+          { key: 'number', label: '化验单', children: effective.number }, { key: 'conclusion', label: '结论', children: effective.conclusion === 'accept' ? '接收' : '拒收' }, { key: 'selected', label: '生效时间', children: formatDateTime(trip.effectiveSelectedAt) },
+          { key: 'moisture', label: '水分（%）', children: effective.moisture }, { key: 'impurity', label: '杂质（%）', children: effective.impurity }, { key: 'density', label: '容重（g/L）', children: effective.bulkDensity }, { key: 'reason', label: '原因', children: effective.reason || '—' },
+        ]} /> : <Empty description="尚未指定生效化验单；确认化验单后，由化验员明确选择。" />}
+      </Card>
+      <Tabs items={[
+        { key: 'inspections', label: `化验单（${query.data.inspections.length}）`, children: <Space orientation="vertical" size="middle" style={{ width: '100%' }}>
+          {!gate && canTrip && !locked && <Button onClick={() => { setLinkKeyword(trip.plate); setLinkPage(1); setLinkOpen(true); }}>关联已有化验单</Button>}
+          {labView}
+        </Space> },
+        { key: 'weighing', label: '卸粮与磅单', children: <Space orientation="vertical" size="middle" style={{ width: '100%' }}>
+          <Card title="现场卸粮确认">
+            {trip.unloadedAt ? <Descriptions items={[{ key: 'location', label: '实际卸粮地点', children: trip.unloadingLocation }, { key: 'time', label: '确认时间', children: formatDateTime(trip.unloadedAt) }]} /> : <>
+              <p>在现场首磅及卸粮完成后办理，不要求首磅已上传云端。</p>
+              {!gate && canTrip && !locked && effective?.conclusion === 'accept' ? <Space><Input aria-label="实际卸粮地点" placeholder="实际卸粮地点编号或名称" maxLength={200} value={location} onChange={(e) => setLocation(e.target.value)} /><Button disabled={!location.trim() || action.isPending} onClick={() => ask('确认实际卸粮完成？', 'confirm-unloading', { location }, '请确认现场已经完成首磅及卸粮，地点填写准确。')}>确认卸粮</Button></Space> : <p>待确认接收并完成现场卸粮。</p>}
+            </>}
+          </Card>
+          <Card title="关联正式磅单">
+            {ticket ? <Descriptions column={2} items={[
+              { key: 'number', label: '单号', children: ticket.ticket.ticketNo }, { key: 'status', label: '状态', children: ticket.status === 'valid' ? '有效' : '已作废' },
+              { key: 'gross', label: '毛重（吨）', children: ticket.ticket.finalGross }, { key: 'tare', label: '皮重（吨）', children: ticket.ticket.finalTare }, { key: 'net', label: '扣减后重量（吨）', children: ticket.ticket.finalNet || '—' },
+              { key: 'first', label: '首磅时间', children: formatDateTime(ticket.ticket.firstConfirmedAt) }, { key: 'second', label: '回磅时间', children: formatDateTime(ticket.ticket.secondConfirmedAt) },
+            ]} /> : <>
+              <Alert type="info" title="本地称重出单后，联网同步至云端，再关联本趟。云端尚未收到不代表现场未称重。" />
+              {!gate && canTrip && !permit && !trip.exitedAt && <Space wrap style={{ marginTop: 16 }}><Input aria-label="磅单厂区编码" placeholder="磅单出单时厂区编码" value={ticketSite} onChange={(e) => setTicketSite(e.target.value)} maxLength={80} /><Input aria-label="正式磅单号" placeholder="已同步的正式磅单号" value={ticketNo} onChange={(e) => setTicketNo(e.target.value)} maxLength={200} /><Button disabled={!trip.unloadedAt || !ticketSite || !ticketNo || action.isPending} onClick={() => ask('关联该正式磅单？', 'link-ticket', { ticketSiteCode: ticketSite, ticketNo })}>关联磅单</Button></Space>}
+            </>}
+          </Card>
+        </Space> },
+        { key: 'exit', label: '出门证与出厂', children: <Card title="出厂办理">
+          {permit ? <Descriptions column={2} items={[
+            { key: 'number', label: '出门证号', children: permit.number }, { key: 'status', label: '审批状态', children: permit.status === 'approved' ? '已审批' : '待审批' },
+            { key: 'created', label: '开具时间', children: formatDateTime(permit.createdAt) }, { key: 'approved', label: '审批时间', children: formatDateTime(permit.approvedAt) },
+          ]} /> : effective?.conclusion === 'reject' ? <Alert type="warning" title="本趟拒收：门卫核验生效化验单及拒收说明后确认出厂，不另开正常出门证。" /> : <p>实际卸粮已确认、有效磅单已关联后，可开具正常出门证。</p>}
+          <Space wrap style={{ marginTop: 16 }}>
+            {!gate && canTrip && trip.stage === 'ready' && !permit && <Button type="primary" loading={action.isPending} onClick={() => ask('开具本趟出门证？', 'issue-permit')}>开具出门证</Button>}
+            {canGate && canTrip && trip.stage === 'permit_pending' && permit && <Button type="primary" loading={action.isPending} onClick={() => ask('审批通过该出门证？', 'approve-permit', { permitId: permit.id }, '审批通过仍需门卫在实际放行时确认出厂。')}>审批通过</Button>}
+            {canGate && trip.stage === 'permit_approved' && permit && <Button type="primary" loading={action.isPending} onClick={() => ask('车辆实际出厂，确认放行？', 'confirm-exit', { basis: 'permit', permitId: permit.id }, '核对车辆与出门证；确认后本趟凭据不可再次使用。')}>确认出厂</Button>}
+            {canGate && trip.stage === 'rejected' && effective && <Button type="primary" loading={action.isPending} onClick={() => ask('核验拒收依据并确认车辆实际出厂？', 'confirm-exit', { basis: 'rejection', inspectionId: effective.id, inspectionVersion: effective.version }, effective.reason)}>确认拒收出厂</Button>}
+          </Space>
+        </Card> },
+        { key: 'events', label: '过程记录', children: <Table rowKey="id" dataSource={events} pagination={{ pageSize: 10 }} columns={[{ title: '时间', dataIndex: 'createdAt', render: (v: string) => formatDateTime(v) }, { title: '操作人员', dataIndex: 'actorName' }, { title: '记录', dataIndex: 'description' }]} /> },
+      ]} />
+    </Space>
+    {editing && <TripEditor original={trip} onClose={() => setEditing(false)} onSaved={() => { setEditing(false); refresh(); }} />}
+    <Modal title="关联已有化验单" open={linkOpen} onCancel={() => setLinkOpen(false)} footer={<Button onClick={() => setLinkOpen(false)}>关闭</Button>} width={900}>
+      <p>只显示未关联流转单的化验单；车牌、粮种、供应商一致时可以关联。</p>
+      <Input.Search aria-label="查找未关联化验单" placeholder="单号或车牌" value={linkKeyword} onChange={(e) => { setLinkKeyword(e.target.value); setLinkPage(1); }} />
+      {candidates.isError && <Alert type="error" title={getApiErrorMessage(candidates.error)} action={<Button onClick={() => void candidates.refetch()}>重试</Button>} />}
+      <DataTable tableKey="grain-inspection-candidates" rowKey="id" columns={linkColumns} dataSource={candidates.data?.items ?? []} total={candidates.data?.total ?? 0} page={linkPage} pageSize={10} onPageChange={setLinkPage} loading={candidates.isLoading} />
+    </Modal>
+  </>;
+}

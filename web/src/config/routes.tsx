@@ -41,6 +41,26 @@ export interface AppRouteDefinition {
 
 export const routeDefinitions: AppRouteDefinition[] = [
   {
+    path: '/grain-intake/trips', label: '流转单', title: '流转单', icon: ClipboardList,
+    menuComponent: 'grain-intake/trips/index', menuPath: '/grain-intake/trips',
+    component: lazy(() => import('../pages/grain-intake/TripsPage')),
+  },
+  {
+    path: '/grain-intake/trips/:id', label: '流转单详情', title: '流转单详情', hideInMenu: true,
+    parentPath: '/grain-intake/trips', menuPath: '/grain-intake/trips',
+    component: lazy(() => import('../pages/grain-intake/TripWorkspace')),
+  },
+  {
+    path: '/grain-intake/permits', label: '出门证', title: '出门证', icon: ShieldCheck,
+    menuComponent: 'grain-intake/permits/index', menuPath: '/grain-intake/permits',
+    component: lazy(() => import('../pages/grain-intake/PermitsPage')),
+  },
+  {
+    path: '/grain-intake/permits/:id', label: '出厂核验', title: '出厂核验', hideInMenu: true,
+    parentPath: '/grain-intake/permits', menuPath: '/grain-intake/permits',
+    component: lazy(() => import('../pages/grain-intake/ExitBasisPage')),
+  },
+  {
     path: '/laboratory/inspections',
     label: '化验单',
     title: '化验单',

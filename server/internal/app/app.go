@@ -13,6 +13,7 @@ import (
 	"fenchichun.local/server/internal/dept"
 	"fenchichun.local/server/internal/dictionary"
 	"fenchichun.local/server/internal/filemgmt"
+	"fenchichun.local/server/internal/grainintake"
 	"fenchichun.local/server/internal/laboratory"
 	"fenchichun.local/server/internal/logmgmt"
 	"fenchichun.local/server/internal/monitoring"
@@ -41,6 +42,7 @@ type Dependencies struct {
 	Monitoring   *monitoring.Service
 	Weighbridge  *weighbridge.Handler
 	Laboratory   *laboratory.Handler
+	GrainIntake  *grainintake.Handler
 }
 
 // Application is the assembled HTTP application and its process logger.
@@ -102,6 +104,9 @@ func New(cfg config.Config, readiness platformhttp.ReadinessChecker, deps Depend
 		deps.Laboratory.Register(authenticated)
 	}
 
+	if deps.GrainIntake != nil {
+		deps.GrainIntake.Register(authenticated)
+	}
 	system := authenticated.Group("/system")
 	system.Use(
 		platformhttp.MultipartProtection(platformhttp.MultipartProtectionConfig{
