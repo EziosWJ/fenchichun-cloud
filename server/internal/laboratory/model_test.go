@@ -3,7 +3,7 @@ package laboratory
 import "testing"
 
 func TestConfirmationValidation(t *testing.T) {
-	complete := Input{Plate: "晋A12345", MaterialCode: "M1", PartyCode: "P1", Moisture: "14.10", Impurity: "0", BulkDensity: "760.125", Conclusion: "accept"}
+	complete := Input{SiteCode: "F001", Plate: "晋A12345", MaterialCode: "M1", PartyCode: "P1", Moisture: "14.10", Impurity: "0", BulkDensity: "760.125", Conclusion: "accept"}
 	if err := complete.validate(true); err != nil {
 		t.Fatal(err)
 	}
@@ -11,6 +11,7 @@ func TestConfirmationValidation(t *testing.T) {
 		name   string
 		change func(*Input)
 	}{
+		{"missing site", func(v *Input) { v.SiteCode = "" }},
 		{"missing supplier", func(v *Input) { v.PartyCode = "" }},
 		{"missing result", func(v *Input) { v.Impurity = "" }},
 		{"reject without reason", func(v *Input) { v.Conclusion = "reject" }},

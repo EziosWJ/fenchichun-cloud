@@ -19,8 +19,13 @@ export interface Permit {
   approvedBy: number | null; approvedAt: string | null;
   tripNumber: string; plate: string; siteCode: string; exitedAt: string | null; stage: string;
 }
-export interface TripEvent { id: number; tripId: number; action: string; description: string; actorId: number; actorName: string; createdAt: string }
+export interface TripEvent { id: number; tripId: number; action: string; description: string; actorId: number | null; actorName: string; createdAt: string }
 export interface TripDetail { trip: Trip; inspections: Inspection[]; permit: Permit | null; ticket: TicketRecord | null; events: TripEvent[] }
+export interface TicketCandidate {
+  siteCode: string; ticketNo: string; plate: string; materialCode: string; materialName: string;
+  partyCode: string; partyName: string; finalGross: string; finalTare: string; finalNetMilliTonne: number;
+  firstConfirmedAt: string; secondConfirmedAt: string; issuedAt: string; linkable: boolean; reason: string;
+}
 export type TripAction = 'link-inspection' | 'select-inspection' | 'confirm-unloading' | 'link-ticket' | 'issue-permit' | 'approve-permit' | 'confirm-exit';
 export interface TripCommand {
   inspectionId?: number; inspectionVersion?: number; location?: string;
@@ -34,6 +39,7 @@ export const tripDetail = (id: number, gate = false) => get<TripDetail>(`${base}
 export const saveTrip = (input: TripInput, original?: Trip) => original
   ? put<TripDetail>(`${base}/trips/${original.id}`, { ...input, version: original.version })
   : post<TripDetail>(`${base}/trips`, input);
+export const ticketCandidates = (id: number) => get<TicketCandidate[]>(`${base}/trips/${id}/ticket-candidates`);
 export const tripAction = (trip: Trip, action: TripAction, input: TripCommand = {}) => post<TripDetail>(`${base}/trips/${trip.id}/${action}`, { ...input, version: trip.version });
 export const tripStages = [
   { value: 'pending_inspection', label: '待化验' }, { value: 'accepted', label: '接收待完成' },

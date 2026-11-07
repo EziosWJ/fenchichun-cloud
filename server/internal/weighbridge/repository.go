@@ -134,11 +134,18 @@ func (r *Repository) ApplyChange(ctx context.Context, c Change) (ChangeReceipt, 
 			if ticket.Status != "valid" || ticket.SiteCode != c.SiteCode {
 				return ErrConflict
 			}
+			tripIDs, err := linkedTripsForUpdate(tx, ticket.ID)
+			if err != nil {
+				return err
+			}
 			ticket.Status = "void"
 			ticket.VoidReason = &c.Void.Reason
 			ticket.VoidedBy = &c.Void.Actor
 			ticket.VoidedAt = &c.Void.At
 			if err := tx.Model(&ticket).Updates(map[string]any{"status": ticket.Status, "void_reason": ticket.VoidReason, "voided_by": ticket.VoidedBy, "voided_at": ticket.VoidedAt}).Error; err != nil {
+				return err
+			}
+			if err := releaseVoidedTicket(tx, tripIDs, c.TicketNo, c.Void.Reason); err != nil {
 				return err
 			}
 		} else {

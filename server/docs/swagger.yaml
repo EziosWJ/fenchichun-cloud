@@ -245,6 +245,14 @@ definitions:
       remark:
         type: string
     type: object
+  grainintake.ApiEnvelope:
+    properties:
+      code:
+        type: integer
+      data: {}
+      message:
+        type: string
+    type: object
   grainintake.Command:
     properties:
       basis:
@@ -520,6 +528,8 @@ definitions:
         type: string
       remark:
         type: string
+      siteCode:
+        type: string
       tripId:
         type: integer
     type: object
@@ -566,6 +576,8 @@ definitions:
       reason:
         type: string
       remark:
+        type: string
+      siteCode:
         type: string
       status:
         type: string
@@ -638,6 +650,8 @@ definitions:
       reason:
         type: string
       remark:
+        type: string
+      siteCode:
         type: string
       tripId:
         type: integer
@@ -1895,6 +1909,24 @@ paths:
       security:
       - BearerAuth: []
       summary: 关联化验、指定生效、确认卸粮、关联磅单及出门放行
+      tags:
+      - 原粮流转
+  /api/v1/grain-intake/trips/{id}/ticket-candidates:
+    get:
+      parameters:
+      - description: 流转单ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/grainintake.ApiEnvelope'
+      security:
+      - BearerAuth: []
+      summary: 查询本趟可关联的正式磅单
       tags:
       - 原粮流转
   /api/v1/laboratory/inspections:

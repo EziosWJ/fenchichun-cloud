@@ -61,10 +61,10 @@ func find(tx *gorm.DB, id int64, lock bool) (Inspection, error) {
 }
 
 type tripReference struct {
-	ID                                                              int64
-	Plate, MaterialCode, PartyCode, Driver, DriverPhone, ContractNo string
-	ExitedAt, UnloadedAt                                            *time.Time
-	TicketID, EffectiveInspectionID                                 *int64
+	ID                                                                        int64
+	SiteCode, Plate, MaterialCode, PartyCode, Driver, DriverPhone, ContractNo string
+	ExitedAt, UnloadedAt                                                      *time.Time
+	TicketID, EffectiveInspectionID                                           *int64
 }
 
 func inspectionTrip(tx *gorm.DB, id int64) (tripReference, error) {
@@ -93,8 +93,8 @@ func matchesTrip(tx *gorm.DB, in Input) error {
 	if err != nil {
 		return err
 	}
-	if t.Plate != in.Plate || t.MaterialCode != in.MaterialCode || t.PartyCode != in.PartyCode {
-		return fmt.Errorf("%w：化验单须与关联流转单的车牌、粮种和供应商一致", ErrConflict)
+	if t.SiteCode != in.SiteCode || t.Plate != in.Plate || t.MaterialCode != in.MaterialCode || t.PartyCode != in.PartyCode {
+		return fmt.Errorf("%w：化验单须与关联流转单的厂区、车牌、粮种和供应商一致", ErrConflict)
 	}
 	return nil
 }
@@ -131,6 +131,9 @@ func (r *Repository) List(ctx context.Context, actor int64, q Query) (Page, erro
 		if q.Status != "" {
 			query = query.Where("status=?", q.Status)
 		}
+		if q.SiteCode != "" {
+			query = query.Where("site_code=?", q.SiteCode)
+		}
 		if q.Keyword != "" {
 			term := "%" + q.Keyword + "%"
 			query = query.Where("number LIKE ? OR plate LIKE ? OR material_name LIKE ? OR party_name LIKE ?", term, term, term, term)
@@ -146,6 +149,16 @@ func (r *Repository) List(ctx context.Context, actor int64, q Query) (Page, erro
 // Reference names become snapshots. Confirmation checks that selected references remain enabled.
 func references(tx *gorm.DB, in Input) (string, string, error) {
 	material, party := "", ""
+	if in.SiteCode != "" {
+		var s struct{ Enabled bool }
+		err := tx.Table("wb_cloud_site").Where("code=?", in.SiteCode).Take(&s).Error
+		if errors.Is(err, gorm.ErrRecordNotFound) || (err == nil && !s.Enabled) {
+			return "", "", fmt.Errorf("%w：厂区不存在或已停用", ErrInvalid)
+		}
+		if err != nil {
+			return "", "", err
+		}
+	}
 	if in.MaterialCode != "" {
 		var m struct {
 			Name    string
@@ -183,6 +196,7 @@ func create(tx *gorm.DB, in Input, original *int64, actor int64) (Inspection, er
 		if err != nil {
 			return Inspection{}, err
 		}
+		in.SiteCode = t.SiteCode
 		in.Plate = t.Plate
 		in.MaterialCode = t.MaterialCode
 		in.PartyCode = t.PartyCode

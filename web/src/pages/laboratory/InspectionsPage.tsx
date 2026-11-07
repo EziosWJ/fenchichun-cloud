@@ -9,13 +9,13 @@ import { PageHeader } from '../../components/PageHeader';
 import { FilterField } from '../../components/SearchFilterBar';
 import { useListUrlState } from '../../hooks/useListUrlState';
 import { getApiErrorMessage } from '../../lib/api/errors';
-import { materials, parties } from '../../features/weighbridge/api';
+import { materials, parties, sites } from '../../features/weighbridge/api';
 import { inspection, inspectionAction, inspections, saveInspection, type Inspection, type InspectionInput } from '../../features/laboratory/api';
 import { formatDateTime } from '../../utils/format';
 
 const statuses = [{ value: 'draft', label: '草稿' }, { value: 'confirmed', label: '已确认' }, { value: 'void', label: '已作废' }];
 const config = { filters: { status: ['draft', 'confirmed', 'void'] }, sortKeys: [], pageSizeOptions: [10, 20, 50], defaultPageSize: 10 } as const;
-const blank: InspectionInput = { plate: '', materialCode: '', partyCode: '', driver: '', driverPhone: '', contractNo: '', moisture: '', impurity: '', bulkDensity: '', conclusion: '', reason: '', remark: '' };
+const blank: InspectionInput = { siteCode: '', plate: '', materialCode: '', partyCode: '', driver: '', driverPhone: '', contractNo: '', moisture: '', impurity: '', bulkDensity: '', conclusion: '', reason: '', remark: '' };
 const conclusion = (value: string) => value === 'accept' ? '接收' : value === 'reject' ? '拒收' : '—';
 
 export default function InspectionsPage({ trip, locked = false, onMakeEffective }: { trip?: Trip; locked?: boolean; onMakeEffective?: (row: Inspection) => void }) {
@@ -32,12 +32,13 @@ export default function InspectionsPage({ trip, locked = false, onMakeEffective 
   const params = { page: state.page, pageSize: state.pageSize, keyword: state.keyword, ...state.filters, ...(trip ? { tripId: trip.id } : {}) };
   const list = useQuery({ queryKey: ['laboratory', 'inspections', params], queryFn: () => inspections(params) });
   const detail = useQuery({ queryKey: ['laboratory', 'inspection', detailId], queryFn: () => inspection(detailId!), enabled: detailId !== undefined });
+  const siteQuery = useQuery({ queryKey: ['weighbridge', 'sites'], queryFn: sites });
   const materialQuery = useQuery({ queryKey: ['weighbridge', 'materials'], queryFn: materials });
   const partyQuery = useQuery({ queryKey: ['weighbridge', 'parties'], queryFn: parties });
   const refresh = () => { void client.invalidateQueries({ queryKey: ['laboratory'] }); void client.invalidateQueries({ queryKey: ['grain-intake'] }); };
-  const edit = (row?: Inspection) => { setEditing(row); form.resetFields(); form.setFieldsValue({ ...(row ?? blank), ...(trip ? { plate: trip.plate, materialCode: trip.materialCode, partyCode: trip.partyCode, driver: trip.driver, driverPhone: trip.driverPhone, contractNo: trip.contractNo } : {}) }); setOpen(true); };
+  const edit = (row?: Inspection) => { setEditing(row); form.resetFields(); form.setFieldsValue({ ...(row ?? blank), ...(trip ? { siteCode: trip.siteCode, plate: trip.plate, materialCode: trip.materialCode, partyCode: trip.partyCode, driver: trip.driver, driverPhone: trip.driverPhone, contractNo: trip.contractNo } : {}) }); setOpen(true); };
   const save = useMutation({
-    mutationFn: (values: InspectionInput) => saveInspection({ ...blank, ...values, ...(trip || editing?.tripId ? { tripId: trip?.id ?? editing?.tripId } : {}), moisture: values.moisture ?? '', impurity: values.impurity ?? '', bulkDensity: values.bulkDensity ?? '', materialCode: values.materialCode || '', partyCode: values.partyCode || '', conclusion: values.conclusion || '' }, editing),
+    mutationFn: (values: InspectionInput) => saveInspection({ ...blank, ...values, ...(trip || editing?.tripId ? { tripId: trip?.id ?? editing?.tripId } : {}), siteCode: values.siteCode || '', moisture: values.moisture ?? '', impurity: values.impurity ?? '', bulkDensity: values.bulkDensity ?? '', materialCode: values.materialCode || '', partyCode: values.partyCode || '', conclusion: values.conclusion || '' }, editing),
     onSuccess: () => { message.success('草稿已保存'); setOpen(false); refresh(); },
     onError: (error) => message.error(getApiErrorMessage(error)),
   });
@@ -67,7 +68,7 @@ export default function InspectionsPage({ trip, locked = false, onMakeEffective 
     </Space> },
   ];
   const value = detail.data;
-  const referenceError = materialQuery.error ?? partyQuery.error;
+  const referenceError = siteQuery.error ?? materialQuery.error ?? partyQuery.error;
   return <>
     {!trip && <PageHeader title="化验单" description="记录水分、杂质和容重，可独立建单或关联流转单；复检保留原始结果。" />}
     <Space orientation="vertical" size="middle" style={{ width: '100%' }}>
@@ -80,8 +81,9 @@ export default function InspectionsPage({ trip, locked = false, onMakeEffective 
       <DataTable tableKey="laboratory-inspections" rowKey="id" columns={columns} dataSource={list.data?.items ?? []} total={list.data?.total ?? 0} page={state.page} pageSize={state.pageSize} onPageChange={actions.setPage} loading={list.isLoading} onRefresh={() => void list.refetch()} />
     </Space>
     <Modal title={editing ? `编辑草稿 ${editing.number}` : '新建化验单'} open={open} onCancel={() => setOpen(false)} onOk={() => void form.validateFields().then((v) => save.mutate(v))} okText="保存草稿" confirmLoading={save.isPending} destroyOnHidden width={680}>
-      {referenceError && <Alert type="error" title={getApiErrorMessage(referenceError)} action={<Button onClick={() => { void materialQuery.refetch(); void partyQuery.refetch(); }}>重试资料加载</Button>} />}
+      {referenceError && <Alert type="error" title={getApiErrorMessage(referenceError)} action={<Button onClick={() => { void siteQuery.refetch(); void materialQuery.refetch(); void partyQuery.refetch(); }}>重试资料加载</Button>} />}
       <Form form={form} layout="vertical">
+        <Form.Item name="siteCode" label="厂区" extra="确认前须补齐厂区。"><Select disabled={!!trip} loading={siteQuery.isLoading} options={(siteQuery.data ?? []).filter((v) => v.enabled || v.code === editing?.siteCode).map((v) => ({ value: v.code, label: v.name, disabled: !v.enabled }))} /></Form.Item>
         <Form.Item name="plate" label="车牌号"><Input maxLength={40} disabled={!!trip} /></Form.Item>
         <Form.Item name="materialCode" label="粮种（复用物料）"><Select disabled={!!trip} showSearch optionFilterProp="label" allowClear loading={materialQuery.isLoading} options={(materialQuery.data ?? []).filter((v) => v.enabled || v.code === editing?.materialCode).map((v) => ({ value: v.code, label: v.name, disabled: !v.enabled }))} /></Form.Item>
         <Form.Item name="partyCode" label="供应商"><Select disabled={!!trip} showSearch optionFilterProp="label" allowClear loading={partyQuery.isLoading} options={(partyQuery.data ?? []).filter((v) => v.isSupplier && (v.enabled || v.code === editing?.partyCode)).map((v) => ({ value: v.code, label: v.name, disabled: !v.enabled }))} /></Form.Item>
@@ -106,7 +108,7 @@ export default function InspectionsPage({ trip, locked = false, onMakeEffective 
       {value && <Descriptions bordered column={2} items={[
         { key: 'number', label: '单号', children: value.number }, { key: 'status', label: '状态', children: statuses.find((v) => v.value === value.status)?.label },
         { key: 'original', label: '原化验单', children: value.originalId ? <Button type="link" onClick={() => setDetailId(value.originalId!)}>查看原化验单</Button> : '初检' },
-        { key: 'plate', label: '车牌', children: value.plate || '—' }, { key: 'material', label: '粮种', children: value.materialName || '—' }, { key: 'party', label: '供应商', children: value.partyName || '—' },
+        { key: 'site', label: '厂区', children: value.siteCode || '—' }, { key: 'plate', label: '车牌', children: value.plate || '—' }, { key: 'material', label: '粮种', children: value.materialName || '—' }, { key: 'party', label: '供应商', children: value.partyName || '—' },
         { key: 'moisture', label: '水分（%）', children: value.moisture || '—' }, { key: 'impurity', label: '杂质（%）', children: value.impurity || '—' }, { key: 'density', label: '容重（g/L）', children: value.bulkDensity || '—' },
         { key: 'conclusion', label: '结论', children: conclusion(value.conclusion) }, { key: 'reason', label: '结论原因', children: value.reason || '—' },
         { key: 'driver', label: '司机', children: `${value.driver || '—'} ${value.driverPhone}` }, { key: 'contract', label: '合同编号', children: value.contractNo || '—' },

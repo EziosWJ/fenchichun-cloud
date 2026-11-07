@@ -11,12 +11,19 @@ import (
 
 type Handler struct{ service *Service }
 
+type ApiEnvelope struct {
+	Code    int    `json:"code"`
+	Message string `json:"message"`
+	Data    any    `json:"data"`
+}
+
 func NewHandler(s *Service) *Handler { return &Handler{s} }
 func (h *Handler) Register(api gin.IRouter) {
 	g := api.Group("/grain-intake")
 	g.GET("/trips", h.trips)
 	g.POST("/trips", h.create)
 	g.GET("/trips/:id", h.trip)
+	g.GET("/trips/:id/ticket-candidates", h.ticketCandidates)
 	g.PUT("/trips/:id", h.update)
 	g.POST("/trips/:id/:action", h.command)
 	g.GET("/rejections", h.rejections)
@@ -133,6 +140,26 @@ func (h *Handler) permits(c *gin.Context) {
 // @Success 200 {object} DetailResponse
 // @Router /api/v1/grain-intake/trips/{id} [get]
 func (h *Handler) trip(c *gin.Context) { h.read(c, TripPermission) }
+
+// ticketCandidates godoc
+// @Summary 查询本趟可关联的正式磅单
+// @Tags 原粮流转
+// @Security BearerAuth
+// @Param id path int true "流转单ID"
+// @Success 200 {object} ApiEnvelope
+// @Router /api/v1/grain-intake/trips/{id}/ticket-candidates [get]
+func (h *Handler) ticketCandidates(c *gin.Context) {
+	e, ok := actorEvent(c, "trip.ticket-candidates")
+	if !ok {
+		return
+	}
+	id, ok := key(c)
+	if !ok {
+		return
+	}
+	v, err := h.service.TicketCandidates(c.Request.Context(), e.Metadata.ActorID, id)
+	respond(c, v, err)
+}
 
 // exitBasis godoc
 // @Summary 门卫核验正常或拒收出厂依据

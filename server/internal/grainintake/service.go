@@ -11,6 +11,7 @@ type Store interface {
 	Trips(context.Context, int64, Query) (TripPage, error)
 	Permits(context.Context, int64, Query) (PermitPage, error)
 	Detail(context.Context, int64, int64, string) (Detail, error)
+	TicketCandidates(context.Context, int64, int64) ([]TicketCandidate, error)
 	Save(context.Context, int64, int64, Input, audit.Event) (Detail, error)
 	Command(context.Context, int64, string, Command, audit.Event) (Detail, error)
 }
@@ -53,6 +54,12 @@ func (s *Service) Permits(ctx context.Context, actor int64, q Query) (PermitPage
 }
 func (s *Service) Detail(ctx context.Context, actor, id int64, scope string) (Detail, error) {
 	return s.store.Detail(ctx, actor, id, scope)
+}
+func (s *Service) TicketCandidates(ctx context.Context, actor, id int64) ([]TicketCandidate, error) {
+	if id <= 0 {
+		return nil, ErrInvalid
+	}
+	return s.store.TicketCandidates(ctx, actor, id)
 }
 func (s *Service) Save(ctx context.Context, id, version int64, in Input, e audit.Event) (Detail, error) {
 	in.normalize()

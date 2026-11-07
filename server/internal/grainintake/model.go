@@ -107,7 +107,7 @@ type Event struct {
 	TripID      int64     `json:"tripId"`
 	Action      string    `json:"action"`
 	Description string    `json:"description"`
-	ActorID     int64     `json:"actorId"`
+	ActorID     *int64    `json:"actorId"`
 	ActorName   string    `json:"actorName" gorm:"->"`
 	CreatedAt   time.Time `json:"createdAt"`
 }
@@ -121,6 +121,28 @@ type Detail struct {
 	Ticket      *weighbridge.TicketResult `json:"ticket"`
 	Events      []Event                   `json:"events"`
 }
+
+// TicketCandidate is a cloud ticket that matches this trip's site, plate,
+// material and supplier. Linkable reports whether the weighing order also
+// satisfies the link-ticket time rules.
+type TicketCandidate struct {
+	SiteCode           string    `json:"siteCode"`
+	TicketNo           string    `json:"ticketNo"`
+	Plate              string    `json:"plate"`
+	MaterialCode       string    `json:"materialCode"`
+	MaterialName       string    `json:"materialName"`
+	PartyCode          string    `json:"partyCode"`
+	PartyName          string    `json:"partyName"`
+	FinalGross         string    `json:"finalGross"`
+	FinalTare          string    `json:"finalTare"`
+	FinalNetMilliTonne int64     `json:"finalNetMilliTonne"`
+	FirstConfirmedAt   time.Time `json:"firstConfirmedAt"`
+	SecondConfirmedAt  time.Time `json:"secondConfirmedAt"`
+	IssuedAt           time.Time `json:"issuedAt"`
+	Linkable           bool      `json:"linkable"`
+	Reason             string    `json:"reason"`
+}
+
 type Query struct {
 	Page, PageSize int
 	Keyword, Stage string

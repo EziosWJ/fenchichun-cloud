@@ -23,6 +23,9 @@ func TestPostgresLaboratoryLifecycle(t *testing.T) {
 	if _, err := service.List(ctx, 99999, laboratory.Query{}); !errors.Is(err, laboratory.ErrForbidden) {
 		t.Fatalf("access: %v", err)
 	}
+	if err := db.GORM.Exec("INSERT INTO wb_cloud_site(code,name) VALUES ('LAB','测试厂')").Error; err != nil {
+		t.Fatal(err)
+	}
 	draft, err := service.Save(ctx, 0, 0, laboratory.Input{}, e)
 	if err != nil || draft.ID == 0 {
 		t.Fatalf("create: %+v %v", draft, err)
@@ -30,7 +33,7 @@ func TestPostgresLaboratoryLifecycle(t *testing.T) {
 	if _, err := service.Transition(ctx, draft.ID, draft.Version, "confirm", "", e); !errors.Is(err, laboratory.ErrInvalid) {
 		t.Fatalf("empty confirm: %v", err)
 	}
-	input := laboratory.Input{Plate: "晋A12345", MaterialCode: "C-M-0010", PartyCode: "C-P-0001", Moisture: "14.1", Impurity: "1", BulkDensity: "750", Conclusion: "reject", Reason: "水分偏高"}
+	input := laboratory.Input{SiteCode: "LAB", Plate: "晋A12345", MaterialCode: "C-M-0010", PartyCode: "C-P-0001", Moisture: "14.1", Impurity: "1", BulkDensity: "750", Conclusion: "reject", Reason: "水分偏高"}
 	updated, err := service.Save(ctx, draft.ID, draft.Version, input, e)
 	if err != nil {
 		t.Fatal(err)
@@ -89,9 +92,6 @@ func TestPostgresLaboratoryLifecycle(t *testing.T) {
 	payload, _ := json.Marshal(party)
 	if strings.Contains(string(payload), partyInput.IdentityNumber) {
 		t.Fatal("identity exposed")
-	}
-	if err := db.GORM.Exec("INSERT INTO wb_cloud_site(code,name) VALUES ('LAB','测试厂')").Error; err != nil {
-		t.Fatal(err)
 	}
 	snapshot, err := repo.MasterSnapshot(ctx, "LAB")
 	if err != nil {

@@ -410,6 +410,36 @@ const docTemplate = `{
                 }
             }
         },
+        "/api/v1/grain-intake/trips/{id}/ticket-candidates": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "tags": [
+                    "原粮流转"
+                ],
+                "summary": "查询本趟可关联的正式磅单",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "流转单ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/grainintake.ApiEnvelope"
+                        }
+                    }
+                }
+            }
+        },
         "/api/v1/grain-intake/trips/{id}/{action}": {
             "post": {
                 "security": [
@@ -6092,6 +6122,18 @@ const docTemplate = `{
                 }
             }
         },
+        "grainintake.ApiEnvelope": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "integer"
+                },
+                "data": {},
+                "message": {
+                    "type": "string"
+                }
+            }
+        },
         "grainintake.Command": {
             "type": "object",
             "properties": {
@@ -6511,6 +6553,9 @@ const docTemplate = `{
                 "remark": {
                     "type": "string"
                 },
+                "siteCode": {
+                    "type": "string"
+                },
                 "tripId": {
                     "type": "integer"
                 }
@@ -6580,6 +6625,9 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "remark": {
+                    "type": "string"
+                },
+                "siteCode": {
                     "type": "string"
                 },
                 "status": {
@@ -6690,6 +6738,9 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "remark": {
+                    "type": "string"
+                },
+                "siteCode": {
                     "type": "string"
                 },
                 "tripId": {

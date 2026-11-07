@@ -77,6 +77,18 @@ func (r *Repository) ApplyChangeV4(ctx context.Context, c ChangeV4) (ChangeRecei
 			}
 			ticketID = ticket.ID
 		case "void":
+			var linkedTicketID int64
+			if err := tx.Table("wb_cloud_ticket").Select("id").Where("issued_site_code = ? AND ticket_no = ?", c.SiteCode, c.TicketNo).Scan(&linkedTicketID).Error; err != nil {
+				return err
+			}
+			var tripIDs []int64
+			if linkedTicketID > 0 {
+				var err error
+				tripIDs, err = linkedTripsForUpdate(tx, linkedTicketID)
+				if err != nil {
+					return err
+				}
+			}
 			ticket, err := lockTicketV4(tx, c.SiteCode, c.TicketNo, "ticket_missing", "前序出单尚未在云端创建，等待前序变化")
 			if err != nil {
 				return err
@@ -93,6 +105,9 @@ func (r *Repository) ApplyChangeV4(ctx context.Context, c ChangeV4) (ChangeRecei
 				"latest_change_type": c.Type,
 				"latest_received_at": receivedAt,
 			}).Error; err != nil {
+				return err
+			}
+			if err := releaseVoidedTicket(tx, tripIDs, c.TicketNo, c.Void.Reason); err != nil {
 				return err
 			}
 			ticketID = ticket.ID

@@ -68,7 +68,7 @@ func exerciseGrainIntake(t *testing.T, db *gorm.DB) {
 		in := laboratory.Input{TripID: &v.Trip.ID, Moisture: "14.1", Impurity: "0", BulkDensity: "750", Conclusion: conclusion, Reason: "人工判定"}
 		i, err := lab.Save(ctx, 0, 0, in, e)
 		check(err)
-		if i.Plate != v.Trip.Plate || i.PartyCode != v.Trip.PartyCode {
+		if i.SiteCode != v.Trip.SiteCode || i.Plate != v.Trip.Plate || i.PartyCode != v.Trip.PartyCode {
 			t.Fatal("trip information not inherited")
 		}
 		i, err = lab.Transition(ctx, i.ID, i.Version, "confirm", "", e)
@@ -142,7 +142,7 @@ func exerciseGrainIntake(t *testing.T, db *gorm.DB) {
 		t.Fatal("void did not clear effective result")
 	}
 	// Independent confirmed inspection can be linked; a mismatch and cross-trip reuse are rejected.
-	independent, err := lab.Save(ctx, 0, 0, laboratory.Input{Plate: multiple.Trip.Plate, MaterialCode: multiple.Trip.MaterialCode, PartyCode: multiple.Trip.PartyCode, Moisture: "12", Impurity: "0", BulkDensity: "750", Conclusion: "accept"}, e)
+	independent, err := lab.Save(ctx, 0, 0, laboratory.Input{SiteCode: multiple.Trip.SiteCode, Plate: multiple.Trip.Plate, MaterialCode: multiple.Trip.MaterialCode, PartyCode: multiple.Trip.PartyCode, Moisture: "12", Impurity: "0", BulkDensity: "750", Conclusion: "accept"}, e)
 	check(err)
 	independent, err = lab.Transition(ctx, independent.ID, independent.Version, "confirm", "", e)
 	check(err)
@@ -151,6 +151,40 @@ func exerciseGrainIntake(t *testing.T, db *gorm.DB) {
 	_, err = flow.Command(ctx, other.Trip.ID, "link-inspection", grainintake.Command{Version: other.Trip.Version, InspectionID: independent.ID, InspectionVersion: independent.Version}, e)
 	if !errors.Is(err, grainintake.ErrConflict) {
 		t.Fatalf("cross-trip association: %v", err)
+	}
+	// An inspection from another site cannot be linked even when plate, material and supplier match.
+	if _, err := wb.CreateSite(ctx, weighbridge.SiteInput{Code: "GRAIN-OTHER", Name: "其他厂"}, e); err != nil {
+		t.Fatal(err)
+	}
+	foreign, err := lab.Save(ctx, 0, 0, laboratory.Input{SiteCode: "GRAIN-OTHER", Plate: multiple.Trip.Plate, MaterialCode: multiple.Trip.MaterialCode, PartyCode: multiple.Trip.PartyCode, Moisture: "12", Impurity: "0", BulkDensity: "750", Conclusion: "accept"}, e)
+	check(err)
+	foreign, err = lab.Transition(ctx, foreign.ID, foreign.Version, "confirm", "", e)
+	check(err)
+	_, err = flow.Command(ctx, other.Trip.ID, "link-inspection", grainintake.Command{Version: other.Trip.Version, InspectionID: foreign.ID, InspectionVersion: foreign.Version}, e)
+	if !errors.Is(err, grainintake.ErrConflict) {
+		t.Fatalf("cross-site inspection: %v", err)
+	}
+	// A void before the permit is issued detaches the ticket so the trip can be linked again.
+	detached, detachedChange := makeReady("晋A作废恢复")
+	beforeVoid := read(detached.Trip.ID)
+	_, err = wb.ApplyChange(ctx, weighbridge.Change{SchemaVersion: 2, ChangeID: detachedChange.ChangeID + "-void", SiteCode: detachedChange.SiteCode, TicketNo: detachedChange.TicketNo, Type: "void", Void: &weighbridge.VoidInfo{Reason: "选错磅单", Actor: "库管", At: time.Now().UTC()}})
+	check(err)
+	detached = read(detached.Trip.ID)
+	if detached.Trip.TicketID != nil || detached.Trip.Stage != "accepted" || detached.Trip.Version != beforeVoid.Trip.Version+1 {
+		t.Fatalf("void did not detach ticket: stage=%s ticket=%v version=%d", detached.Trip.Stage, detached.Trip.TicketID, detached.Trip.Version)
+	}
+	if len(detached.Events) == 0 || detached.Events[0].Action != "trip.ticket-voided" || detached.Events[0].ActorID != nil {
+		t.Fatalf("missing system event: %+v", detached.Events)
+	}
+	number++
+	no := fmt.Sprintf("GRAIN-TICKET-%d", number)
+	first := detached.Trip.EffectiveSelectedAt.Add(time.Microsecond)
+	second := detached.Trip.UnloadedAt.Add(time.Microsecond)
+	_, err = wb.ApplyChange(ctx, weighbridge.Change{SchemaVersion: 2, ChangeID: no, SiteCode: "GRAIN-TEST", TicketNo: no, Type: "issue", Ticket: &weighbridge.TicketSnapshot{TicketNo: no, Title: "重开磅单", Plate: detached.Trip.Plate, Direction: "inbound", MaterialCode: detached.Trip.MaterialCode, MaterialName: detached.Trip.MaterialName, PartyCode: detached.Trip.PartyCode, PartyName: detached.Trip.PartyName, FirstConfirmedAt: first, SecondConfirmedAt: second, IssuedAt: second, IssuerName: "验证库管", OriginalGross: "30", OriginalTare: "10", FinalGross: "30", FinalTare: "10"}})
+	check(err)
+	detached = command(detached, "link-ticket", grainintake.Command{TicketSiteCode: "GRAIN-TEST", TicketNo: no})
+	if detached.Trip.Stage != "ready" || detached.Trip.TicketID == nil {
+		t.Fatalf("relink after void: stage=%s", detached.Trip.Stage)
 	}
 	// Complete normal exit, preserving the distinction between approval and actual departure.
 	normal, _ := makeReady("晋A正常")

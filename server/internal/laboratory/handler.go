@@ -100,7 +100,7 @@ func (h *Handler) list(c *gin.Context) {
 	tripID, _ := strconv.ParseInt(c.Query("tripId"), 10, 64)
 	page, _ := strconv.Atoi(c.Query("page"))
 	size, _ := strconv.Atoi(c.Query("pageSize"))
-	value, err := h.service.List(c.Request.Context(), e.Metadata.ActorID, Query{Page: page, PageSize: size, Keyword: c.Query("keyword"), Status: c.Query("status"), TripID: tripID, Unlinked: c.Query("unlinked") == "true"})
+	value, err := h.service.List(c.Request.Context(), e.Metadata.ActorID, Query{Page: page, PageSize: size, Keyword: c.Query("keyword"), Status: c.Query("status"), SiteCode: c.Query("siteCode"), TripID: tripID, Unlinked: c.Query("unlinked") == "true"})
 	result(c, value, err)
 }
 

@@ -156,7 +156,8 @@ func nextNumber(tx *gorm.DB, kind, prefix string) (string, error) {
 	return fmt.Sprintf("%s-%06d", prefix, n), err
 }
 func writeEvent(ctx context.Context, tx *gorm.DB, t Trip, e audit.Event, description string) error {
-	row := Event{TripID: t.ID, Action: e.Action, Description: description, ActorID: e.Metadata.ActorID, CreatedAt: time.Now().UTC()}
+	actor := e.Metadata.ActorID
+	row := Event{TripID: t.ID, Action: e.Action, Description: description, ActorID: &actor, CreatedAt: time.Now().UTC()}
 	if err := tx.Create(&row).Error; err != nil {
 		return err
 	}
@@ -275,7 +276,7 @@ func effective(tx *gorm.DB, t Trip) (laboratory.Inspection, error) {
 	if err != nil {
 		return i, err
 	}
-	if i.Status != "confirmed" || i.TripID == nil || *i.TripID != t.ID || i.Plate != t.Plate || i.MaterialCode != t.MaterialCode || i.PartyCode != t.PartyCode {
+	if i.Status != "confirmed" || i.TripID == nil || *i.TripID != t.ID || i.SiteCode != t.SiteCode || i.Plate != t.Plate || i.MaterialCode != t.MaterialCode || i.PartyCode != t.PartyCode {
 		return i, fmt.Errorf("%w：生效化验单已失效或信息不一致", ErrConflict)
 	}
 	return i, nil
@@ -375,8 +376,8 @@ func (r *Repository) Command(ctx context.Context, id int64, action string, in Co
 			if i.ID == 0 {
 				return ErrNotFound
 			}
-			if i.Version != in.InspectionVersion || i.Status == "void" || (i.TripID != nil && *i.TripID != id) || i.Plate != t.Plate || i.MaterialCode != t.MaterialCode || i.PartyCode != t.PartyCode {
-				return fmt.Errorf("%w：化验单归属、版本、车牌、粮种或供应商不一致", ErrConflict)
+			if i.Version != in.InspectionVersion || i.Status == "void" || (i.TripID != nil && *i.TripID != id) || i.SiteCode != t.SiteCode || i.Plate != t.Plate || i.MaterialCode != t.MaterialCode || i.PartyCode != t.PartyCode {
+				return fmt.Errorf("%w：化验单归属、版本、厂区、车牌、粮种或供应商不一致", ErrConflict)
 			}
 			if t.TicketID != nil {
 				return ErrConflict
@@ -400,7 +401,7 @@ func (r *Repository) Command(ctx context.Context, id int64, action string, in Co
 				}
 				return err
 			}
-			if i.TripID == nil || *i.TripID != id || i.Status != "confirmed" || i.Version != in.InspectionVersion || i.Plate != t.Plate || i.MaterialCode != t.MaterialCode || i.PartyCode != t.PartyCode || t.PartyCode == "" {
+			if i.TripID == nil || *i.TripID != id || i.Status != "confirmed" || i.Version != in.InspectionVersion || i.SiteCode != t.SiteCode || i.Plate != t.Plate || i.MaterialCode != t.MaterialCode || i.PartyCode != t.PartyCode || t.PartyCode == "" {
 				return fmt.Errorf("%w：只能选择本趟已确认且信息一致的化验单", ErrConflict)
 			}
 			t.EffectiveInspectionID = &i.ID
@@ -544,4 +545,88 @@ func (r *Repository) Command(ctx context.Context, id int64, action string, in Co
 		return err
 	})
 	return value, err
+}
+
+// TicketCandidates lists cloud tickets matching this trip's site, plate,
+// material and supplier that no trip has linked yet. Linkable mirrors the
+// weighing-order rules enforced by link-ticket so the UI can explain why a
+// candidate is unavailable instead of letting the operator guess.
+func (r *Repository) TicketCandidates(ctx context.Context, actor, tripID int64) ([]TicketCandidate, error) {
+	candidates := []TicketCandidate{}
+	err := r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		if err := access(tx, actor, TripPermission); err != nil {
+			return err
+		}
+		var t Trip
+		if err := tx.Where("id=?", tripID).Take(&t).Error; err != nil {
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				return ErrNotFound
+			}
+			return err
+		}
+		var confirmedAt *time.Time
+		if t.EffectiveInspectionID != nil {
+			var inspection struct{ ConfirmedAt *time.Time }
+			err := tx.Model(&laboratory.Inspection{}).Select("confirmed_at").Where("id=?", *t.EffectiveInspectionID).Take(&inspection).Error
+			if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+				return err
+			}
+			confirmedAt = inspection.ConfirmedAt
+		}
+		var rows []struct {
+			SiteCode, TicketNo, Plate, MaterialCode, PartyCode, Snapshot string
+			IssuedAt                                                     time.Time
+			FinalNetMilliTonne                                           int64
+		}
+		if err := tx.Table("wb_cloud_ticket w").
+			Select("w.issued_site_code AS site_code, w.ticket_no, w.plate, w.material_code, w.party_code, w.snapshot, w.issued_at, w.final_net_milli_tonne").
+			Joins("LEFT JOIN grain_trip linked ON linked.ticket_id=w.id").
+			Where("w.status='valid' AND w.direction='inbound' AND w.site_code=? AND w.plate=? AND w.material_code=? AND w.party_code=? AND linked.id IS NULL", t.SiteCode, t.Plate, t.MaterialCode, t.PartyCode).
+			Order("w.issued_at DESC, w.id DESC").
+			Limit(200).
+			Scan(&rows).Error; err != nil {
+			return err
+		}
+		for _, row := range rows {
+			var snap weighbridge.TicketSnapshot
+			if err := json.Unmarshal([]byte(row.Snapshot), &snap); err != nil {
+				return err
+			}
+			candidate := TicketCandidate{
+				SiteCode: row.SiteCode, TicketNo: row.TicketNo, Plate: row.Plate,
+				MaterialCode: row.MaterialCode, MaterialName: snap.MaterialName,
+				PartyCode: row.PartyCode, PartyName: snap.PartyName,
+				FinalGross: snap.FinalGross, FinalTare: snap.FinalTare, FinalNetMilliTonne: row.FinalNetMilliTonne,
+				FirstConfirmedAt: snap.FirstConfirmedAt, SecondConfirmedAt: snap.SecondConfirmedAt, IssuedAt: row.IssuedAt,
+				Linkable: true,
+			}
+			if reason := ticketLinkReason(t, confirmedAt, snap); reason != "" {
+				candidate.Linkable, candidate.Reason = false, reason
+			}
+			candidates = append(candidates, candidate)
+		}
+		return nil
+	})
+	return candidates, err
+}
+
+// ticketLinkReason returns an empty string when the weighing order satisfies
+// the same rules as link-ticket.
+func ticketLinkReason(t Trip, confirmedAt *time.Time, snap weighbridge.TicketSnapshot) string {
+	if t.EffectiveInspectionID == nil || t.EffectiveSelectedAt == nil || confirmedAt == nil {
+		return "尚未选择生效化验单"
+	}
+	if t.UnloadedAt == nil {
+		return "尚未确认卸粮"
+	}
+	if snap.FirstConfirmedAt.Before(*confirmedAt) || snap.FirstConfirmedAt.Before(*t.EffectiveSelectedAt) {
+		return "首磅早于化验生效"
+	}
+	if snap.FirstConfirmedAt.After(*t.UnloadedAt) {
+		return "首磅晚于卸粮"
+	}
+	if snap.SecondConfirmedAt.Before(*t.UnloadedAt) {
+		return "回磅早于卸粮"
+	}
+	return ""
 }

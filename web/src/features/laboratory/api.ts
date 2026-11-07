@@ -2,6 +2,7 @@ import { get, getPage, post, put } from '../../lib/api/client';
 
 export interface InspectionInput {
   tripId?: number | null;
+  siteCode: string;
   plate: string;
   materialCode: string;
   partyCode: string;

@@ -7,11 +7,11 @@ import type { Inspection } from '../../src/features/laboratory/api';
 
 const api = vi.hoisted(() => ({ inspections: vi.fn(), inspection: vi.fn(), saveInspection: vi.fn(), inspectionAction: vi.fn() }));
 vi.mock('../../src/features/laboratory/api', () => api);
-vi.mock('../../src/features/weighbridge/api', () => ({ materials: async () => [], parties: async () => [] }));
+vi.mock('../../src/features/weighbridge/api', () => ({ materials: async () => [], parties: async () => [], sites: async () => [] }));
 const confirmed: Inspection = {
   id: 1, number: 'HY-000001', status: 'confirmed', version: 3, originalId: null,
   plate: '晋A12345', materialCode: 'M1', materialName: '高粱', partyCode: 'P1', partyName: '供货方',
-  driver: '', driverPhone: '', contractNo: '', moisture: '14.1', impurity: '0', bulkDensity: '750', conclusion: 'accept', reason: '', remark: '',
+  siteCode: 'F001', driver: '', driverPhone: '', contractNo: '', moisture: '14.1', impurity: '0', bulkDensity: '750', conclusion: 'accept', reason: '', remark: '',
   createdBy: 1, createdAt: '2026-11-06T08:00:00Z', updatedAt: '2026-11-06T08:00:00Z', confirmedBy: 1, confirmedAt: '2026-11-06T08:00:00Z', voidedBy: null, voidedAt: null, voidReason: '',
 };
 beforeEach(() => {
