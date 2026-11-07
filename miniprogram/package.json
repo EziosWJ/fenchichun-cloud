@@ -1,0 +1,69 @@
+{
+  "name": "fenchichun-miniprogram",
+  "type": "module",
+  "version": "1.0.7",
+  "private": true,
+  "packageManager": "npm@11.19.0",
+  "description": "汾池春小程序基础工程（weapp-vite TDesign 模板）",
+  "author": "ice breaker <1324318532@qq.com>",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/weapp-vite/weapp-vite.git",
+    "directory": "templates/weapp-vite-template"
+  },
+  "bugs": {
+    "url": "https://github.com/weapp-vite/weapp-vite/issues"
+  },
+  "keywords": [],
+  "engines": {
+    "node": "24.22.1",
+    "npm": "11.19.0"
+  },
+  "scripts": {
+    "dev": "wv dev",
+    "dev:web": "wv dev -p web --host",
+    "dev:open": "wv dev -o",
+    "dev:ui": "wv dev --ui",
+    "dev:open:ui": "wv dev --ui -o",
+    "build": "wv build",
+    "build:web": "wv build -p web",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "open": "wv open",
+    "stylelint": "stylelint \"src/**/*.{css,scss,vue,wxss,acss,ttss,jxss,qss,tyss}\" --allow-empty-input",
+    "stylelint:fix": "stylelint \"src/**/*.{css,scss,vue,wxss,acss,ttss,jxss,qss,tyss}\" --fix --allow-empty-input",
+    "g": "wv generate",
+    "postinstall": "wv prepare",
+    "typecheck": "tsc -p tsconfig.check.json",
+    "test": "node --experimental-strip-types --test tests/*.test.ts",
+    "format:check": "eslint .",
+    "check": "npm run lint && npm run stylelint && npm run typecheck && npm test && npm run build",
+    "build:development": "wv build --mode development",
+    "build:test": "wv build --mode test",
+    "ide:doctor": "wv ide doctor --json",
+    "ide:logs": "wv ide logs --open",
+    "screenshot": "wv screenshot",
+    "accept": "node scripts/accept.mjs",
+    "mcp": "node scripts/mcp.mjs",
+    "mcp:setup": "node scripts/setup-mcp.mjs"
+  },
+  "dependencies": {
+    "tdesign-miniprogram": "1.17.0"
+  },
+  "devDependencies": {
+    "@icebreakers/eslint-config": "8.0.12",
+    "@icebreakers/stylelint-config": "5.1.5",
+    "@types/node": "26.6.6",
+    "@weapp-vite/dashboard": "7.8.0",
+    "eslint": "10.14.0",
+    "miniprogram-api-typings": "5.2.3",
+    "postcss": "8.5.32",
+    "sass": "1.107.1",
+    "stylelint": "17.16.0",
+    "tailwindcss": "4.3.3",
+    "typescript": "6.0.3",
+    "weapp-vite": "7.8.0",
+    "wevu": "7.8.0"
+  }
+}

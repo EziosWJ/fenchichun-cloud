@@ -227,3 +227,51 @@ tasks:
     summary: Run the default test suite
     deps:
       - backend:test
+
+  miniprogram:install:
+    desc: 小程序 install
+    dir: miniprogram
+    cmds:
+      - npm ci
+
+  miniprogram:lint:
+    desc: 小程序 lint
+    dir: miniprogram
+    cmds:
+      - npm run lint
+
+  miniprogram:format:check:
+    desc: 小程序 format:check
+    dir: miniprogram
+    cmds:
+      - npm run format:check
+
+  miniprogram:typecheck:
+    desc: 小程序 typecheck
+    dir: miniprogram
+    cmds:
+      - npm run typecheck
+
+  miniprogram:test:
+    desc: 小程序 test
+    dir: miniprogram
+    cmds:
+      - npm test
+
+  miniprogram:build:
+    desc: 小程序 build
+    dir: miniprogram
+    cmds:
+      - npm run build
+
+  miniprogram:check:
+    desc: 小程序 check
+    dir: miniprogram
+    cmds:
+      - npm run check
+
+  miniprogram:accept:
+    desc: 小程序 accept
+    dir: miniprogram
+    cmds:
+      - npm run accept

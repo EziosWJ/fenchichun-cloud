@@ -1,0 +1,4 @@
+.state {
+padding: 48rpx;
+text-align: center;
+}

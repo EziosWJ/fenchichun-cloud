@@ -1,0 +1,10 @@
+{
+  "usingComponents": {
+    "page-header": "/components/page-header/index",
+    "empty-state": "/components/empty-state/index",
+    "loading-state": "/components/loading-state/index",
+    "error-state": "/components/error-state/index",
+    "status-tag": "/components/status-tag/index",
+    "section-card": "/components/section-card/index"
+  }
+}

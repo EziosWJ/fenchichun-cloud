@@ -1,0 +1,5 @@
+{
+  "$schema": "https://vite.weapp.dev/component.json",
+  "component": true,
+  "styleIsolation": "apply-shared"
+}

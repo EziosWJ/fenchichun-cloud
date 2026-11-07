@@ -1,0 +1,1 @@
+<t-empty description="{{text}}" /><t-button wx:if="{{retryable}}" variant="outline" bindtap="retry">重新加载</t-button>

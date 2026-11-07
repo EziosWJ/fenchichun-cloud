@@ -1,0 +1,71 @@
+import {
+  existsSync,
+  readFileSync,
+} from 'node:fs'
+import process from 'node:process'
+import {
+  fileURLToPath,
+} from 'node:url'
+import {
+  parseEnv,
+} from 'node:util'
+import {
+  defineConfig,
+} from 'weapp-vite'
+import {
+  TDesignResolver,
+} from 'weapp-vite/auto-import-components/resolvers'
+
+export default defineConfig(({
+  mode,
+}) => {
+  const base = parseEnv(readFileSync(new URL(`.env.${mode}`, import.meta.url), 'utf8'))
+  const localFile = new URL(`.env.${mode}.local`, import.meta.url)
+  const values = {
+    ...base,
+    ...(existsSync(localFile) ? parseEnv(readFileSync(localFile, 'utf8')) : {}),
+    ...process.env,
+  }
+  const baseURL = values.APP_API_BASE_URL ?? ''
+  if (!/^https:\/\//.test(baseURL)) {
+    throw new Error('APP_API_BASE_URL 必须为 HTTPS URL')
+  }
+  const mock = values.APP_MOCK === 'true'
+  if (mode === 'production' && mock) {
+    throw new Error('生产构建禁止启用 Mock')
+  }
+  return {
+    define: {
+      __APP_CONFIG__: JSON.stringify({
+        mode,
+        baseURL,
+        mock,
+      }),
+    },
+    resolve: {
+      alias: {
+        '@': fileURLToPath(new URL('./src', import.meta.url)),
+      },
+    },
+    weapp: {
+      srcRoot: 'src',
+      tailwindcss: {
+        rem2rpx: true,
+        cssEntries: ['src/app.css'],
+      },
+      autoImportComponents: {
+        resolvers: [TDesignResolver()],
+      },
+      generate: {
+        extensions: {
+          js: 'ts',
+          wxss: 'scss',
+        },
+        dirs: {
+          component: 'src/components',
+          page: 'src/pages',
+        },
+      },
+    },
+  }
+})

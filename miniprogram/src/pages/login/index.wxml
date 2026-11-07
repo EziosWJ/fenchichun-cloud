@@ -1,0 +1,1 @@
+<view class="page-container"><page-header title="登录" description="认证基础已准备，正式登录方式待确认" /><section-card title="登录服务待接入"><view class="muted mb-4">目前不调用微信或服务端登录接口。</view><t-button wx:if="{{mock}}" theme="primary" block bindtap="login">使用 Mock 会话体验</t-button><t-button wx:else disabled block>暂未开放登录</t-button></section-card></view>

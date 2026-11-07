@@ -1,0 +1,14 @@
+<view class="page-container">
+  <page-header title="工作台" description="汾池春 · 小程序基础工程" />
+  <section-card title="欢迎使用"><view class="mb-4 muted">{{label}}</view><status-tag text="{{mock ? 'Mock 环境' : '待接入'}}" theme="warning" /></section-card>
+  <loading-state wx:if="{{loading}}" />
+  <error-state wx:elif="{{error}}" text="{{error}}" bind:retry="retry" />
+  <empty-state wx:elif="{{!items.length}}" text="业务模块尚未接入" />
+  <section-card wx:else title="初始化状态"><view wx:for="{{items}}" wx:key="*this" class="mb-4">{{item}}</view></section-card>
+  <view class="flex flex-col gap-4">
+    <t-button theme="primary" block bindtap="login">进入登录</t-button>
+    <t-button block variant="outline" bindtap="profile">个人中心</t-button>
+    <t-button block variant="text" bindtap="ui">基础组件预览</t-button>
+  </view>
+  <view wx:if="{{mock}}" class="flex gap-4 mt-4"><t-button size="small" bindtap="empty">空状态</t-button><t-button size="small" bindtap="fail">错误状态</t-button><t-button size="small" bindtap="retry">恢复</t-button></view>
+</view>

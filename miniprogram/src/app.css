@@ -1,0 +1,39 @@
+@import 'tailwindcss/theme' layer(theme);
+@import 'tailwindcss/utilities' layer(utilities);
+@source './**/*.{wxml,ts}';
+
+page {
+  --td-brand-color: #8c3b2e;
+  --td-brand-color-light: #f7eeeb;
+  --app-background: #f5f6f8;
+  --app-text: #20242c;
+  --app-muted: #687080;
+  --app-space: 24rpx;
+
+  font-size: 28rpx;
+  line-height: 1.5;
+  color: var(--app-text);
+  background: var(--app-background);
+}
+
+.page-container {
+  padding: 32rpx 24rpx;
+  padding-bottom: calc(32rpx + env(safe-area-inset-bottom));
+}
+
+.muted {
+  color: var(--app-muted);
+}
+
+.title {
+  font-size: 44rpx;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.section {
+  padding: 28rpx;
+  margin-bottom: var(--app-space);
+  background: #fff;
+  border-radius: 20rpx;
+}

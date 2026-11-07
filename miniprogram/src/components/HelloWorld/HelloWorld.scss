@@ -1,0 +1,47 @@
+.hello-card {
+  display: flex;
+  flex-direction: column;
+  gap: 24rpx;
+  width: 640rpx;
+  padding: 32rpx;
+  margin: 48rpx auto;
+  background: #fff;
+  border-radius: 32rpx;
+  box-shadow: 0 20rpx 60rpx rgb(15 23 42 / 8%);
+}
+
+.hello-title {
+  font-size: 36rpx;
+  font-weight: 600;
+  color: #2563eb;
+}
+
+.hello-body {
+  font-size: 28rpx;
+  line-height: 1.6;
+  color: #334155;
+}
+
+.hello-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20rpx;
+}
+
+.hello-button {
+  padding: 16rpx 32rpx;
+  font-size: 26rpx;
+  color: #fff;
+  background: #2563eb;
+  border-radius: 999rpx;
+}
+
+.hello-button--ghost {
+  color: #1e293b;
+  background: #e2e8f0;
+}
+
+.hello-tip {
+  font-size: 24rpx;
+  color: #94a3b8;
+}

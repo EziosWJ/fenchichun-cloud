@@ -1,0 +1,30 @@
+name: Miniprogram
+on:
+  push:
+    paths: ['miniprogram/**', 'Taskfile.yml', '.github/workflows/miniprogram.yml']
+  pull_request:
+    paths: ['miniprogram/**', 'Taskfile.yml', '.github/workflows/miniprogram.yml']
+permissions:
+  contents: read
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: miniprogram
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24.22.1'
+          cache: npm
+          cache-dependency-path: miniprogram/package-lock.json
+      - run: npm install --global npm@11.19.0
+      - run: npm ci
+      - run: npm run check
+      - uses: actions/upload-artifact@v4
+        if: success()
+        with:
+          name: miniprogram-dist
+          path: miniprogram/dist
+          retention-days: 7

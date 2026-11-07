@@ -1,0 +1,5 @@
+.card-title {
+margin-bottom: 24rpx;
+font-size: 32rpx;
+font-weight: 600;
+}

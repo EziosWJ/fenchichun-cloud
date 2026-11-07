@@ -1,0 +1,1 @@
+<view class="page-container"><page-header title="个人中心" description="账号信息与业务权限待接入" /><section-card title="本地会话"><status-tag text="{{loggedIn ? '存在本地会话' : '未登录'}}" /><view class="muted mt-4">本地会话不代表服务端已认证。</view></section-card><t-button wx:if="{{loggedIn}}" block variant="outline" bindtap="logout">退出会话</t-button><empty-state wx:else text="暂无账号资料" /></view>
