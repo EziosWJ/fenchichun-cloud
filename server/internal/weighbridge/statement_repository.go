@@ -15,9 +15,13 @@ func (r *Repository) StatementParties(ctx context.Context, q StatementQuery) (St
 	if err != nil {
 		return StatementPartyPage{}, err
 	}
+	freshness, err := r.statementFreshness(ctx, q)
+	if err != nil {
+		return StatementPartyPage{}, err
+	}
 	page := StatementPartyPage{
 		Records: pageStatementParties(parties, q.Page, q.PageSize),
-		Total:   int64(len(parties)), Page: q.Page, PageSize: q.PageSize, Summary: summary,
+		Total:   int64(len(parties)), Page: q.Page, PageSize: q.PageSize, Summary: summary, Freshness: freshness,
 	}
 	if page.Records == nil {
 		page.Records = []StatementParty{}
@@ -38,6 +42,7 @@ func (r *Repository) statementPartiesAll(ctx context.Context, q StatementQuery) 
 		return nil, StatementPageSummary{}, err
 	}
 	parties, summary := aggregateStatementParties(tickets, q.PartyKeyword)
+	sortStatementParties(parties, q.SortBy, q.SortOrder)
 	return parties, summary, nil
 }
 
@@ -120,6 +125,13 @@ func (r *Repository) statementRows(ctx context.Context, q StatementQuery) ([]sta
 	if q.MaterialCode != "" {
 		query = query.Where("t.material_code = ?", q.MaterialCode)
 	}
+	if q.TicketKeyword != "" {
+		term := "%" + q.TicketKeyword + "%"
+		query = query.Where("(t.ticket_no LIKE ? OR t.plate LIKE ?)", term, term)
+	}
+	if q.Adjusted != nil {
+		query = query.Where("t.adjusted = ?", *q.Adjusted)
+	}
 	if q.From != nil {
 		query = query.Where("t.issued_at >= ?", *q.From)
 	}
@@ -131,6 +143,44 @@ func (r *Repository) statementRows(ctx context.Context, q StatementQuery) ([]sta
 		return nil, err
 	}
 	return rows, nil
+}
+
+func (r *Repository) statementFreshness(ctx context.Context, q StatementQuery) (StatementFreshness, error) {
+	query := r.db.WithContext(ctx).
+		Table("wb_cloud_ticket t").
+		Select("MIN(t.issued_at) AS history_start, MAX(t.issued_at) AS data_through, MAX(t.latest_received_at) AS last_received_at").
+		Where("t.status = ?", "valid")
+	if q.SiteCode != "" {
+		query = query.Where("t.site_code = ?", q.SiteCode)
+	}
+	if q.Direction != "" {
+		query = query.Where("t.direction = ?", q.Direction)
+	}
+	if q.MaterialCode != "" {
+		query = query.Where("t.material_code = ?", q.MaterialCode)
+	}
+	if q.TicketKeyword != "" {
+		term := "%" + q.TicketKeyword + "%"
+		query = query.Where("(t.ticket_no LIKE ? OR t.plate LIKE ?)", term, term)
+	}
+	if q.Adjusted != nil {
+		query = query.Where("t.adjusted = ?", *q.Adjusted)
+	}
+	if q.PartyKeyword != "" {
+		term := "%" + q.PartyKeyword + "%"
+		query = query.Where("(t.party_name ILIKE ? OR t.party_code ILIKE ?)", term, term)
+	}
+	if q.From != nil {
+		query = query.Where("t.issued_at >= ?", *q.From)
+	}
+	if q.Until != nil {
+		query = query.Where("t.issued_at < ?", *q.Until)
+	}
+	var freshness StatementFreshness
+	if err := query.Scan(&freshness).Error; err != nil {
+		return StatementFreshness{}, err
+	}
+	return freshness, nil
 }
 
 func (r *Repository) statementSiteName(ctx context.Context, siteCode string) string {

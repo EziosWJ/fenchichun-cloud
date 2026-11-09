@@ -128,10 +128,24 @@
   width: 100%;
 }
 
-.periodRange {
+.periodMeta {
+  display: flex;
   margin-left: auto;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+}
+
+.periodRange {
   color: var(--ant-color-text-tertiary);
   font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.freshness {
+  color: var(--ant-color-text-quaternary);
+  font-size: 11px;
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
@@ -416,9 +430,15 @@
     margin-left: 0;
   }
 
-  .periodRange {
+  .periodMeta {
     margin-left: 0;
     width: 100%;
+    align-items: flex-start;
+  }
+
+  .periodRange,
+  .freshness {
+    white-space: normal;
   }
 }
 

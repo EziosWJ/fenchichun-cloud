@@ -21,12 +21,19 @@ export interface StatementPageSummary extends StatementTotals {
   partyCount: number;
 }
 
+export interface StatementFreshness {
+  dataThrough: string | null;
+  lastReceivedAt: string | null;
+  historyStart: string | null;
+}
+
 export interface StatementPartyPage {
   records: StatementParty[];
   total: number;
   page: number;
   pageSize: number;
   summary: StatementPageSummary;
+  freshness?: StatementFreshness;
 }
 
 export interface StatementMaterial extends StatementTotals {

@@ -18,7 +18,22 @@ func statementQuery(c *gin.Context, detail bool) (StatementQuery, error) {
 		Page: 1, PageSize: 20,
 		SiteCode: strings.TrimSpace(c.Query("siteCode")), Direction: strings.TrimSpace(c.Query("direction")),
 		PartyCode: strings.TrimSpace(c.Query("partyCode")), PartyKeyword: strings.TrimSpace(c.Query("keyword")),
-		MaterialCode: strings.TrimSpace(c.Query("materialCode")),
+		MaterialCode:  strings.TrimSpace(c.Query("materialCode")),
+		TicketKeyword: strings.TrimSpace(c.Query("ticketKeyword")),
+		SortBy:        strings.TrimSpace(c.Query("sortBy")),
+		SortOrder:     strings.TrimSpace(c.Query("sortOrder")),
+	}
+	if value := strings.TrimSpace(c.Query("adjusted")); value != "" {
+		switch strings.ToLower(value) {
+		case "true", "1":
+			enabled := true
+			q.Adjusted = &enabled
+		case "false", "0":
+			disabled := false
+			q.Adjusted = &disabled
+		default:
+			return q, ErrInvalid
+		}
 	}
 	if value := c.Query("page"); value != "" {
 		n, err := strconv.Atoi(value)
@@ -54,6 +69,16 @@ func statementQuery(c *gin.Context, detail bool) (StatementQuery, error) {
 		return q, ErrInvalid
 	}
 	if q.Direction != "inbound" && q.Direction != "outbound" {
+		return q, ErrInvalid
+	}
+	switch q.SortBy {
+	case "", "net", "ticketCount", "adjustment", "issued":
+	default:
+		return q, ErrInvalid
+	}
+	switch q.SortOrder {
+	case "", "asc", "desc":
+	default:
 		return q, ErrInvalid
 	}
 	if detail && (strings.TrimSpace(q.SiteCode) == "" || strings.TrimSpace(q.PartyCode) == "") {

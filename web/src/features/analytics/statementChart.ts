@@ -8,6 +8,8 @@ export interface StatementChartPoint {
   label: string;
   range: string;
   secondaryLabel?: string;
+  startDate: string;
+  endDate: string;
   netMilliTonne: number;
   ticketCount: number;
 }
@@ -49,6 +51,8 @@ export function aggregateStatementDaily(
     let label: string;
     let range: string;
     let secondaryLabel: string | undefined;
+    let startDate: string;
+    let endDate: string;
 
     if (granularity === 'week') {
       const index = anchor.isValid() ? Math.max(0, Math.floor(date.diff(anchor, 'day') / 7)) : 0;
@@ -60,6 +64,8 @@ export function aggregateStatementDaily(
         periodEnd.isValid() && bucketEnd.isAfter(periodEnd, 'day') ? periodEnd : bucketEnd;
       key = bucketStart.format('YYYY-MM-DD');
       label = rangeStart.format('MM-DD');
+      startDate = rangeStart.format('YYYY-MM-DD');
+      endDate = rangeEnd.format('YYYY-MM-DD');
       const sameMonth =
         rangeStart.year() === rangeEnd.year() && rangeStart.month() === rangeEnd.month();
       secondaryLabel = rangeEnd.isSame(rangeStart, 'day')
@@ -67,16 +73,26 @@ export function aggregateStatementDaily(
         : `~${rangeEnd.format(sameMonth ? 'DD' : 'MM-DD')}`;
       range =
         rangeEnd.isSame(rangeStart, 'day')
-          ? rangeStart.format('YYYY-MM-DD')
-          : `${rangeStart.format('YYYY-MM-DD')} ~ ${rangeEnd.format('YYYY-MM-DD')}`;
+          ? startDate
+          : `${startDate} ~ ${endDate}`;
     } else if (granularity === 'month') {
+      const monthStart = date.startOf('month');
+      const monthEnd = date.endOf('month');
+      const rangeStart =
+        anchor.isValid() && monthStart.isBefore(anchor, 'day') ? anchor : monthStart;
+      const rangeEnd =
+        periodEnd.isValid() && monthEnd.isAfter(periodEnd, 'day') ? periodEnd : monthEnd;
       key = date.format('YYYY-MM');
       label = multiYear ? date.format('YY-MM') : date.format('M月');
+      startDate = rangeStart.format('YYYY-MM-DD');
+      endDate = rangeEnd.format('YYYY-MM-DD');
       range = date.format('YYYY-MM');
     } else {
       key = date.format('YYYY-MM-DD');
       label = date.format('MM-DD');
-      range = date.format('YYYY-MM-DD');
+      startDate = key;
+      endDate = key;
+      range = key;
     }
 
     const existing = groups.get(key);
@@ -89,6 +105,8 @@ export function aggregateStatementDaily(
         label,
         range,
         secondaryLabel,
+        startDate,
+        endDate,
         netMilliTonne: point.netMilliTonne,
         ticketCount: point.ticketCount,
       });

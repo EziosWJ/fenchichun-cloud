@@ -4,6 +4,7 @@ import (
 	"errors"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
 	"fenchichun.local/server/internal/audit"
@@ -138,6 +139,18 @@ func (h *Handler) parties(c *gin.Context) {
 
 func ticketQuery(c *gin.Context) (TicketQuery, error) {
 	q := TicketQuery{Page: 1, PageSize: 10, SiteCode: c.Query("siteCode"), Direction: c.Query("direction"), Status: c.Query("status"), Keyword: c.Query("keyword"), MaterialCode: c.Query("materialCode"), PartyCode: c.Query("partyCode")}
+	if s := strings.TrimSpace(c.Query("adjusted")); s != "" {
+		switch strings.ToLower(s) {
+		case "true", "1":
+			value := true
+			q.Adjusted = &value
+		case "false", "0":
+			value := false
+			q.Adjusted = &value
+		default:
+			return q, ErrInvalid
+		}
+	}
 	if s := c.Query("page"); s != "" {
 		n, err := strconv.Atoi(s)
 		if err != nil {

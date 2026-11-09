@@ -258,6 +258,28 @@
   gap: 12px;
 }
 
+.materialRowClickable {
+  cursor: pointer;
+  border-radius: 6px;
+  transition: background 120ms ease;
+}
+
+.materialRowClickable:hover,
+.materialRowClickable:focus-visible {
+  background: var(--ant-color-fill-quaternary);
+  outline: none;
+}
+
+.materialRowActive {
+  background: var(--ant-color-primary-bg);
+}
+
+.filterHint {
+  margin: 10px 0 0;
+  color: var(--ant-color-text-tertiary);
+  font-size: 12px;
+}
+
 .materialName {
   display: flex;
   min-width: 0;
@@ -313,6 +335,40 @@
   margin-top: 24px;
   padding-top: 20px;
   border-top: 1px solid var(--ant-color-border-secondary);
+  scroll-margin-top: 120px;
+}
+
+.ticketFilters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: var(--ant-color-fill-quaternary);
+}
+
+.ticketSearch {
+  width: 170px;
+}
+
+.ticketSelect {
+  width: 160px;
+}
+
+.ticketSelectSmall {
+  width: 112px;
+}
+
+.ticketRange {
+  width: 190px;
+}
+
+.ticketDetail {
+  padding: 4px 8px 8px;
+  border-radius: 8px;
+  background: var(--ant-color-fill-quaternary);
 }
 
 .ticketTable :global(.ant-table-thead > tr > th) {
@@ -354,6 +410,13 @@
   }
 
   .actions {
+    width: 100%;
+  }
+
+  .ticketSearch,
+  .ticketSelect,
+  .ticketSelectSmall,
+  .ticketRange {
     width: 100%;
   }
 }
@@ -401,7 +464,9 @@
     print-color-adjust: exact;
   }
 
-  :global(body.statement-printing) .printArea .noPrint {
+  :global(body.statement-printing) .printArea .noPrint,
+  :global(body.statement-printing) .printArea .ticketFilters,
+  :global(body.statement-printing) .printArea .filterHint {
     display: none !important;
   }
 
