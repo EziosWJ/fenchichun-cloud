@@ -1,28 +1,124 @@
-<view class="screen">
+<view class="screen {{action && !waiting ? 'screen-with-action' : ''}}">
   <loading-state wx:if="{{loading}}" text="正在加载流转单" />
   <error-state wx:elif="{{error}}" text="{{error}}" bind:retry="load" />
   <block wx:elif="{{trip}}">
     <view class="heading-row"><text class="plate">{{trip.plate}}</text><text class="status {{waiting ? 'status-waiting' : ''}}">{{status}}</text></view>
     <view class="trip-summary">{{trip.site}}　{{trip.material}}</view>
+    <view class="subtle">供应商：{{trip.supplier || '待核实'}}</view>
     <view class="subtle">流转单号：{{trip.id}}</view>
     <view class="subtle">登记时间：{{trip.createdAt}}</view>
     <view class="notice trip-notice"><view class="notice-title">{{trip.exitedAt ? '本趟已完成' : '下一步'}}</view><view>{{next}}</view></view>
-    <view wx:if="{{action}}" class="button-space"><t-button block size="large" theme="primary" disabled="{{confirming}}" bindtap="act">{{actionLabel}}</t-button></view>
-    <view class="detail-card">
-      <view class="heading-row"><text class="section-heading">登记信息</text><text wx:if="{{editable}}" class="text-link" bindtap="edit">更正登记</text></view>
-      <view class="detail-row"><text class="detail-label">供应商</text><text class="detail-value">{{trip.supplier || '待核实'}}</text></view>
-      <view class="detail-row"><text class="detail-label">司机 / 电话</text><text class="detail-value">{{trip.driver || '未填写'}} / {{trip.phone || '未填写'}}</text></view>
-      <view class="detail-row"><text class="detail-label">合同编号</text><text class="detail-value">{{trip.contract || '未填写'}}</text></view>
-      <view class="detail-row"><text class="detail-label">备注</text><text class="detail-value">{{trip.note || '未填写'}}</text></view>
+    <view wx:if="{{trip.inspection && trip.inspection.conclusion === 'reject'}}" class="rejection-summary">{{inspection}}：{{trip.inspection.reason || '未填写拒收原因'}}</view>
+
+    <view class="detail-section">
+      <view class="section-toggle" data-section="registration" bindtap="toggleSection" aria-role="button" aria-expanded="{{expanded.registration}}">
+        <view class="section-toggle-inner"><text class="section-heading">登记信息</text><view class="section-end"><text>{{editable ? '查看 / 更正' : '查看'}}</text><text class="chevron">{{expanded.registration ? '⌃' : '›'}}</text></view></view>
+      </view>
+      <view wx:if="{{expanded.registration}}" class="section-content">
+        <view class="record-sheet">
+          <view class="record-header"><view><view class="record-title">车辆登记信息</view><view class="record-caption">流转单号 {{trip.id}}</view></view><text class="record-badge">本趟登记</text></view>
+          <view class="record-row"><text class="record-label">车牌号码</text><text class="record-value">{{trip.plate}}</text></view>
+          <view class="record-row"><text class="record-label">厂区 / 货品</text><text class="record-value">{{trip.site}} / {{trip.material}}</text></view>
+          <view class="record-row"><text class="record-label">供应商</text><text class="record-value">{{trip.supplier || '待核实'}}</text></view>
+          <view class="record-row"><text class="record-label">司机</text><text class="record-value">{{trip.driver || '未填写'}}</text></view>
+          <view class="record-row"><text class="record-label">联系电话</text><text class="record-value">{{trip.phone || '未填写'}}</text></view>
+          <view class="record-row"><text class="record-label">合同编号</text><text class="record-value">{{trip.contract || '未填写'}}</text></view>
+          <view class="record-row"><text class="record-label">登记时间</text><text class="record-value">{{trip.createdAt}}</text></view>
+          <view class="record-row"><text class="record-label">备注</text><text class="record-value">{{trip.note || '未填写'}}</text></view>
+          <view wx:if="{{editable}}" class="record-action"><text class="text-link" bindtap="edit">更正登记 ›</text></view>
+        </view>
+      </view>
     </view>
-    <view class="detail-card">
-      <view class="section-heading">检验结果</view>
-      <view class="detail-row"><text class="detail-label">检验方式 / 结论</text><text class="detail-value">{{trip.method === 'lab' ? '化验' : '目测'}} / {{inspection}}</text></view>
-      <block wx:if="{{trip.inspection}}"><view wx:if="{{trip.inspection.values}}" class="detail-row"><text class="detail-label">检测数据</text><text class="detail-value">{{trip.inspection.values}}</text></view><view wx:if="{{trip.inspection.reason}}" class="detail-row"><text class="detail-label">拒收原因</text><text class="detail-value">{{trip.inspection.reason}}</text></view><view class="detail-row"><text class="detail-label">确认人 / 时间</text><text class="detail-value">{{trip.inspection.operator}} {{trip.inspection.at}}</text></view></block>
+
+    <view class="detail-section">
+      <view class="section-toggle" data-section="inspection" bindtap="toggleSection" aria-role="button" aria-expanded="{{expanded.inspection}}">
+        <view class="section-toggle-inner"><text class="section-heading">检验结果</text><view class="section-end"><text>{{inspection}}</text><text class="chevron">{{expanded.inspection ? '⌃' : '›'}}</text></view></view>
+      </view>
+      <view wx:if="{{expanded.inspection}}" class="section-content">
+        <view class="record-sheet">
+          <view class="record-header"><view><view class="record-title">{{trip.method === 'lab' ? '化验结果' : '目测结果'}}</view><view class="record-caption">{{trip.plate}} · {{trip.material}}</view></view><text class="record-badge {{trip.inspection && trip.inspection.conclusion === 'reject' ? 'record-badge-reject' : ''}}">{{inspection}}</text></view>
+          <view class="record-row"><text class="record-label">检验方式</text><text class="record-value">{{trip.method === 'lab' ? '化验' : '目测'}}</text></view>
+          <view class="record-row"><text class="record-label">检验结论</text><text class="record-value">{{trip.inspection ? (trip.inspection.conclusion === 'accept' ? '接收' : '拒收') : '待确认'}}</text></view>
+          <block wx:if="{{trip.inspection}}">
+            <view wx:if="{{trip.inspection.values}}" class="record-note"><view class="record-note-label">检测数据</view><view>{{trip.inspection.values}}</view></view>
+            <view wx:if="{{trip.inspection.reason}}" class="record-note record-note-reject"><view class="record-note-label">拒收原因</view><view>{{trip.inspection.reason}}</view></view>
+            <view class="record-row"><text class="record-label">确认人</text><text class="record-value">{{trip.inspection.operator}}</text></view>
+            <view class="record-row"><text class="record-label">确认时间</text><text class="record-value">{{trip.inspection.at}}</text></view>
+          </block>
+          <view wx:else class="record-empty">{{trip.method === 'lab' ? '等待化验员确认结果' : '等待库管确认目测结果'}}</view>
+        </view>
+      </view>
     </view>
-    <view class="detail-card"><view class="section-heading">卸粮信息</view><view class="detail-row"><text class="detail-label">实际卸粮地点</text><text class="detail-value">{{trip.unload ? trip.unload.location : '未确认'}}</text></view><view wx:if="{{trip.unload}}" class="detail-row"><text class="detail-label">确认时间</text><text class="detail-value">{{trip.unload.at}}</text></view></view>
-    <view class="detail-card"><view class="section-heading">正式磅单</view><view wx:if="{{!trip.ticket}}" class="subtle">{{trip.ticketAvailable ? '磅单已同步，请核对并关联' : (trip.unload ? '尚未关联；等待同步不代表现场没有称重' : '尚未关联')}}</view><block wx:else><view class="detail-row"><text class="detail-label">磅单号</text><text class="detail-value">{{trip.ticket.id}}</text></view><view class="detail-row"><text class="detail-label">首磅 / 回磅</text><text class="detail-value">{{trip.ticket.firstAt}} / {{trip.ticket.secondAt}}</text></view><view class="detail-row"><text class="detail-label">毛重 / 皮重</text><text class="detail-value">{{trip.ticket.gross}} / {{trip.ticket.tare}}</text></view><view class="detail-row"><text class="detail-label">实际净重</text><text class="detail-value">{{trip.ticket.net || '未提供'}}</text></view><view class="detail-row"><text class="detail-label">扣减后重量</text><text class="detail-value">{{trip.ticket.deducted || '未提供'}}</text></view></block></view>
-    <view class="detail-card"><view class="section-heading">出门证</view><view wx:if="{{!trip.permit}}" class="subtle">{{trip.inspection && trip.inspection.conclusion === 'reject' ? '拒收退厂无需出门证' : '尚未开具'}}</view><block wx:else><view class="detail-row"><text class="detail-label">出门证号</text><text class="detail-value">{{trip.permit.id}}</text></view><view class="detail-row"><text class="detail-label">审批状态</text><text class="detail-value">{{trip.permit.approvedAt ? '已审批' : '待审批'}}</text></view><view class="detail-row"><text class="detail-label">开具 / 审批</text><text class="detail-value">{{trip.permit.issuedAt}} / {{trip.permit.approvedAt || '未审批'}}</text></view></block></view>
-    <view class="detail-card"><view class="section-heading">过程记录</view><view wx:for="{{events}}" wx:key="key" class="event-row"><view>{{item.text}}</view><view class="subtle">{{item.operator}}　{{item.at}}</view></view></view>
+
+    <view class="detail-section">
+      <view class="section-toggle" data-section="unload" bindtap="toggleSection" aria-role="button" aria-expanded="{{expanded.unload}}">
+        <view class="section-toggle-inner"><text class="section-heading">卸粮信息</text><view class="section-end"><text>{{trip.unload ? '已确认' : (trip.inspection && trip.inspection.conclusion === 'reject' ? '拒收无需卸粮' : '待确认')}}</text><text class="chevron">{{expanded.unload ? '⌃' : '›'}}</text></view></view>
+      </view>
+      <view wx:if="{{expanded.unload}}" class="section-content">
+        <view class="record-sheet">
+          <view class="record-header"><view><view class="record-title">现场卸粮确认</view><view class="record-caption">{{trip.plate}} · {{trip.site}}</view></view><text class="record-badge">{{trip.unload ? '已确认' : (trip.inspection && trip.inspection.conclusion === 'reject' ? '无需卸粮' : '待确认')}}</text></view>
+          <view class="record-row"><text class="record-label">货品</text><text class="record-value">{{trip.material}}</text></view>
+          <view class="record-row"><text class="record-label">实际卸粮地点</text><text class="record-value">{{trip.unload ? trip.unload.location : '未确认'}}</text></view>
+          <view wx:if="{{trip.unload}}" class="record-row"><text class="record-label">确认时间</text><text class="record-value">{{trip.unload.at}}</text></view>
+          <view wx:else class="record-empty">{{trip.inspection && trip.inspection.conclusion === 'reject' ? '本趟拒收退厂，无需确认卸粮' : '现场首磅及卸粮完成后，由库管确认实际地点'}}</view>
+        </view>
+      </view>
+    </view>
+
+    <view class="detail-section">
+      <view class="section-toggle" data-section="ticket" bindtap="toggleSection" aria-role="button" aria-expanded="{{expanded.ticket}}">
+        <view class="section-toggle-inner"><text class="section-heading">正式磅单</text><view class="section-end"><text>{{trip.ticket ? '已关联' : (trip.inspection && trip.inspection.conclusion === 'reject' ? '拒收无需关联' : (trip.ticketAvailable ? '待关联' : '未关联'))}}</text><text class="chevron">{{expanded.ticket ? '⌃' : '›'}}</text></view></view>
+      </view>
+      <view wx:if="{{expanded.ticket}}" class="section-content">
+        <view class="record-sheet">
+          <view class="record-header"><view><view class="record-title">正式过磅单</view><view class="record-caption">{{trip.ticket ? '磅单号 ' + trip.ticket.id : '磅单关联信息'}}</view></view><text class="record-badge">{{trip.ticket ? '已关联' : (trip.inspection && trip.inspection.conclusion === 'reject' ? '无需关联' : (trip.ticketAvailable ? '待关联' : '未关联'))}}</text></view>
+          <view wx:if="{{!trip.ticket}}" class="record-empty">{{trip.inspection && trip.inspection.conclusion === 'reject' ? '本趟拒收退厂，无需关联磅单' : (trip.ticketAvailable ? '磅单已同步，请核对并关联' : (trip.unload ? '尚未关联；等待同步不代表现场没有称重' : '尚未关联'))}}</view>
+          <view wx:if="{{!trip.ticket && action === 'ticket' && waiting}}" class="record-action"><text class="text-link" bindtap="act">查看磅单候选 ›</text></view>
+          <block wx:if="{{trip.ticket}}">
+            <view class="record-row"><text class="record-label">车牌 / 厂区</text><text class="record-value">{{trip.ticket.plate}} / {{trip.ticket.site}}</text></view>
+            <view class="record-row"><text class="record-label">货品 / 供应商</text><text class="record-value">{{trip.ticket.material}} / {{trip.ticket.supplier || '未提供'}}</text></view>
+            <view class="record-row"><text class="record-label">首磅时间</text><text class="record-value">{{trip.ticket.firstAt || '未提供'}}</text></view>
+            <view class="record-row"><text class="record-label">回磅时间</text><text class="record-value">{{trip.ticket.secondAt || '未提供'}}</text></view>
+            <view class="record-row"><text class="record-label">毛重</text><text class="record-value">{{trip.ticket.gross || '未提供'}}</text></view>
+            <view class="record-row"><text class="record-label">皮重</text><text class="record-value">{{trip.ticket.tare || '未提供'}}</text></view>
+            <view class="record-row record-row-emphasis"><text class="record-label">实际净重</text><text class="record-value">{{trip.ticket.net || '未提供'}}</text></view>
+            <view class="record-row"><text class="record-label">扣减后重量</text><text class="record-value">{{trip.ticket.deducted || '未提供'}}</text></view>
+          </block>
+        </view>
+      </view>
+    </view>
+
+    <view class="detail-section">
+      <view class="section-toggle" data-section="permit" bindtap="toggleSection" aria-role="button" aria-expanded="{{expanded.permit}}">
+        <view class="section-toggle-inner"><text class="section-heading">出门证</text><view class="section-end"><text>{{trip.permit ? (trip.permit.approvedAt ? '已审批' : '待审批') : (trip.inspection && trip.inspection.conclusion === 'reject' ? '拒收无需开证' : '未开具')}}</text><text class="chevron">{{expanded.permit ? '⌃' : '›'}}</text></view></view>
+      </view>
+      <view wx:if="{{expanded.permit}}" class="section-content">
+        <view class="record-sheet">
+          <view class="record-header"><view><view class="record-title">出门证记录</view><view class="record-caption">{{trip.plate}} · {{trip.site}}</view></view><text class="record-badge">{{trip.permit ? (trip.permit.approvedAt ? '已审批' : '待审批') : (trip.inspection && trip.inspection.conclusion === 'reject' ? '无需开证' : '未开具')}}</text></view>
+          <view wx:if="{{!trip.permit}}" class="record-empty">{{trip.inspection && trip.inspection.conclusion === 'reject' ? '拒收退厂无需出门证，门卫核验拒收依据后确认实际出厂' : '尚未开具，满足条件后可办理'}}</view>
+          <block wx:else>
+            <view class="record-row"><text class="record-label">出门证号</text><text class="record-value">{{trip.permit.id}}</text></view>
+            <view class="record-row"><text class="record-label">审批状态</text><text class="record-value">{{trip.permit.approvedAt ? '已审批' : '待审批'}}</text></view>
+            <view class="record-row"><text class="record-label">开具时间</text><text class="record-value">{{trip.permit.issuedAt}}</text></view>
+            <view class="record-row"><text class="record-label">审批时间</text><text class="record-value">{{trip.permit.approvedAt || '未审批'}}</text></view>
+            <view class="record-footnote">出门证审批完成后，仍需门卫确认实际出厂</view>
+          </block>
+        </view>
+      </view>
+    </view>
+
+    <view class="detail-section">
+      <view class="section-toggle" data-section="events" bindtap="toggleSection" aria-role="button" aria-expanded="{{expanded.events}}">
+        <view class="section-toggle-inner"><text class="section-heading">过程记录</text><view class="section-end"><text>查看</text><text class="chevron">{{expanded.events ? '⌃' : '›'}}</text></view></view>
+      </view>
+      <view wx:if="{{expanded.events}}" class="section-content">
+        <view class="record-sheet">
+          <view class="record-header"><view><view class="record-title">流转过程记录</view><view class="record-caption">{{trip.id}}</view></view><text class="record-badge">{{events.length}} 条记录</text></view>
+          <view wx:if="{{!events.length}}" class="record-empty">暂无过程记录</view>
+          <view wx:for="{{events}}" wx:key="key" class="event-row"><view class="event-title">{{item.text}}</view><view class="record-caption">{{item.operator}}　{{item.at}}</view></view>
+        </view>
+      </view>
+    </view>
+    <view wx:if="{{action && !waiting}}" class="fixed-action"><t-button block size="large" theme="primary" disabled="{{confirming}}" bindtap="act">{{actionLabel}}</t-button></view>
   </block>
 </view>

@@ -31,6 +31,14 @@ Page({
     actionLabel: '',
     editable: false,
     inspection: '',
+    expanded: {
+      registration: false,
+      inspection: false,
+      unload: false,
+      ticket: false,
+      permit: false,
+      events: false,
+    },
     confirming: false,
   },
   onLoad(query: Record<string, string | undefined>) {
@@ -70,6 +78,13 @@ Page({
     wx.navigateTo({
       url: `${routes.registration}?id=${encodeURIComponent(this.data.id)}`,
     })
+  },
+  toggleSection(event: WechatMiniprogram.BaseEvent) {
+    const section = event.currentTarget.dataset.section as keyof typeof this.data.expanded
+    if (!(section in this.data.expanded)) {
+      return
+    }
+    this.setData({ [`expanded.${section}`]: !this.data.expanded[section] })
   },
   act() {
     const trip = this.data.trip

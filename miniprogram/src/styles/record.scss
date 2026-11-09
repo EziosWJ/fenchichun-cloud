@@ -1,0 +1,106 @@
+.record-sheet {
+  box-sizing: border-box;
+  padding: 24rpx;
+  background: #fafbfc;
+  border: 1rpx solid #e8eaed;
+  border-radius: 12rpx;
+}
+
+.record-header {
+  display: flex;
+  gap: 20rpx;
+  align-items: flex-start;
+  justify-content: space-between;
+  padding-bottom: 20rpx;
+  margin-bottom: 4rpx;
+  border-bottom: 1rpx solid #dfe3e7;
+}
+
+.record-title {
+  font-size: 29rpx;
+  font-weight: 650;
+  color: #20242c;
+}
+
+.record-caption {
+  margin-top: 5rpx;
+  font-size: 23rpx;
+  color: #687080;
+  overflow-wrap: anywhere;
+}
+
+.record-badge {
+  flex: none;
+  max-width: 45%;
+  padding: 4rpx 12rpx;
+  font-size: 23rpx;
+  color: #654238;
+  text-align: right;
+  background: #f4ebe7;
+  border-radius: 6rpx;
+}
+
+.record-badge-reject {
+  color: #a1322d;
+  background: #f9e9e7;
+}
+
+.record-row {
+  display: flex;
+  gap: 24rpx;
+  align-items: flex-start;
+  justify-content: space-between;
+  padding: 14rpx 0;
+  font-size: 26rpx;
+  border-bottom: 1rpx solid #eceef0;
+}
+
+.record-label {
+  flex: none;
+  color: #687080;
+}
+
+.record-value {
+  min-width: 0;
+  color: #20242c;
+  text-align: right;
+  overflow-wrap: anywhere;
+}
+
+.record-row-emphasis .record-value {
+  font-weight: 650;
+  color: #8c3b2e;
+}
+
+.record-note {
+  padding: 16rpx;
+  margin: 16rpx 0 4rpx;
+  font-size: 26rpx;
+  overflow-wrap: anywhere;
+  background: #fff;
+  border-left: 4rpx solid #c6b6af;
+}
+
+.record-note-reject {
+  color: #90342e;
+  background: #fdf4f2;
+  border-left-color: #ad3932;
+}
+
+.record-note-label {
+  margin-bottom: 6rpx;
+  font-size: 23rpx;
+  color: #687080;
+}
+
+.record-empty,
+.record-footnote {
+  padding-top: 18rpx;
+  font-size: 24rpx;
+  color: #687080;
+}
+
+.record-action {
+  padding-top: 14rpx;
+  text-align: right;
+}

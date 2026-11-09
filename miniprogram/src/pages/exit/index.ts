@@ -16,6 +16,7 @@ Page({
     eligible: false,
     type: '',
     inspection: '',
+    evidenceExpanded: false,
     confirming: false,
   },
   onLoad(query: Record<string, string | undefined>) {
@@ -44,6 +45,9 @@ Page({
     finally {
       this.setData({ loading: false })
     }
+  },
+  toggleEvidence() {
+    this.setData({ evidenceExpanded: !this.data.evidenceExpanded })
   },
   confirmExit() {
     const trip = this.data.trip

@@ -1,4 +1,4 @@
-<view class="screen">
+<view class="screen {{eligible ? 'screen-with-action' : ''}}">
   <loading-state wx:if="{{loading}}" text="正在加载出厂依据" />
   <error-state wx:elif="{{error}}" text="{{error}}" bind:retry="load" />
   <block wx:elif="{{trip}}">
@@ -6,13 +6,44 @@
     <view class="exit-summary">{{trip.site}}　{{trip.material}}</view>
     <view class="subtle">流转单号：{{trip.id}}</view><view class="subtle">登记时间：{{trip.createdAt}}</view>
     <view class="notice exit-notice">{{trip.exitedAt ? '车辆已实际出厂，不能再次确认。' : (eligible ? '请核对现场车辆与下方出厂依据。' : '出厂依据尚不满足，请刷新并核对。')}}</view>
-    <view class="detail-card"><view class="section-heading">出厂依据</view>
-      <block wx:if="{{type === '拒收退厂'}}"><view class="detail-row"><text class="detail-label">拒收结论</text><text class="detail-value">{{inspection}}</text></view><view class="detail-row"><text class="detail-label">拒收原因</text><text class="detail-value">{{trip.inspection.reason}}</text></view><view class="detail-row"><text class="detail-label">确认人 / 时间</text><text class="detail-value">{{trip.inspection.operator}} {{trip.inspection.at}}</text></view><view wx:if="{{trip.inspection.values}}" class="detail-row"><text class="detail-label">检测数据</text><text class="detail-value">{{trip.inspection.values}}</text></view></block>
-      <block wx:else><view class="detail-row"><text class="detail-label">出门证</text><text class="detail-value">{{trip.permit ? trip.permit.id : '尚未开具'}}</text></view><view class="detail-row"><text class="detail-label">审批状态</text><text class="detail-value">{{trip.permit && trip.permit.approvedAt ? '已审批' : '未审批'}}</text></view><view wx:if="{{trip.permit && trip.permit.approvedAt}}" class="detail-row"><text class="detail-label">审批时间</text><text class="detail-value">{{trip.permit.approvedAt}}</text></view></block>
-      <view class="detail-row"><text class="detail-label">供应商</text><text class="detail-value">{{trip.supplier || '待核实'}}</text></view>
+    <view class="record-sheet gate-basis"><view class="record-header"><view><view class="record-title">出厂核验依据</view><view class="record-caption">流转单号 {{trip.id}}</view></view><text class="record-badge {{type === '拒收退厂' ? 'record-badge-reject' : ''}}">{{type}}</text></view>
+      <block wx:if="{{type === '拒收退厂'}}">
+        <view class="record-row"><text class="record-label">拒收结论</text><text class="record-value">{{inspection}}</text></view>
+        <view class="record-note record-note-reject"><view class="record-note-label">拒收原因</view><view>{{trip.inspection.reason}}</view></view>
+        <view class="record-row"><text class="record-label">确认人</text><text class="record-value">{{trip.inspection.operator}}</text></view>
+        <view class="record-row"><text class="record-label">确认时间</text><text class="record-value">{{trip.inspection.at}}</text></view>
+        <view wx:if="{{trip.inspection.values}}" class="record-note"><view class="record-note-label">检测数据</view><view>{{trip.inspection.values}}</view></view>
+      </block>
+      <block wx:else>
+        <view class="record-row"><text class="record-label">出门证号</text><text class="record-value">{{trip.permit ? trip.permit.id : '尚未开具'}}</text></view>
+        <view class="record-row"><text class="record-label">审批状态</text><text class="record-value">{{trip.permit && trip.permit.approvedAt ? '已审批' : '未审批'}}</text></view>
+        <view wx:if="{{trip.permit && trip.permit.approvedAt}}" class="record-row"><text class="record-label">审批时间</text><text class="record-value">{{trip.permit.approvedAt}}</text></view>
+      </block>
+      <view class="record-row"><text class="record-label">供应商</text><text class="record-value">{{trip.supplier || '待核实'}}</text></view>
     </view>
-    <view wx:if="{{type === '正常出厂'}}" class="detail-card"><view class="section-heading">检验与磅单</view><view class="detail-row"><text class="detail-label">检验结果</text><text class="detail-value">{{inspection}}</text></view><view wx:if="{{trip.inspection && trip.inspection.values}}" class="detail-row"><text class="detail-label">检测数据</text><text class="detail-value">{{trip.inspection.values}}</text></view><view class="detail-row"><text class="detail-label">实际卸粮地点</text><text class="detail-value">{{trip.unload ? trip.unload.location : '未确认'}}</text></view><view class="detail-row"><text class="detail-label">磅单</text><text class="detail-value">{{trip.ticket ? trip.ticket.id : '未关联'}}</text></view><block wx:if="{{trip.ticket}}"><view class="detail-row"><text class="detail-label">首磅 / 回磅</text><text class="detail-value">{{trip.ticket.firstAt}} / {{trip.ticket.secondAt}}</text></view><view class="detail-row"><text class="detail-label">毛重 / 皮重</text><text class="detail-value">{{trip.ticket.gross}} / {{trip.ticket.tare}}</text></view><view class="detail-row"><text class="detail-label">实际净重</text><text class="detail-value">{{trip.ticket.net || '未提供'}}</text></view><view class="detail-row"><text class="detail-label">扣减后重量</text><text class="detail-value">{{trip.ticket.deducted || '未提供'}}</text></view></block></view>
+    <view wx:if="{{type === '正常出厂'}}" class="evidence-section">
+      <view class="evidence-toggle" bindtap="toggleEvidence" aria-role="button" aria-expanded="{{evidenceExpanded}}">
+        <view class="evidence-toggle-inner"><view class="evidence-title"><view class="section-heading">检验与磅单</view><view class="subtle">{{inspection}} · {{trip.ticket ? '磅单已关联' : '磅单未关联'}}</view></view><view class="evidence-end"><text>{{evidenceExpanded ? '收起' : '查看完整依据'}}</text><text class="chevron">{{evidenceExpanded ? '⌃' : '›'}}</text></view></view>
+      </view>
+      <view wx:if="{{evidenceExpanded}}" class="evidence-content">
+        <view class="record-sheet">
+          <view class="record-header"><view><view class="record-title">检验与过磅明细</view><view class="record-caption">{{trip.plate}} · {{trip.material}}</view></view></view>
+          <view class="record-row"><text class="record-label">检验结果</text><text class="record-value">{{inspection}}</text></view>
+          <view wx:if="{{trip.inspection && trip.inspection.values}}" class="record-note"><view class="record-note-label">检测数据</view><view>{{trip.inspection.values}}</view></view>
+          <view class="record-row"><text class="record-label">实际卸粮地点</text><text class="record-value">{{trip.unload ? trip.unload.location : '未确认'}}</text></view>
+          <view class="record-row"><text class="record-label">磅单号</text><text class="record-value">{{trip.ticket ? trip.ticket.id : '未关联'}}</text></view>
+          <block wx:if="{{trip.ticket}}">
+            <view class="record-row"><text class="record-label">首磅时间</text><text class="record-value">{{trip.ticket.firstAt || '未提供'}}</text></view>
+            <view class="record-row"><text class="record-label">回磅时间</text><text class="record-value">{{trip.ticket.secondAt || '未提供'}}</text></view>
+            <view class="record-row"><text class="record-label">毛重</text><text class="record-value">{{trip.ticket.gross || '未提供'}}</text></view>
+            <view class="record-row"><text class="record-label">皮重</text><text class="record-value">{{trip.ticket.tare || '未提供'}}</text></view>
+            <view class="record-row record-row-emphasis"><text class="record-label">实际净重</text><text class="record-value">{{trip.ticket.net || '未提供'}}</text></view>
+            <view class="record-row"><text class="record-label">扣减后重量</text><text class="record-value">{{trip.ticket.deducted || '未提供'}}</text></view>
+          </block>
+        </view>
+      </view>
+    </view>
     <view wx:if="{{trip.exitedAt}}" class="detail-card"><view class="detail-row"><text class="detail-label">实际出厂时间</text><text class="detail-value">{{trip.exitedAt}}</text></view></view>
-    <view wx:if="{{eligible}}" class="form-footer"><t-button block size="large" theme="primary" disabled="{{confirming}}" bindtap="confirmExit">确认实际出厂</t-button></view>
+    <view wx:if="{{eligible}}" class="fixed-action"><t-button block size="large" theme="primary" disabled="{{confirming}}" bindtap="confirmExit">确认实际出厂</t-button></view>
   </block>
 </view>
