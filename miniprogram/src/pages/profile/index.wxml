@@ -1,1 +1,13 @@
-<view class="page-container"><page-header title="个人中心" description="账号信息与业务权限待接入" /><section-card title="本地会话"><status-tag text="{{loggedIn ? '存在本地会话' : '未登录'}}" /><view class="muted mt-4">本地会话不代表服务端已认证。</view></section-card><t-button wx:if="{{loggedIn}}" block variant="outline" bindtap="logout">退出会话</t-button><empty-state wx:else text="暂无账号资料" /></view>
+<view class="screen">
+  <view class="demo-note">演示模式 · 数据仅保存在本机</view>
+  <view class="screen-title profile-title">我的</view>
+  <loading-state wx:if="{{loading}}" text="正在加载账号" />
+  <error-state wx:elif="{{error}}" text="{{error}}" bind:retry="load" />
+  <block wx:else>
+    <view class="profile-person"><view class="profile-avatar">员</view><view><view class="profile-name">{{name}}</view><view class="subtle">演示账号 {{account}}</view></view></view>
+    <view class="detail-card"><view class="detail-row"><text class="detail-label">当前岗位</text><text>{{role}}</text></view><view class="detail-row"><text class="detail-label">可用岗位</text><text>{{roles}}</text></view></view>
+    <view class="profile-link" bindtap="simulation"><view><view>演示控制台</view><view class="subtle">模拟化验结果和磅单同步</view></view><text>›</text></view>
+    <view class="profile-link" bindtap="reset"><view><view>恢复初始演示数据</view><view class="subtle">清除本机演示操作并恢复预置场景</view></view><text>›</text></view>
+    <view class="logout"><t-button block variant="outline" bindtap="logout">退出登录</t-button></view>
+  </block>
+</view>

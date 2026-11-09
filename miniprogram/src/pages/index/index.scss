@@ -1,1 +1,35 @@
-/* empty */
+.workbench-heading {
+  margin: 32rpx 0 30rpx;
+}
+
+.workbench-subtitle {
+  margin-top: 4rpx;
+}
+
+.list-heading {
+  margin: 40rpx 0 4rpx;
+}
+
+.all-link {
+  padding: 32rpx 0;
+  color: #8c3b2e;
+  text-align: center;
+}
+
+.filter-tabs {
+  display: flex;
+  gap: 58rpx;
+  margin-top: 26rpx;
+  border-bottom: 1rpx solid #edf0f2;
+}
+
+.filter-tab {
+  padding: 17rpx 2rpx;
+  color: #687080;
+}
+
+.filter-tab.selected {
+  font-weight: 600;
+  color: #8c3b2e;
+  border-bottom: 4rpx solid #8c3b2e;
+}

@@ -1,1 +1,23 @@
-<view class="page-container"><page-header title="登录" description="认证基础已准备，正式登录方式待确认" /><section-card title="登录服务待接入"><view class="muted mb-4">目前不调用微信或服务端登录接口。</view><t-button wx:if="{{mock}}" theme="primary" block bindtap="login">使用 Mock 会话体验</t-button><t-button wx:else disabled block>暂未开放登录</t-button></section-card></view>
+<view class="login-page">
+  <view class="brand"><view class="brand-mark"></view><text>汾池春</text></view>
+  <view class="login-title">员工登录</view>
+  <view class="login-subtitle">使用员工账号和密码进入工作台</view>
+  <view wx:if="{{mock}}" class="demo-note login-note">演示模式 · 数据仅保存在本机</view>
+  <view wx:else class="notice login-note">登录与业务功能尚未接入，暂不可使用。</view>
+  <view class="login-form">
+    <view class="field">
+      <view class="field-label">员工账号</view>
+      <input class="login-input" placeholder="请输入员工账号" placeholder-class="field-placeholder" value="{{account}}" bindinput="accountInput" disabled="{{!mock}}" />
+    </view>
+    <view class="field">
+      <view class="field-label">登录密码</view>
+      <view class="password-row">
+        <input class="login-input password-input" placeholder="请输入登录密码" placeholder-class="field-placeholder" password="{{!showPassword}}" value="{{password}}" bindinput="passwordInput" confirm-type="done" bindconfirm="login" disabled="{{!mock}}" />
+        <view class="password-toggle" bindtap="togglePassword" aria-role="button">{{showPassword ? '隐藏' : '显示'}}</view>
+      </view>
+    </view>
+    <view wx:if="{{error}}" class="error-text">{{error}}</view>
+    <view class="login-button"><t-button theme="primary" block size="large" loading="{{submitting}}" disabled="{{!mock || submitting}}" bindtap="login">登 录</t-button></view>
+    <view class="login-hint">{{mock ? '演示账号与使用方式见项目 README' : '开放后请使用员工账号登录'}}</view>
+  </view>
+</view>

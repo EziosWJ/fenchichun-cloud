@@ -1,0 +1,164 @@
+import type { Registration } from '@/features/grain/types'
+import { routes } from '@/config/routes'
+import { errorMessage, requireLogin } from '@/features/grain/page'
+import { canEdit } from '@/features/grain/presentation'
+import { demo } from '@/features/grain/service'
+
+function emptyForm(): Registration {
+  return {
+    site: '',
+    plate: '',
+    material: '',
+    supplier: '',
+    driver: '',
+    phone: '',
+    contract: '',
+    note: '',
+  }
+}
+
+Page({
+  data: {
+    loading: true,
+    error: '',
+    formError: '',
+    submitting: false,
+    edit: false,
+    id: '',
+    version: 0,
+    form: emptyForm(),
+    sites: [] as string[],
+    materials: [] as string[],
+    materialNames: [] as string[],
+    methods: [] as string[],
+    suppliers: [] as string[],
+    siteIndex: 0,
+    materialIndex: 0,
+    supplierIndex: 0,
+    extraOpen: false,
+  },
+  onLoad(query: Record<string, string | undefined>) {
+    this.setData({ id: query.id || '', edit: !!query.id })
+    this.load()
+  },
+  load() {
+    this.setData({ loading: true, error: '' })
+    try {
+      if (!requireLogin('warehouse')) {
+        return
+      }
+      const options = demo.options()
+      const sites = ['请选择厂区', ...options.sites]
+      const materialNames = ['', ...options.materials.map(item => item.name)]
+      const materials = [
+        '请选择货品',
+        ...options.materials.map(
+          item =>
+            `${item.name}（${item.method === 'lab' ? '化验' : '目测'}）`,
+        ),
+      ]
+      const methods = [
+        '',
+        ...options.materials.map(item =>
+          item.method === 'lab' ? '化验' : '目测',
+        ),
+      ]
+      const suppliers = ['待核实', ...options.suppliers]
+      const trip = this.data.edit ? demo.getTrip(this.data.id) : null
+      if (trip && !canEdit(trip)) {
+        throw new Error('已有检验或后续记录，不能更正登记')
+      }
+      const form = trip
+        ? {
+            site: trip.site,
+            plate: trip.plate,
+            material: trip.material,
+            supplier: trip.supplier,
+            driver: trip.driver,
+            phone: trip.phone,
+            contract: trip.contract,
+            note: trip.note,
+          }
+        : emptyForm()
+      if (trip) {
+        wx.setNavigationBarTitle({ title: '更正登记' })
+      }
+      this.setData({
+        sites,
+        materials,
+        materialNames,
+        methods,
+        suppliers,
+        form,
+        version: trip?.version || 0,
+        siteIndex: Math.max(0, sites.indexOf(form.site)),
+        materialIndex: Math.max(0, materialNames.indexOf(form.material)),
+        supplierIndex: Math.max(0, suppliers.indexOf(form.supplier)),
+        extraOpen: !!(form.driver || form.phone || form.contract || form.note),
+      })
+    }
+    catch (error) {
+      this.setData({ error: errorMessage(error) })
+    }
+    finally {
+      this.setData({ loading: false })
+    }
+  },
+  input(event: WechatMiniprogram.Input) {
+    this.setData({
+      [`form.${event.currentTarget.dataset.field}`]: event.detail.value,
+      formError: '',
+    })
+  },
+  chooseSite(event: WechatMiniprogram.PickerChange) {
+    const index = Number(event.detail.value)
+    this.setData({
+      'siteIndex': index,
+      'form.site': index ? this.data.sites[index] : '',
+      'formError': '',
+    })
+  },
+  chooseMaterial(event: WechatMiniprogram.PickerChange) {
+    const index = Number(event.detail.value)
+    this.setData({
+      'materialIndex': index,
+      'form.material': this.data.materialNames[index],
+      'formError': '',
+    })
+  },
+  chooseSupplier(event: WechatMiniprogram.PickerChange) {
+    const index = Number(event.detail.value)
+    this.setData({
+      'supplierIndex': index,
+      'form.supplier': index ? this.data.suppliers[index] : '',
+      'formError': '',
+    })
+  },
+  toggleExtra() {
+    this.setData({ extraOpen: !this.data.extraOpen })
+  },
+  save() {
+    if (this.data.submitting) {
+      return
+    }
+    this.setData({ submitting: true, formError: '' })
+    try {
+      if (this.data.edit) {
+        demo.updateTrip(this.data.id, this.data.version, this.data.form)
+        wx.navigateBack()
+      }
+      else {
+        const trip = demo.createTrip(this.data.form)
+        wx.redirectTo({
+          url: `${routes.trip}?id=${encodeURIComponent(trip.id)}`,
+        })
+      }
+    }
+    catch (error) {
+      this.setData({ formError: errorMessage(error) })
+    }
+    finally {
+      this.setData({ submitting: false })
+    }
+  },
+})

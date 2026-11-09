@@ -1,0 +1,11 @@
+<view class="trip-list">
+  <view wx:for="{{trips}}" wx:key="id" class="trip-item" data-id="{{item.id}}" bindtap="open" hover-class="trip-hover" aria-role="button" aria-label="{{item.plate}}，{{item.statusLabel}}，查看详情">
+    <view class="trip-top">
+      <text class="trip-plate">{{item.plate}}</text>
+      <text class="trip-status {{item.waiting ? 'waiting' : ''}}">{{kind === 'guard' ? item.exitType : item.statusLabel}}</text>
+    </view>
+    <view class="trip-description">{{item.site}}　{{item.material}}</view>
+    <view class="trip-next">{{kind === 'guard' ? (item.exitedAt ? '已出厂 ' + item.exitedAt : (item.exitType === '拒收退厂' ? item.inspectionText : '出门证已审批')) : item.next}}</view>
+    <view class="trip-number">{{item.id}}　{{item.createdAt}} <text class="arrow">›</text></view>
+  </view>
+</view>

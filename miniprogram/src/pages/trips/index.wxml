@@ -1,0 +1,10 @@
+<view class="screen">
+  <view class="screen-title">全部流转单</view>
+  <view class="subtle">包含进行中和已出厂的每一趟记录</view>
+  <view class="spacer"></view>
+  <input class="search-input" value="{{query}}" placeholder="搜索车牌或流转单号" placeholder-class="field-placeholder" bindinput="search" />
+  <loading-state wx:if="{{loading}}" text="正在加载流转单" />
+  <error-state wx:elif="{{error}}" text="{{error}}" bind:retry="load" />
+  <empty-state wx:elif="{{!trips.length}}" text="{{query ? '没有匹配的流转单' : '暂无流转单'}}" />
+  <trip-list wx:else trips="{{trips}}" />
+</view>

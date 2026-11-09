@@ -1,14 +1,21 @@
-<view class="page-container">
-  <page-header title="工作台" description="汾池春 · 小程序基础工程" />
-  <section-card title="欢迎使用"><view class="mb-4 muted">{{label}}</view><status-tag text="{{mock ? 'Mock 环境' : '待接入'}}" theme="warning" /></section-card>
-  <loading-state wx:if="{{loading}}" />
-  <error-state wx:elif="{{error}}" text="{{error}}" bind:retry="retry" />
-  <empty-state wx:elif="{{!items.length}}" text="业务模块尚未接入" />
-  <section-card wx:else title="初始化状态"><view wx:for="{{items}}" wx:key="*this" class="mb-4">{{item}}</view></section-card>
-  <view class="flex flex-col gap-4">
-    <t-button theme="primary" block bindtap="login">进入登录</t-button>
-    <t-button block variant="outline" bindtap="profile">个人中心</t-button>
-    <t-button block variant="text" bindtap="ui">基础组件预览</t-button>
+<view class="screen">
+  <view class="demo-note">演示模式 · 数据仅保存在本机</view>
+  <view class="workbench-heading heading-row">
+    <view><view class="screen-title">{{roleName}}工作台</view><view class="subtle workbench-subtitle">{{role === 'warehouse' ? '查看车辆进度，办理现场作业' : '核对出厂依据，确认车辆放行'}}</view></view>
+    <view wx:if="{{canSwitch}}" class="text-link" bindtap="switchRole">切换岗位</view>
   </view>
-  <view wx:if="{{mock}}" class="flex gap-4 mt-4"><t-button size="small" bindtap="empty">空状态</t-button><t-button size="small" bindtap="fail">错误状态</t-button><t-button size="small" bindtap="retry">恢复</t-button></view>
+  <input class="search-input" value="{{query}}" placeholder="搜索车牌或流转单号" placeholder-class="field-placeholder" bindinput="search" confirm-type="search" />
+  <view wx:if="{{role === 'guard'}}" class="filter-tabs">
+    <view class="filter-tab {{!gateHistory ? 'selected' : ''}}" bindtap="showPending">待出厂</view>
+    <view class="filter-tab {{gateHistory ? 'selected' : ''}}" bindtap="showHistory">已出厂</view>
+  </view>
+  <view class="list-heading heading-row">
+    <view class="section-heading">{{role === 'warehouse' ? '进行中的车辆' : (gateHistory ? '已出厂记录' : '待出厂车辆')}}</view>
+    <t-button wx:if="{{role === 'warehouse'}}" theme="primary" size="small" bindtap="register">登记流转单</t-button>
+  </view>
+  <loading-state wx:if="{{loading}}" text="正在加载车辆" />
+  <error-state wx:elif="{{error}}" text="{{error}}" bind:retry="load" />
+  <empty-state wx:elif="{{!trips.length}}" text="{{query ? '没有匹配的车辆或流转单' : (role === 'warehouse' ? '暂无进行中的车辆' : (gateHistory ? '暂无已出厂记录' : '暂无待出厂车辆'))}}" />
+  <trip-list wx:else trips="{{trips}}" kind="{{role}}" />
+  <view wx:if="{{role === 'warehouse'}}" class="all-link" bindtap="allTrips">查看全部流转单　›</view>
 </view>

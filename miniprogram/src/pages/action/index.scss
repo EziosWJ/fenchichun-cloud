@@ -1,0 +1,28 @@
+.choice-title {
+  margin-top: 32rpx;
+}
+
+.choices {
+  display: flex;
+  gap: 20rpx;
+}
+
+.choice {
+  flex: 1;
+  padding: 22rpx;
+  text-align: center;
+  background: #f5f6f8;
+  border: 2rpx solid transparent;
+  border-radius: 8rpx;
+}
+
+.choice.selected {
+  color: #8c3b2e;
+  background: #fbf4f1;
+  border-color: #8c3b2e;
+}
+
+.reason {
+  width: 100%;
+  min-height: 140rpx;
+}

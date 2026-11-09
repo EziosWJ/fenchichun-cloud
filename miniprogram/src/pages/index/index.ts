@@ -1,65 +1,100 @@
+import type { Role } from '@/features/grain/types'
+import { routes } from '@/config/routes'
 import {
-  env,
-} from '@/config/env'
-import {
-  routes,
-} from '@/config/routes'
-import {
-  loadDemo,
-} from '@/features/demo'
+  cards,
+  errorMessage,
+  matches,
+  requireLogin,
+} from '@/features/grain/page'
+import { exitEligible, roleLabels } from '@/features/grain/presentation'
+import { demo } from '@/features/grain/service'
 
 Page({
   data: {
     loading: true,
     error: '',
-    items: [] as string[],
-    label: '',
-    mock: env.mock,
+    role: 'warehouse' as Role,
+    roleName: '',
+    canSwitch: false,
+    query: '',
+    gateHistory: false,
+    trips: cards([]),
   },
-  onLoad() {
-    void this.load()
+  onShow() {
+    this.load()
   },
-  async load(state = 'success') {
-    this.setData({
-      loading: true,
-      error: '',
-    })
+  load() {
+    this.setData({ loading: true, error: '' })
     try {
-      this.setData(await loadDemo(state))
+      const current = requireLogin()
+      if (!current) {
+        return
+      }
+      const query = this.data.query
+      const trips = demo.listTrips().filter((trip) => {
+        if (!matches(trip, query)) {
+          return false
+        }
+        if (current.role === 'warehouse') {
+          return !trip.exitedAt
+        }
+        return this.data.gateHistory ? !!trip.exitedAt : exitEligible(trip)
+      })
+      this.setData({
+        trips: cards(trips),
+        role: current.role,
+        roleName: roleLabels[current.role],
+        canSwitch: current.user.roles.length > 1,
+      })
     }
     catch (error) {
-      this.setData({
-        error: error instanceof Error ? error.message : '加载失败',
-      })
+      this.setData({ error: errorMessage(error) })
     }
     finally {
-      this.setData({
-        loading: false,
-      })
+      this.setData({ loading: false })
     }
   },
-  retry() {
-    void this.load()
+  search(event: WechatMiniprogram.Input) {
+    this.setData({ query: event.detail.value })
+    this.load()
   },
-  empty() {
-    void this.load('empty')
+  switchRole() {
+    try {
+      const current = requireLogin()
+      if (!current || current.user.roles.length < 2) {
+        return
+      }
+      const roles = current.user.roles
+      wx.showActionSheet({
+        itemList: roles.map(role => roleLabels[role]),
+        success: ({ tapIndex }) => {
+          try {
+            demo.switchRole(roles[tapIndex])
+            this.setData({ query: '', gateHistory: false })
+            this.load()
+          }
+          catch (error) {
+            wx.showToast({ title: errorMessage(error), icon: 'none' })
+          }
+        },
+      })
+    }
+    catch (error) {
+      wx.showToast({ title: errorMessage(error), icon: 'none' })
+    }
   },
-  fail() {
-    void this.load('error')
+  showPending() {
+    this.setData({ gateHistory: false })
+    this.load()
   },
-  login() {
-    wx.navigateTo({
-      url: routes.login,
-    })
+  showHistory() {
+    this.setData({ gateHistory: true })
+    this.load()
   },
-  profile() {
-    wx.navigateTo({
-      url: routes.profile,
-    })
+  register() {
+    wx.navigateTo({ url: routes.registration })
   },
-  ui() {
-    wx.navigateTo({
-      url: routes.components,
-    })
+  allTrips() {
+    wx.navigateTo({ url: routes.trips })
   },
 })

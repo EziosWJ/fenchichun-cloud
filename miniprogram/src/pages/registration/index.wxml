@@ -1,0 +1,22 @@
+<view class="screen">
+  <loading-state wx:if="{{loading}}" text="正在加载登记信息" />
+  <error-state wx:elif="{{error}}" text="{{error}}" bind:retry="load" />
+  <block wx:else>
+    <view class="screen-title">{{edit ? '更正登记' : '登记流转单'}}</view>
+    <view class="subtle">记录本趟车辆和货品，带 * 的项目必填</view>
+    <view class="field"><view class="field-label">厂区 *</view><picker range="{{sites}}" value="{{siteIndex}}" bindchange="chooseSite"><view class="field-control {{siteIndex ? '' : 'field-placeholder'}}">{{sites[siteIndex]}}　›</view></picker></view>
+    <view class="field"><view class="field-label">车牌 *</view><input class="field-control" value="{{form.plate}}" data-field="plate" bindinput="input" placeholder="请输入车牌" placeholder-class="field-placeholder" maxlength="12" /></view>
+    <view class="field"><view class="field-label">货品 *</view><picker range="{{materials}}" value="{{materialIndex}}" bindchange="chooseMaterial"><view class="field-control {{materialIndex ? '' : 'field-placeholder'}}">{{materials[materialIndex]}}　›</view></picker><view wx:if="{{materialIndex}}" class="subtle">检验方式：{{methods[materialIndex]}}</view></view>
+    <view class="field"><view class="field-label">供应商</view><picker range="{{suppliers}}" value="{{supplierIndex}}" bindchange="chooseSupplier"><view class="field-control">{{suppliers[supplierIndex]}}　›</view></picker><view class="subtle">可暂时待核实，检验确认前请补充</view></view>
+    <view class="field"><view class="heading-row" bindtap="toggleExtra"><text class="field-label">其他信息（选填）</text><text class="subtle">{{extraOpen ? '收起' : '展开'}}　›</text></view>
+      <block wx:if="{{extraOpen}}">
+        <view class="extra-field"><view class="subtle">司机</view><input class="field-control" value="{{form.driver}}" data-field="driver" bindinput="input" placeholder="请输入司机姓名" maxlength="30" /></view>
+        <view class="extra-field"><view class="subtle">联系电话</view><input class="field-control" value="{{form.phone}}" data-field="phone" bindinput="input" placeholder="请输入联系电话" type="number" maxlength="20" /></view>
+        <view class="extra-field"><view class="subtle">合同编号</view><input class="field-control" value="{{form.contract}}" data-field="contract" bindinput="input" placeholder="请输入合同编号" maxlength="60" /></view>
+        <view class="extra-field"><view class="subtle">备注</view><textarea class="field-control note-input" value="{{form.note}}" data-field="note" bindinput="input" placeholder="请输入备注" maxlength="200" auto-height /></view>
+      </block>
+    </view>
+    <view wx:if="{{formError}}" class="error-text">{{formError}}</view>
+    <view class="form-footer"><t-button block size="large" theme="primary" loading="{{submitting}}" disabled="{{submitting}}" bindtap="save">{{edit ? '保存更正' : '保存登记'}}</t-button></view>
+  </block>
+</view>

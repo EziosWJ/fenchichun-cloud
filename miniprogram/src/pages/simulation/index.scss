@@ -1,0 +1,21 @@
+.simulation-notice {
+  margin-top: 28rpx;
+}
+
+.simulation-section {
+  margin-top: 42rpx;
+}
+
+.simulation-row {
+  display: flex;
+  gap: 20rpx;
+  align-items: center;
+  justify-content: space-between;
+  padding: 24rpx 0;
+  border-bottom: 1rpx solid #edf0f2;
+}
+
+.simulation-plate {
+  font-size: 32rpx;
+  font-weight: 600;
+}

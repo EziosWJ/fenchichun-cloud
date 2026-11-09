@@ -1,6 +1,6 @@
 # 汾池春微信小程序
 
-基于 create-weapp-vite **3.4.0** 的 **tdesign** 模板对齐：原生小程序、TypeScript、TDesign 1.17.0、Tailwind 4.3.3、weapp-vite 7.8.0。保留原脚手架 AGENTS.md，补充规则见 AGENTS.local.md。模板使用 MIT 许可；原脚手架示例保留但不在正式页面路由中。
+基于 create-weapp-vite **3.4.0** 的 **tdesign** 模板对齐：原生小程序、TypeScript、TDesign 1.17.0、Tailwind 4.3.3、weapp-vite 7.8.0。当前提供原粮入厂的本地演示，不连接后端、化验或地磅系统。保留原脚手架 AGENTS.md，补充规则见 AGENTS.local.md。
 
 ## 全新安装
 
@@ -11,10 +11,40 @@ cd miniprogram
 npm ci
 npm run check
 npm run build:development
-npm run open
 ```
 
-依赖只使用 package-lock.json；CI 使用 npm ci。web 项目继续使用 pnpm，本项目不设 pnpm workspace。构建产物在 dist，微信开发者工具导入本目录 project.config.json，不导入 src。根 Taskfile 提供 miniprogram:install|lint|format:check|typecheck|test|build|check|accept 等价入口。
+最后一条命令生成本地演示构建。启动微信开发者工具，选择“导入项目”，项目目录选本 `miniprogram` 目录（包含 `project.config.json`）；配置已将小程序根目录指向 `dist/`，不要导入 `src/`。`npm run check` 最后会生成生产构建，因此体验演示前必须**再次执行** `npm run build:development`。需要持续监听源码时可运行 `npm run dev`。
+
+WSL 中可先尝试让 Windows 微信开发者工具直接导入 WSL 项目路径。如果工具无法打开 WSL/UNC 路径，在 WSL 构建完成后，将 `project.config.json`、`package.json` 和整个 `dist/` 复制到一个 Windows 本地空目录，再从该目录导入；每次源码变化后需重新构建并复制。不要在同一个 `node_modules` 中混用 Windows 和 WSL 依赖。本机 IDE 需登录并使用有权限的 AppID；本演示无需配置业务服务器或 request 合法域名。
+
+依赖只使用 package-lock.json；CI 使用 npm ci。web 项目继续使用 pnpm，本项目不设 pnpm workspace。根 Taskfile 提供 miniprogram:install|lint|format:check|typecheck|test|build|check|accept 等价入口。
+
+## 演示账号与流程
+
+以下账号和密码均为虚构的**本地演示凭据**，只在开发 / 测试 Mock 模式可用，不是公司员工账号：
+
+| 账号 | 密码 | 岗位 |
+| --- | --- | --- |
+| `warehouse` | `demo123` | 库管 |
+| `guard` | `demo123` | 门卫 |
+| `both` | `demo123` | 库管、门卫，可在工作台切换 |
+
+使用 `both` 登录最方便：初始进入库管工作台，右上角“切换岗位”可进入门卫工作台；底部“我的”中展示账号、岗位、退出和演示控制台。退出登录不会删除数据。三个账号共享同一小程序本机的演示数据，重启后仍可继续；不同设备之间不会同步。
+
+预置数据包括等待化验、化验接收待卸粮、目测接收待磅单、化验拒收、目测拒收、正常出门证已审批待出厂，以及同一车牌的已出厂历史。库管的“查看全部流转单”和门卫的“已出厂”可查询历史；每趟都有独立流转单号。
+
+从登记体验正常出厂：
+
+1. 以 `both` 的库管岗位登录，登记厂区、车牌和货品；选择已有演示供应商，也可先选“待核实”，再从详情更正登记补充。高粱、小麦为化验，木片为目测。
+2. 化验货品：在“我的 → 演示控制台 → 模拟化验结果”找到本趟，选择“模拟化验接收”；返回详情。目测货品：在详情点击“确认目测”，选择接收并核对确认。
+3. 到现场卸粮步骤填写地点并确认。在“我的 → 演示控制台 → 模拟磅单同步”找到该趟，生成模拟磅单；返回详情，进入磅单候选页，核对并关联。
+4. 在详情先后开具、审批出门证。审批后车辆仍在库管进行中列表中等待门卫。切换到门卫岗位，在“待出厂”列表进入具体一趟，核对依据后确认实际出厂；可在“已出厂”查询。
+
+体验拒收退厂：化验货品在演示控制台选择“模拟化验拒收”，目测货品在详情选择“拒收”并填写原因。切换门卫后从统一“待出厂”列表进入该趟，核验拒收结论和原因，再确认实际出厂；无需模拟磅单或开出门证。
+
+演示控制台用于**本地重复模拟外部环节**：每张等待化验的单可生成一次接收或拒收结果；卸粮后可为该趟生成一张模拟磅单，再由库管手动选择关联。预设拒收原因与数字均为虚构内容，不能用于实际业务。模拟不会请求任何远程服务。
+
+“我的 → 恢复初始演示数据”经确认后会删除本机新增及修改的演示记录并恢复预置场景，保留当前演示登录和岗位；也可在微信开发者工具中清除本小程序的本地存储后重新登录。清除本地存储会同时清除该小程序的其他本地数据，请按需选择。
 
 ## 命令
 
@@ -38,11 +68,11 @@ npm run open
 
 配置在构建时注入，不在小程序内读取 process.env。生产强制禁止 Mock；不会回退到开发地址。正式对接前必须设置真实 HTTPS BaseURL 并配置微信 request 合法域名，真机不能使用电脑 localhost。编译进小程序的配置不是密钥存储。
 
-Mock 由 src/features/demo.ts 的请求适配器提供。生产显示待接入状态，不发出虚构业务请求。登录页只提供明确标记的 Mock 本地会话，无微信登录、手机号登录、刷新 Token 或服务端登录接口假设。
+原粮演示通过 `src/features/grain/` 中的本地状态服务和微信本地存储实现，不调用 `wx.request`。构建配置在关闭 Mock 时将演示服务替换为不可用实现；生产构建强制禁止 Mock，不打包演示账号、预置业务数据或模拟状态服务。生产登录页显示待接入，不能以演示账号登录，也不会发出虚构业务请求。无微信登录、手机号登录、刷新 Token 或服务端登录接口假设。
 
 ## 页面、组件与样式
 
-路由注册在 src/app.json，路径常量在 src/config/routes.ts；工作台、登录、个人中心、基础组件预览不配置 tabBar。默认系统导航栏；src/layouts/default 为容器布局入口，页面 .page-container 统一内容留白和底部安全区。
+路由注册在 src/app.json，路径常量在 src/config/routes.ts；一级页面底部导航固定为“工作台、我的”，登录及其余业务页面不显示底部导航。包含库管工作台、流转单查询、登记 / 更正、流转单详情、目测 / 卸粮、磅单候选、门卫工作台和出厂核验。默认系统导航栏；页面适配底部安全区。
 
 公共组件：page-header、empty-state、loading-state、error-state、status-tag、section-card。全局 src/app.css 使用 TDesign 品牌 Token 和统一文字颜色、28rpx 正文、1.5 行高、24rpx 常用间距。Tailwind 使用主题和 utilities，不加载 preflight，避免重置 TDesign。间距建议 8/16/24/32/48rpx；交互优先 TDesign，禁止第二套图标或 UI 库。
 
@@ -54,4 +84,4 @@ project.config.json 使用用户确认的 AppID wx3fb7a0287d4cd3e2、基础库 3
 
 Windows 上建议在 Windows Node 环境安装依赖；不要在同一 node_modules 混用 Windows 与 WSL 原生依赖。WSL 项目导入 Windows IDE 时要验证 UNC 路径、文件监视和自动化通道。缺少 IDE 权限不影响静态检查，但截图/真机验收不能视为通过。
 
-详细 Agent、MCP、日志和截图流程见 docs/agent-workflow.md，验收记录见 docs/acceptance/。
+详细 Agent、MCP、日志和截图流程见 docs/agent-workflow.md；本次演示的验证与真实截图待验收情况见 [原粮入厂演示验收记录](docs/acceptance/grain-intake-demo.md)。

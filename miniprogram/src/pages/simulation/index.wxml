@@ -1,0 +1,14 @@
+<view class="screen">
+  <view class="screen-title">演示控制台</view>
+  <view class="notice simulation-notice">以下结果仅用于本机演示，未连接化验或地磅系统。可为每趟待处理车辆单独生成。</view>
+  <loading-state wx:if="{{loading}}" text="正在加载演示任务" />
+  <error-state wx:elif="{{error}}" text="{{error}}" bind:retry="load" />
+  <block wx:else>
+    <view class="simulation-section"><view class="section-heading">模拟化验结果</view><view class="subtle">为等待化验的车辆生成接收或拒收结果</view></view>
+    <empty-state wx:if="{{!labs.length}}" text="暂无等待化验的车辆" />
+    <view wx:for="{{labs}}" wx:key="id" class="simulation-row"><view><view class="simulation-plate">{{item.plate}}</view><view class="subtle">{{item.site}}　{{item.material}}</view><view class="subtle">{{item.id}}</view><view wx:if="{{!item.supplier}}" class="error-text">请先补充供应商</view></view><t-button size="small" theme="primary" variant="outline" data-id="{{item.id}}" disabled="{{confirming}}" bindtap="lab">选择结果</t-button></view>
+    <view class="simulation-section"><view class="section-heading">模拟磅单同步</view><view class="subtle">车辆确认卸粮后，生成可关联的模拟磅单</view></view>
+    <empty-state wx:if="{{!weights.length}}" text="暂无等待模拟磅单的车辆" />
+    <view wx:for="{{weights}}" wx:key="id" class="simulation-row"><view><view class="simulation-plate">{{item.plate}}</view><view class="subtle">{{item.site}}　{{item.material}}</view><view class="subtle">{{item.id}}</view></view><t-button size="small" theme="primary" variant="outline" data-id="{{item.id}}" disabled="{{confirming}}" bindtap="ticket">模拟同步</t-button></view>
+  </block>
+</view>

@@ -5,6 +5,7 @@
     "loading-state": "/components/loading-state/index",
     "error-state": "/components/error-state/index",
     "status-tag": "/components/status-tag/index",
-    "section-card": "/components/section-card/index"
+    "section-card": "/components/section-card/index",
+    "trip-list": "/components/trip-list/index"
   }
 }

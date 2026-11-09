@@ -44,6 +44,7 @@ export default defineConfig(({
     },
     resolve: {
       alias: {
+        '@/features/grain/service': fileURLToPath(new URL(mock ? './src/features/grain/service.ts' : './src/features/grain/unavailable.ts', import.meta.url)),
         '@': fileURLToPath(new URL('./src', import.meta.url)),
       },
     },

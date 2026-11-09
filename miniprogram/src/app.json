@@ -4,6 +4,13 @@
     "pages/index/index",
     "pages/login/index",
     "pages/profile/index",
+    "pages/trips/index",
+    "pages/registration/index",
+    "pages/trip/index",
+    "pages/action/index",
+    "pages/tickets/index",
+    "pages/exit/index",
+    "pages/simulation/index",
     "pages/ui/index"
   ],
   "window": {
@@ -11,6 +18,16 @@
     "navigationBarBackgroundColor": "#ffffff",
     "navigationBarTextStyle": "black",
     "backgroundColor": "#f5f6f8"
+  },
+  "tabBar": {
+    "color": "#687080",
+    "selectedColor": "#8c3b2e",
+    "backgroundColor": "#ffffff",
+    "borderStyle": "white",
+    "list": [
+      { "pagePath": "pages/index/index", "text": "工作台" },
+      { "pagePath": "pages/profile/index", "text": "我的" }
+    ]
   },
   "style": "v2",
   "componentFramework": "glass-easel",

@@ -37,3 +37,141 @@ page {
   background: #fff;
   border-radius: 20rpx;
 }
+
+.screen {
+  box-sizing: border-box;
+  min-height: 100vh;
+  padding: 30rpx 32rpx calc(48rpx + env(safe-area-inset-bottom));
+  background: #fff;
+}
+
+.screen-title {
+  font-size: 42rpx;
+  font-weight: 650;
+  color: #20242c;
+}
+
+.subtle {
+  font-size: 25rpx;
+  color: #687080;
+}
+
+.demo-note {
+  padding: 12rpx 18rpx;
+  font-size: 23rpx;
+  color: #805047;
+  background: #fbf4f1;
+  border-radius: 8rpx;
+}
+
+.heading-row {
+  display: flex;
+  gap: 16rpx;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.text-link {
+  padding: 16rpx 0 16rpx 20rpx;
+  font-size: 27rpx;
+  color: #8c3b2e;
+}
+
+.search-input {
+  box-sizing: border-box;
+  height: 82rpx;
+  padding: 0 24rpx;
+  font-size: 28rpx;
+  background: #f5f6f8;
+  border-radius: 10rpx;
+}
+
+.section-heading {
+  font-size: 32rpx;
+  font-weight: 600;
+}
+
+.spacer {
+  height: 32rpx;
+}
+
+.field {
+  padding: 24rpx 0;
+  border-bottom: 1rpx solid #edf0f2;
+}
+
+.field-label {
+  margin-bottom: 12rpx;
+  font-weight: 600;
+}
+
+.field-control {
+  box-sizing: border-box;
+  min-height: 72rpx;
+  padding: 16rpx 20rpx;
+  background: #f5f6f8;
+  border-radius: 8rpx;
+}
+
+.field-placeholder {
+  color: #8b929c;
+}
+
+.form-footer {
+  padding-top: 40rpx;
+}
+
+.detail-card {
+  padding: 26rpx 0;
+  border-bottom: 1rpx solid #eceef0;
+}
+
+.detail-row {
+  display: flex;
+  gap: 30rpx;
+  align-items: flex-start;
+  justify-content: space-between;
+  padding-top: 14rpx;
+}
+
+.detail-label {
+  flex: none;
+  color: #687080;
+}
+
+.detail-value {
+  text-align: right;
+  overflow-wrap: anywhere;
+}
+
+.plate {
+  font-size: 40rpx;
+  font-weight: 700;
+  letter-spacing: 1rpx;
+}
+
+.status {
+  font-weight: 600;
+  color: #8c3b2e;
+}
+
+.status-waiting {
+  color: #606a75;
+}
+
+.notice {
+  padding: 22rpx 24rpx;
+  color: #654238;
+  background: #fbf5f2;
+  border-left: 5rpx solid #8c3b2e;
+  border-radius: 6rpx;
+}
+
+.error-text {
+  margin-top: 16rpx;
+  color: #ad3932;
+}
+
+.button-space {
+  margin-top: 24rpx;
+}
