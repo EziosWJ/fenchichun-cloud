@@ -41,6 +41,8 @@ const stageSQL = `CASE
  WHEN p.status='approved' THEN 'permit_approved'
  WHEN p.id IS NOT NULL THEN 'permit_pending'
  WHEN t.ticket_id IS NOT NULL AND t.unloaded_at IS NOT NULL THEN 'ready'
+ WHEN t.unloaded_at IS NULL THEN 'pending_unload'
+ WHEN t.ticket_id IS NULL THEN 'pending_ticket'
  ELSE 'accepted' END`
 
 func tripQuery(tx *gorm.DB) *gorm.DB {

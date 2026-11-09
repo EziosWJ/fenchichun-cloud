@@ -61,8 +61,8 @@ export default function TripWorkspace({ gate = false }: { gate?: boolean }) {
         ? { title: '下一步：记录目测结果', description: '目测记录是本趟的检验依据，确认后不能修改。' }
         : { tab: 'inspections', title: '下一步：录入化验单', description: '录入化验结果后自动生效。' };
     }
-    if (trip.stage === 'accepted' && !trip.unloadedAt) return { tab: 'weighing', title: '下一步：确认现场卸粮', description: '在现场首磅及卸粮完成后，填写实际卸粮地点并确认。' };
-    if (trip.stage === 'accepted' && !trip.ticketId) return { tab: 'weighing', title: '下一步：关联正式磅单', description: '磅单联网同步至云端后，选择厂区、车牌、货品、供应商一致的单据。' };
+    if (trip.stage === 'pending_unload') return { tab: 'weighing', title: '下一步：确认现场卸粮', description: '在现场首磅及卸粮完成后，填写实际卸粮地点并确认。' };
+    if (trip.stage === 'pending_ticket') return { tab: 'weighing', title: '下一步：关联正式磅单', description: '磅单联网同步至云端后，选择厂区、车牌、货品、供应商一致的单据。' };
     if (trip.stage === 'ready') return { tab: 'exit', title: '下一步：开具出门证', description: '实际卸粮和有效磅单就绪后开具出门证。' };
     if (trip.stage === 'permit_pending') return { tab: 'exit', title: '下一步：审批出门证', description: '审批通过后，仍需门卫在实际放行时确认出厂。' };
     if (trip.stage === 'permit_approved') return { tab: 'exit', title: '下一步：门卫确认出厂', description: '核对车辆与出门证后确认出厂，确认后本趟凭据不能再次使用。' };
@@ -85,7 +85,7 @@ export default function TripWorkspace({ gate = false }: { gate?: boolean }) {
   return <>
     <PageHeader
       title={gate ? `出厂核验 · ${trip.number}` : trip.number}
-      meta={<Tag color={trip.stage === 'blocked' ? 'red' : trip.exitedAt ? 'green' : 'blue'}>{stageLabel(trip.stage)}</Tag>}
+      meta={<Tag color={trip.stage === 'blocked' ? 'red' : trip.exitedAt ? 'green' : 'blue'}>{stageLabel(trip.stage, trip.inspectionMethod)}</Tag>}
       onBack={() => navigate(gate ? '/grain-intake/permits' : '/grain-intake/trips')}
     />
     <div className="pageStack" style={{ marginTop: 20, gap: 12 }}>

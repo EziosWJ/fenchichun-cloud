@@ -44,9 +44,13 @@ export const saveTrip = (input: TripInput, original?: Trip) => original
 export const ticketCandidates = (id: number) => get<TicketCandidate[]>(`${base}/trips/${id}/ticket-candidates`);
 export const tripAction = (trip: Trip, action: TripAction, input: TripCommand = {}) => post<TripDetail>(`${base}/trips/${trip.id}/${action}`, { ...input, version: trip.version });
 export const tripStages = [
-  { value: 'pending_inspection', label: '待检验' }, { value: 'accepted', label: '接收待完成' },
+  { value: 'pending_inspection', label: '待检验' }, { value: 'pending_unload', label: '待卸粮' }, { value: 'pending_ticket', label: '待磅单' },
+  { value: 'accepted', label: '接收待完成' },
   { value: 'rejected', label: '拒收待出厂' }, { value: 'ready', label: '待开证' },
   { value: 'permit_pending', label: '待审批' }, { value: 'permit_approved', label: '待放行' },
   { value: 'exited', label: '已出厂' }, { value: 'blocked', label: '需核查' },
 ];
-export const stageLabel = (stage: string) => tripStages.find((v) => v.value === stage)?.label ?? stage;
+export const stageLabel = (stage: string, inspectionMethod?: string) => {
+  if (stage === 'pending_inspection' && inspectionMethod) return inspectionMethod === 'visual' ? '待目测' : '待化验';
+  return tripStages.find((v) => v.value === stage)?.label ?? stage;
+};

@@ -33,7 +33,7 @@ func normalizeQuery(q Query) (Query, error) {
 		return q, ErrInvalid
 	}
 	switch q.Stage {
-	case "", "pending_inspection", "accepted", "rejected", "ready", "permit_pending", "permit_approved", "exited", "blocked":
+	case "", "pending_inspection", "pending_unload", "pending_ticket", "accepted", "rejected", "ready", "permit_pending", "permit_approved", "exited", "blocked":
 	default:
 		return q, ErrInvalid
 	}

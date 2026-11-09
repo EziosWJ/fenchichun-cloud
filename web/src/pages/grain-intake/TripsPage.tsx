@@ -23,7 +23,7 @@ export default function TripsPage() {
     { title: '流转单号', dataIndex: 'number', render: (value: string, row) => <Link to={`/grain-intake/trips/${row.id}`}>{value}</Link> },
     { title: '厂区', dataIndex: 'siteCode' }, { title: '车牌', dataIndex: 'plate' }, { title: '粮种', dataIndex: 'materialName' },
     { title: '供应商', dataIndex: 'partyName', render: (value: string) => value || <Tag color="orange">待核实</Tag> },
-    { title: '办理阶段', dataIndex: 'stage', render: (value: string) => <Tag color={value === 'blocked' ? 'red' : value === 'exited' ? 'green' : 'blue'}>{stageLabel(value)}</Tag> },
+    { title: '办理阶段', dataIndex: 'stage', render: (value: string, row) => <Tag color={value === 'blocked' ? 'red' : value === 'exited' ? 'green' : 'blue'}>{stageLabel(value, row.inspectionMethod)}</Tag> },
     { title: '登记时间', dataIndex: 'createdAt', render: (value: string) => formatDateTime(value) },
     { title: '操作', key: 'actions', render: (_, row) => <Link to={`/grain-intake/trips/${row.id}`}>查看办理</Link> },
   ];

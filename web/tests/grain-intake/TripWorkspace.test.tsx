@@ -62,7 +62,7 @@ describe('exit evidence', () => {
   });
   it('guides the next step and jumps to the matching tab', async () => {
     const value = evidence();
-    value.trip.stage = 'accepted';
+    value.trip.stage = 'pending_unload';
     value.trip.unloadedAt = null;
     value.trip.ticketId = null;
     api.tripDetail.mockResolvedValue(value);
