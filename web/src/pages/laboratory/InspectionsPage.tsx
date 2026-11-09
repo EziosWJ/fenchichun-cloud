@@ -32,6 +32,7 @@ export default function InspectionsPage() {
   });
   const columns: ColumnsType<Trip> = [
     { title: '流转单号', dataIndex: 'number' },
+    { title: '厂区', dataIndex: 'siteCode' },
     { title: '车牌', dataIndex: 'plate' },
     { title: '粮种', dataIndex: 'materialName' },
     { title: '供应商', dataIndex: 'partyName', render: (value: string) => value || '—' },
