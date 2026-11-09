@@ -39,8 +39,5 @@ func (s *Service) Detail(ctx context.Context, actor, id int64) (Inspection, erro
 // Create 一条流转单只允许一条化验结果，结果提交即生效，不再有草稿与复检。
 func (s *Service) Create(ctx context.Context, in Input, e audit.Event) (Inspection, error) {
 	in.normalize()
-	if err := in.validate(); err != nil {
-		return Inspection{}, err
-	}
 	return s.store.Create(ctx, in, e)
 }

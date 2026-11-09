@@ -245,9 +245,19 @@ definitions:
       remark:
         type: string
     type: object
+  grainintake.ApiEnvelope:
+    properties:
+      code:
+        type: integer
+      data: {}
+      message:
+        type: string
+    type: object
   grainintake.Command:
     properties:
       basis:
+        type: string
+      conclusion:
         type: string
       inspectionId:
         type: integer
@@ -257,6 +267,8 @@ definitions:
         type: string
       permitId:
         type: integer
+      reason:
+        type: string
       ticketNo:
         type: string
       ticketSiteCode:
@@ -434,6 +446,8 @@ definitions:
         type: integer
       id:
         type: integer
+      inspectionMethod:
+        type: string
       materialCode:
         type: string
       materialName:
@@ -464,6 +478,14 @@ definitions:
         type: string
       version:
         type: integer
+      visualConclusion:
+        type: string
+      visualInspectedAt:
+        type: string
+      visualInspectedBy:
+        type: integer
+      visualReason:
+        type: string
     type: object
   grainintake.TripPage:
     properties:
@@ -520,6 +542,8 @@ definitions:
         type: string
       remark:
         type: string
+      siteCode:
+        type: string
       tripId:
         type: integer
     type: object
@@ -566,6 +590,8 @@ definitions:
       reason:
         type: string
       remark:
+        type: string
+      siteCode:
         type: string
       status:
         type: string
@@ -638,6 +664,8 @@ definitions:
       reason:
         type: string
       remark:
+        type: string
+      siteCode:
         type: string
       tripId:
         type: integer
@@ -1323,6 +1351,19 @@ definitions:
       ticketNo:
         type: string
     type: object
+  weighbridge.ChangeReceiptV5:
+    properties:
+      changeType:
+        type: string
+      digest:
+        type: string
+      duplicate:
+        type: boolean
+      receivedAt:
+        type: string
+      ticketNo:
+        type: string
+    type: object
   weighbridge.ChangeResponse:
     properties:
       code:
@@ -1359,6 +1400,36 @@ definitions:
         type: integer
       data:
         $ref: '#/definitions/weighbridge.ChangeReceiptV4'
+      message:
+        type: string
+    type: object
+  weighbridge.ChangeV5:
+    properties:
+      digest:
+        type: string
+      digestVersion:
+        type: integer
+      previousSiteCode:
+        type: string
+      schemaVersion:
+        type: integer
+      siteCode:
+        type: string
+      ticket:
+        $ref: '#/definitions/weighbridge.TicketSnapshot'
+      ticketNo:
+        type: string
+      type:
+        type: string
+      void:
+        $ref: '#/definitions/weighbridge.VoidInfo'
+    type: object
+  weighbridge.ChangeV5Response:
+    properties:
+      code:
+        type: integer
+      data:
+        $ref: '#/definitions/weighbridge.ChangeReceiptV5'
       message:
         type: string
     type: object
@@ -1413,6 +1484,11 @@ definitions:
         type: string
       enabled:
         type: boolean
+      inspectionMethod:
+        enum:
+        - lab
+        - visual
+        type: string
       name:
         type: string
       remark:
@@ -1426,11 +1502,31 @@ definitions:
         type: string
       enabled:
         type: boolean
+      inspectionMethod:
+        enum:
+        - lab
+        - visual
+        type: string
       name:
         type: string
       remark:
         type: string
       spec:
+        type: string
+    type: object
+  weighbridge.NetAdjustmentItem:
+    properties:
+      amount:
+        type: string
+      category:
+        type: string
+      categoryName:
+        type: string
+      mode:
+        type: string
+      rateBp:
+        type: integer
+      remark:
         type: string
     type: object
   weighbridge.Party:
@@ -1574,6 +1670,14 @@ definitions:
         type: string
       netAdjustmentRateBp:
         type: integer
+      netAdjustments:
+        description: |-
+          NetAdjustments is present for schema version 5 snapshots and absent for
+          older protocols. A pointer distinguishes a missing array (invalid in
+          version 5) from an empty array (no adjustment).
+        items:
+          $ref: '#/definitions/weighbridge.NetAdjustmentItem'
+        type: array
       originalGross:
         type: string
       originalTare:
@@ -1861,7 +1965,7 @@ paths:
       - 原粮流转
   /api/v1/grain-intake/trips/{id}/{action}:
     post:
-      description: select-inspection要求化验菜单权限；approve-permit、confirm-exit要求出门证菜单权限；其他动作要求流转单菜单权限。拒收凭生效化验出厂，无需正常出门证。
+      description: record-visual要求流转单菜单权限；select-inspection要求化验菜单权限；approve-permit、confirm-exit要求出门证菜单权限；其他动作要求流转单菜单权限。拒收凭生效化验或目测记录出厂，无需正常出门证。
       parameters:
       - description: 流转单ID
         in: path
@@ -1870,6 +1974,7 @@ paths:
         type: integer
       - description: 业务动作
         enum:
+        - record-visual
         - link-inspection
         - select-inspection
         - confirm-unloading
@@ -1895,6 +2000,24 @@ paths:
       security:
       - BearerAuth: []
       summary: 关联化验、指定生效、确认卸粮、关联磅单及出门放行
+      tags:
+      - 原粮流转
+  /api/v1/grain-intake/trips/{id}/ticket-candidates:
+    get:
+      parameters:
+      - description: 流转单ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/grainintake.ApiEnvelope'
+      security:
+      - BearerAuth: []
+      summary: 查询本趟可关联的正式磅单
       tags:
       - 原粮流转
   /api/v1/laboratory/inspections:
@@ -5094,6 +5217,118 @@ paths:
       tags:
       - 厂云同步
   /api/v1/weighbridge/sync/v4/tickets:
+    get:
+      description: 可信网络内按出单厂区编码和单号返回云端单据快照、作废信息、最新摘要和历史变化确认；历史编码只读，厂区编码不认证来源。
+      parameters:
+      - description: 出单厂区编码
+        in: query
+        name: siteCode
+        required: true
+        type: string
+      - description: 单号
+        in: query
+        name: ticketNo
+        required: true
+        type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/weighbridge.ApiEnvelope'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/weighbridge.ApiEnvelope'
+      summary: 厂端按单号核对云端单据
+      tags:
+      - 厂云同步
+  /api/v1/weighbridge/sync/v5/changes:
+    get:
+      description: 允许使用旧出单厂区编码只读查询已接收的历史确认，用于处理回执丢失。
+      parameters:
+      - description: 出单厂区编码
+        in: query
+        name: siteCode
+        required: true
+        type: string
+      - description: 变化摘要
+        in: query
+        name: digest
+        required: true
+        type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/weighbridge.ApiEnvelope'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/weighbridge.ApiEnvelope'
+      summary: 厂端按摘要查询历史确认
+      tags:
+      - 厂云同步
+    post:
+      description: 摘要协议（schemaVersion 5 / digestVersion 3）：保存厂端计算的 SHA-256 摘要及完整 netAdjustments
+        明细，不重新计算摘要；校验逐项、比例折算、调整合计与最终净重。重复摘要返回原确认。
+      parameters:
+      - description: 单据变化
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/weighbridge.ChangeV5'
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/weighbridge.ChangeV5Response'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/weighbridge.ApiEnvelope'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/weighbridge.ApiEnvelope'
+        "413":
+          description: Request Entity Too Large
+          schema:
+            $ref: '#/definitions/weighbridge.ApiEnvelope'
+        "503":
+          description: Service Unavailable
+          schema:
+            $ref: '#/definitions/weighbridge.ApiEnvelope'
+      summary: 厂端上传多项净重调整变化
+      tags:
+      - 厂云同步
+  /api/v1/weighbridge/sync/v5/reconcile:
+    post:
+      description: 批量上限 200 条；逐项返回单据状态和最新摘要，不返回变化历史；单项配置错误在 items[].error 中返回。需要变化历史时使用单张对账接口。
+      parameters:
+      - description: 批量对账请求
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/weighbridge.BatchReconcileRequest'
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/weighbridge.ApiEnvelope'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/weighbridge.ApiEnvelope'
+        "413":
+          description: Request Entity Too Large
+          schema:
+            $ref: '#/definitions/weighbridge.ApiEnvelope'
+      summary: 厂端批量核对云端单据
+      tags:
+      - 厂云同步
+  /api/v1/weighbridge/sync/v5/tickets:
     get:
       description: 可信网络内按出单厂区编码和单号返回云端单据快照、作废信息、最新摘要和历史变化确认；历史编码只读，厂区编码不认证来源。
       parameters:

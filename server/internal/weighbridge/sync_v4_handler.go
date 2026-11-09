@@ -114,6 +114,7 @@ func (h *Handler) applyChangeV4(c *gin.Context) {
 // @Success 200 {object} ApiEnvelope
 // @Failure 400 {object} ApiEnvelope
 // @Router /api/v1/weighbridge/sync/v4/changes [get]
+// @Router /api/v1/weighbridge/sync/v5/changes [get]
 func (h *Handler) lookupChange(c *gin.Context) {
 	result, err := h.service.LookupChange(c.Request.Context(), c.Query("siteCode"), c.Query("digest"))
 	if err != nil {
@@ -132,6 +133,7 @@ func (h *Handler) lookupChange(c *gin.Context) {
 // @Success 200 {object} ApiEnvelope
 // @Failure 400 {object} ApiEnvelope
 // @Router /api/v1/weighbridge/sync/v4/tickets [get]
+// @Router /api/v1/weighbridge/sync/v5/tickets [get]
 func (h *Handler) reconcileTicket(c *gin.Context) {
 	result, err := h.service.ReconcileTicket(c.Request.Context(), c.Query("siteCode"), c.Query("ticketNo"))
 	if err != nil {
@@ -150,6 +152,7 @@ func (h *Handler) reconcileTicket(c *gin.Context) {
 // @Failure 400 {object} ApiEnvelope
 // @Failure 413 {object} ApiEnvelope
 // @Router /api/v1/weighbridge/sync/v4/reconcile [post]
+// @Router /api/v1/weighbridge/sync/v5/reconcile [post]
 func (h *Handler) reconcileTickets(c *gin.Context) {
 	var input BatchReconcileRequest
 	if !bindSyncRequest(c, &input) {

@@ -28,13 +28,13 @@ export default function PermitsPage() {
     { title: '操作', key: 'action', render: (_, row) => <Link to={`/grain-intake/permits/${row.tripId}`}>查看核验</Link> },
   ];
   const rejectionColumns: ColumnsType<Trip> = [
-    { title: '流转单号', dataIndex: 'number' }, { title: '车牌', dataIndex: 'plate' }, { title: '粮种', dataIndex: 'materialName' }, { title: '供应商', dataIndex: 'partyName' },
+    { title: '流转单号', dataIndex: 'number' }, { title: '车牌', dataIndex: 'plate' }, { title: '货品', dataIndex: 'materialName' }, { title: '供应商', dataIndex: 'partyName' },
     { title: '当前阶段', dataIndex: 'stage', render: (v: string) => <Tag>{stageLabel(v)}</Tag> },
     { title: '实际出厂', dataIndex: 'exitedAt', render: (v: string | null) => formatDateTime(v) },
     { title: '操作', key: 'action', render: (_, row) => <Link to={`/grain-intake/permits/${row.id}`}>核验拒收依据</Link> },
   ];
   return <>
-    <PageHeader title="出门证与出厂核验" description="正常收粮核验已审批出门证；拒收核验生效化验单及说明。审批完成不等于已出厂。" />
+    <PageHeader title="出门证与出厂核验" description="正常收粮核验已审批出门证；拒收核验化验或目测结论及说明。审批完成不等于已出厂。" />
     <Tabs activeKey={rejected ? 'rejections' : 'permits'} onChange={(v) => actions.setFilters({ mode: v, stage: undefined })} items={[{ key: 'permits', label: '正常出门证' }, { key: 'rejections', label: '拒收退厂' }]} />
     <Space orientation="vertical" size="middle" style={{ width: '100%' }}>
       <Space wrap align="end"><FilterField label="单号或车牌" wide><Input.Search aria-label="单号或车牌" value={keyword} onChange={(e) => setKeyword(e.target.value)} onSearch={(v) => actions.setKeyword(v)} allowClear /></FilterField><FilterField label="办理阶段"><Select aria-label="办理阶段" style={{ width: 160 }} allowClear options={tripStages.filter((v) => rejected ? ['rejected', 'exited', 'blocked'].includes(v.value) : ['permit_pending', 'permit_approved', 'exited', 'blocked'].includes(v.value))} value={state.filters.stage} onChange={(v) => actions.setFilter('stage', v)} /></FilterField></Space>

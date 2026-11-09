@@ -1,6 +1,6 @@
 # 厂云同步契约：第一版业务边界
 
-本文记录两端共享的已确认目标，包含尚未实现的摘要同步、对账和同步模块，不能作为现有实现、部署或验收完成的证明。两端仓库保留一致副本，调整时同步维护。本厂详细业务、字段和例外以本地有效规格为准。现有接口和版本 3 字段见云端仓库 `docs/requirements/weighbridge-sync-api-design.md` 及本文末尾的现行协议说明；新协议接口和摘要规范须在实施前另行细化。
+本文记录两端共享的已确认目标。摘要同步、对账和同步模块已在两端源码实现并各自通过隔离测试，但尚未部署、未连接真实业务库、未完成双端真实联调，不能作为部署或验收完成的证明。两端仓库保留一致副本，调整时同步维护。本厂详细业务、字段和例外以本地有效规格为准。现有接口、版本 3 字段、v4 与 v5 协议见云端仓库 `docs/requirements/weighbridge-sync-api-design.md` 及本文各协议章节。
 
 ## 接入与身份
 
@@ -28,12 +28,42 @@
 
 - 本地正式单据是权威依据，云端仅接收已出单数据供总部查询统计；待回磅任务留在本厂，云端不提供修改、作废或重开本厂单据的业务操作。
 - 上送纸单信息、原始及最终重量、人工调整前后值和差额、来源、备注、调整人和时间、司机姓名及电话、联系人及联系电话、物料和供收方编码及名称快照；缺失值保留本地事实。重量统一为吨、精确至 0.001 吨，差额为原始值减最终值。具体字段及例外以本地有效业务规格为准。
+- 厂端人工补录回磅仍按现有 schemaVersion 4 及摘要规则上传，不新增字段、不改变摘要规范化：对应毛重或皮重来源沿用既有 `grossSource`／`tareSource` 的 `manual` 值，云端按来源字段保存，不会表述为设备采集。实际回磅时间和系统补录时间属于厂端称重记录明细，不进入当前上传字段。
 - 照片、待回磅任务、打印状态、打印尝试、补打次数及原因留在本厂；单据不上送承运方编码及名称、重称及资料纠错过程或被替代称重记录。承运方基础资料仍由总部统一维护和下发。
 - 出单新增云端对应单据；作废更新原单状态、原因、操作人和时间，不覆盖其业务和重量快照；重开以新单号新增并关联原单。同一单据的变化按顺序处理，较早状态不得覆盖较晚状态。重开上传等待原单创建及作废均获云端确认，前序失败时后续等待。
 - 出单、作废和重开与相应待上传变化在本地同一数据库事务中保存；后台尽快上传，断网不阻塞本地业务。云端完成保存并确认后本地才标记该变化完成；未知结果使用原变化和原摘要重试。某变化已确认不代表其后的作废或重开已确认。
 - 厂端为每次变化计算 SHA-256 摘要，摘要同时作为变化标识和对账依据，不另设随机变化标识。摘要覆盖规则版本、出单时厂区编码、单号、变化类型、约定同步的完整单据业务内容及适用的作废信息、原单关联；作废后的摘要代表作废后的单据状态。固定并版本化字段集合、顺序、编码、空值、十进制重量和时间等规范化规则，厂端重试始终使用已保存的原载荷和原摘要。协议演进及不同摘要规则版本不可直接比较时显示待核查，不直接判为内容冲突；具体规范和跨版本处理须在实施前确定。
 - 云端在同一事务保存业务结果、该变化摘要及单据最新变化摘要，按厂区、单号、变化类型和摘要识别重复；已处理的变化返回确认，不重复执行业务或让较早状态覆盖较晚状态。云端保存厂端上传的摘要，不重新计算，不另存完整变化载荷用于逐字段去重；因此依赖厂端正确计算，不能发现相同摘要搭配不同内容或云端内容后来被单独修改。摘要不提供来源认证。
 - 厂端保留原变化和摘要，云端保留已确认历史变化摘要及最新摘要，第一阶段均不自动清理，以支持迟到重试和历史确认。网络超时、结果未知或云端暂不可用时自动退避重试；管理员可手动立即重试原变化，不跳过前序。前序未完成显示等待前序；厂区编码、协议或数据错误提示管理员处理；单号或变化冲突暂停该单据及依赖它的重开，其他单据继续。云端返回可区分临时故障、前序未完成、配置或数据错误及冲突的类别。
+
+## 多项净重调整（schemaVersion 5 / digestVersion 3）
+
+客户确认同一单据可同时按比例扣水分、按重量扣杂质；厂端保存零项或多项调整明细，以及各项有符号折算重量之和。每项保存方式、比例或重量、类别编码及当时名称、备注；最终净重仍等于最终毛重减最终皮重再减调整合计。新出单、人工补录出单和更正重开各项均不得上调；历史上调记录及原单快照不变，旧变化保持原协议、载荷和摘要重试。各比例项均以最终毛重减最终皮重所得的调整前净重为基数计算，各自四舍五入至 0.001 吨后相加（比例基数已确认）。
+
+单据变化使用 `schemaVersion 5`、`digestVersion 3`，云端保留 v4 接收和历史确认。v5 请求体包含 `schemaVersion`（5）、`digestVersion`（3）、`digest`、`siteCode`、`ticketNo`、`type`（`issue`／`void`／`reopen`）、重开或带原单的作废所需 `previousSiteCode`、`ticket` 完整快照，以及作废时的 `void`。`ticket` 保留 `netAdjustment`（各项有符号折算吨数合计）与 `finalNet`，并以必填数组 `netAdjustments` 表达明细：每项含 `mode`（`amount`／`percent`）、`amount`（有符号吨字符串）、`rateBp`（比例项整数，0.01% 单位，范围 −10000 至 10000；按吨项为 `null`）、`category`、`categoryName`、`remark`。空数组表示无调整；缺失数组与空数组必须区分，缺失数组不合法。非零项 `category` 必填，`categoryName` 为出单时快照。v5 不再使用 v4 的 `netAdjustmentMode`、`netAdjustmentRateBp`、`netAdjustmentCategory`、`netAdjustmentCategoryName` 描述整单；厂端载荷中这些字段为空值，云端不据此解释整单（接收校验要求其为空）。`adjustmentRemark` 沿用 v4 中毛皮更正备注的语义，单项备注放在明细中。
+
+协议接口与 v4 并列：
+
+- `POST /api/v1/weighbridge/sync/v5/changes`：上传出单、作废或重开变化。
+- `GET /api/v1/weighbridge/sync/v5/changes?siteCode=...&digest=...`：按厂区编码和摘要查询历史确认。
+- `GET /api/v1/weighbridge/sync/v5/tickets?siteCode=...&ticketNo=...`：单张对账，返回云端快照、作废信息、最新摘要和历史变化。
+- `POST /api/v1/weighbridge/sync/v5/reconcile`：批量对账，按请求顺序返回摘要和状态。
+
+v5 复用 v4 的事务、去重、回执、前序等待、作废／重开关联校验和错误分类：`digest` 全局唯一，同一厂区、单号、变化类型构成唯一位次；同一 `digest` 重复上传返回原确认，不重复执行业务；同一位置摘要不同或状态不满足按冲突或前序未完成拒绝；作废不覆盖原业务快照，重开须等待原单创建和作废确认且不能重复重开。临时故障、配置或数据错误及冲突的机器可读分类沿用 v4。
+
+云端接收时校验每项及总量、最终净重的一致性：逐项校验 `mode` 与 `amount`、`rateBp` 的一致性；比例项 `amount` 必须等于 `round((finalGross − finalTare) × rateBp ÷ 10000)`，每项独立四舍五入到 0.001 吨（half away from zero）；各项 `amount` 之和必须等于 `netAdjustment`；`finalNet` 必须等于 `finalGross − finalTare − netAdjustment`。新出单和更正重开的非负约束由厂端出单校验执行，非零项 `category` 必填；云端继续接收符合原协议的有符号历史载荷。新旧变化使用相同协议版本，云端不能仅凭报文可靠区分历史上调和违规新上调，不能为拒绝新上调而阻断历史变化重试；字段及摘要版本不变。
+
+云端按原始数组保存完整快照，零项与缺失字段区分，不把缺失明细当作无调整。云端保存厂端上传的 `digest`，不重新计算摘要，也不另存完整载荷用于逐字段去重；既有可信边界和摘要不提供来源认证的结论不变。
+
+存储与展示：使用现有 `wb_cloud_ticket.snapshot` 保存完整 v5 `ticket`（含明细及顺序），不新增或改写数据库结构；旧 v4 快照保持原样并可查询。单据详情展示各项；总体查询、汇总和供应商统计继续使用合计与最终净重。按类别、方式报表将含多项调整的单据归为“多项调整”（内部 `mode`／`category` 编码为 `multi`，展示名“多项调整”），重量使用该单调整合计，不拆分类别统计；单调整项按该项归类。历史 v4 单项按原字段展示为一项，无调整展示为空；更老协议继续标记未知，不补造明细。
+
+摘要规则版本 3：前缀为 `wb-change-digest\n`；每个字段编码为字段名 + `:` + 值 UTF-8 字节长度（十进制）+ `:` + 值 + `\n`，空值编码为 `字段名:null\n`。字段顺序固定为：`rulesVersion`（3）、`siteCode`、`ticketNo`、`changeType`、`previousSiteCode`／`previousTicketNo`（无原单时写 `null`）、`ticket` 字段 `title` 至 `netAdjustment`（与版本 2 相同）、`netAdjustmentsCount`、按数组顺序的 `netAdjustments.<i>.mode`／`amount`／`rateBp`／`category`／`categoryName`／`remark`（`amount` 规范化为三位小数字符串；按吨项 `rateBp` 写 `null`）、`previousFinalGross`／`previousFinalTare`／`previousFinalNet`／`previousNetAdjustment`、`grossSource`、`tareSource`、`adjustmentRemark`、`adjustedBy`、`adjustedAt`、`driver`、`driverPhone`、`contactName`、`contactPhone`；作废追加 `voidReason`、`voidActor`、`voidAt`。字段集合或规范化规则变化时必须提升摘要规则版本；不同摘要规则版本不可直接比较。
+
+共享测试向量由厂端维护在 `server/internal/weighing/testdata/digest_v3_vectors.json`，云端复制为 `server/internal/weighbridge/testdata/digest_v3_vectors.json`，两份文件逐字节一致，包含 `issue-basic`（空明细）和 `issue-multi-items`（比例项与按吨项）两个样例。两个样例均为自洽报文：明细合计等于 `netAdjustment`，`finalNet` 等于 `finalGross − finalTare − netAdjustment`，比例项折算与 `rateBp` 一致。`expectedDigest` 按文件字面载荷计算，厂端生产函数与云端参考实现结果一致（`issue-basic` 为 `bb2b2bae029babdf632c54f2a45c5ab42f650366689a138c9d19ccec6a74f789`，`issue-multi-items` 为 `fd1b85bcf8081a638ae887d94e7d8f34674038b75cd448579fb9ac64e0fd7f65`）。参考实现只用于文档、向量和测试，云端接收路径不调用，仍以厂端上传的摘要为准。
+
+实现状态：云端接收端源码已实现 v5 接收、保存、展示和按合计统计，保留 v4 接收与历史确认，并新增 v5 路由；已有 Go 单元测试、隔离 PostgreSQL 仓储集成测试和 v5 HTTP 路由联调测试覆盖。尚未部署，未连接真实业务库，未完成与厂端的真实联调，不能视为已上线或已验收。厂端已实现 v5 并完成隔离测试（据厂端仓库记录），真实联调同样未完成。
+
+版本边界：历史单据仍可查询并按本厂规则办理作废或重开；历史快照不改写。不存在需要上传的 v4 待处理变化；不迁移历史数据。厂端已入队的旧变化保留原协议、载荷及摘要并按原版本重试，新变化按 v5 上传；不降级为丢失明细的旧载荷。
 
 ## 单据对账与异常处理
 
@@ -56,13 +86,16 @@
 - 只统计云端已收到且当前有效的单据，作废单不计，重开后只计有效新单；按最终净重汇总，可区分入厂卸货和出厂装货。按单据保留的原资料编码统计，不自动合并不同编码。
 - 接受断网补传带来的统计滞后；原单作废获确认到重开单获确认之间可能暂时少计。不得把云端当前结果解释为各厂已实时完整上报。
 
-## 实施前需细化
+## 原摘要协议的实施背景
 
-新协议的摘要版本、规范化字段与测试向量、接口字段、错误类别、分页和对账实现仍需双端细化及验证。当前尚未正式使用，新协议不要求兼容或迁移现有单据协议 v2/v3；在干净环境验证，现有测试环境及数据先保留，备份、清理或重建另行决定。总部资料维护权限现阶段不讨论；旧备份恢复后流水号倒退的正式处理仍暂缓，不在本契约中决定。
+本节保留 v4 规划时背景；多项调整的版本兼容以本契约“多项净重调整（schemaVersion 5 / digestVersion 3）”为准。
+
+
+新协议的摘要版本、规范化字段与测试向量、接口字段、错误类别、分页和对账实现已在 v4 与 v5 章节及接口设计中细化，并在两端源码实现和隔离测试中验证。当前尚未正式使用或部署，新协议不要求兼容或迁移现有单据协议 v2/v3；在干净环境验证，现有测试环境及数据先保留，备份、清理或重建另行决定。总部资料维护权限现阶段不讨论；旧备份恢复后流水号倒退的正式处理仍暂缓，不在本契约中决定。
 
 ## 现行版本 3 单据字段及确认（非新协议目标）
 
-现有厂端实现发送版本 3，现有云端源码兼容版本 2 和 3；实际部署版本及联调状态须另行核实。版本 3 相对版本 2 新增净重调整字段和显式最终净重，接收端须先支持版本 3 才能正确接收和统计。以下仅描述现行协议，不代表上述摘要目标已经实现。
+现有厂端实现发送版本 3，现有云端源码兼容版本 2 和 3；实际部署版本及联调状态须另行核实。版本 3 相对版本 2 新增净重调整字段和显式最终净重，接收端须先支持版本 3 才能正确接收和统计。以下仅描述现行协议；v4/v5 摘要协议见前文，其部署和真实联调状态另行核实。
 
 出单、重开变化的 `ticket` 固定包含 `ticketNo`、`previousTicketNo`、`title`、`plate`、`direction`、`materialCode`、`materialName`、`materialSpec`、`partyCode`、`partyName`、`firstConfirmedAt`、`secondConfirmedAt`、`issuedAt`、`issuerName`、`originalGross`、`originalTare`、`finalGross`、`finalTare`、`finalNet`、`netAdjustment`、`netAdjustmentMode`、`netAdjustmentRateBp`、`netAdjustmentCategory`、`netAdjustmentCategoryName`、`previousFinalGross`、`previousFinalTare`、`previousFinalNet`、`previousNetAdjustment`、`grossSource`、`tareSource`、`adjustmentRemark`、`adjustedBy`、`adjustedAt`、`driver`、`driverPhone`、`contactName` 和 `contactPhone`。空文本为 `""`；无原单号、上版重量、比例或调整人时间时对应字段为 `null`。
 

@@ -18,14 +18,15 @@ type Category struct {
 func (Category) TableName() string { return "wb_cloud_category" }
 
 type Material struct {
-	ID           int64   `json:"-"`
-	Code         string  `json:"code"`
-	Name         string  `json:"name"`
-	CategoryID   *int64  `json:"-"`
-	CategoryCode *string `json:"categoryCode" gorm:"->"`
-	Spec         string  `json:"spec"`
-	Remark       string  `json:"remark"`
-	Enabled      bool    `json:"enabled"`
+	ID               int64   `json:"-"`
+	Code             string  `json:"code"`
+	Name             string  `json:"name"`
+	CategoryID       *int64  `json:"-"`
+	CategoryCode     *string `json:"categoryCode" gorm:"->"`
+	InspectionMethod string  `json:"inspectionMethod" enums:"lab,visual"`
+	Spec             string  `json:"spec"`
+	Remark           string  `json:"remark"`
+	Enabled          bool    `json:"enabled"`
 }
 
 func (Material) TableName() string { return "wb_cloud_material" }

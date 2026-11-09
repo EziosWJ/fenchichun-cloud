@@ -98,3 +98,92 @@ func TestDeriveTicketAnalyticsRejectsInvalidWeights(t *testing.T) {
 		t.Fatal("expected invalid weight error")
 	}
 }
+
+func TestDeriveTicketAnalyticsMultiItemAdjustment(t *testing.T) {
+	items := []NetAdjustmentItem{
+		{Mode: "percent", Amount: "0.200", RateBP: intPtr(100), Category: "WATER", CategoryName: "水分大", Remark: "水分大"},
+		{Mode: "amount", Amount: "0.500", Category: "IMPURITY", CategoryName: "杂质多"},
+	}
+	snapshot := TicketSnapshot{
+		IssuedAt:          time.Date(2026, 11, 7, 1, 0, 0, 0, time.UTC),
+		FirstConfirmedAt:  time.Date(2026, 11, 7, 0, 45, 0, 0, time.UTC),
+		SecondConfirmedAt: time.Date(2026, 11, 7, 1, 0, 0, 0, time.UTC),
+		OriginalGross:     "30.000",
+		OriginalTare:      "10.000",
+		FinalGross:        "30.000",
+		FinalTare:         "10.000",
+		FinalNet:          "19.300",
+		NetAdjustment:     "0.700",
+		NetAdjustments:    &items,
+	}
+	fields, err := deriveTicketAnalytics(snapshot)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !fields.AdjustmentKnown || !fields.Adjusted {
+		t.Fatalf("adjustment should be known and adjusted: %+v", fields)
+	}
+	if fields.NetAdjustmentMilliTonne == nil || *fields.NetAdjustmentMilliTonne != 700 {
+		t.Fatalf("adjustment total = %v", fields.NetAdjustmentMilliTonne)
+	}
+	if fields.AdjustmentMode == nil || *fields.AdjustmentMode != MultiAdjustmentCode {
+		t.Fatalf("mode = %v", fields.AdjustmentMode)
+	}
+	if fields.AdjustmentCategory == nil || *fields.AdjustmentCategory != MultiAdjustmentCode {
+		t.Fatalf("category = %v", fields.AdjustmentCategory)
+	}
+	if fields.AdjustmentCategoryName == nil || *fields.AdjustmentCategoryName != MultiAdjustmentName {
+		t.Fatalf("category name = %v", fields.AdjustmentCategoryName)
+	}
+}
+
+func TestDeriveTicketAnalyticsSingleItemAdjustment(t *testing.T) {
+	items := []NetAdjustmentItem{
+		{Mode: "percent", Amount: "0.200", RateBP: intPtr(100), Category: "WATER", CategoryName: "水分大"},
+	}
+	snapshot := TicketSnapshot{
+		OriginalGross:  "30.000",
+		OriginalTare:   "10.000",
+		FinalGross:     "30.000",
+		FinalTare:      "10.000",
+		FinalNet:       "19.800",
+		NetAdjustment:  "0.200",
+		NetAdjustments: &items,
+	}
+	fields, err := deriveTicketAnalytics(snapshot)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if fields.AdjustmentMode == nil || *fields.AdjustmentMode != "percent" {
+		t.Fatalf("mode = %v", fields.AdjustmentMode)
+	}
+	if fields.AdjustmentCategory == nil || *fields.AdjustmentCategory != "WATER" {
+		t.Fatalf("category = %v", fields.AdjustmentCategory)
+	}
+	if fields.AdjustmentCategoryName == nil || *fields.AdjustmentCategoryName != "水分大" {
+		t.Fatalf("category name = %v", fields.AdjustmentCategoryName)
+	}
+}
+
+func TestDeriveTicketAnalyticsEmptyItemAdjustment(t *testing.T) {
+	empty := []NetAdjustmentItem{}
+	snapshot := TicketSnapshot{
+		OriginalGross:  "30.000",
+		OriginalTare:   "10.000",
+		FinalGross:     "30.000",
+		FinalTare:      "10.000",
+		FinalNet:       "20.000",
+		NetAdjustment:  "0",
+		NetAdjustments: &empty,
+	}
+	fields, err := deriveTicketAnalytics(snapshot)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if fields.Adjusted {
+		t.Fatal("an empty detail array must not count as adjusted")
+	}
+	if fields.AdjustmentMode != nil || fields.AdjustmentCategory != nil || fields.AdjustmentCategoryName != nil {
+		t.Fatalf("empty details must not be classified: %+v", fields)
+	}
+}

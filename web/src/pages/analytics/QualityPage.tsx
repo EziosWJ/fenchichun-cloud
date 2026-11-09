@@ -95,7 +95,7 @@ export default function QualityPage() {
     { title: '扣量率', key: 'rate', align: 'right', render: (_, row) => formatBp(row.rateBp) },
   ];
   const modeColumns: ColumnsType<AdjustmentModeRow> = [
-    { title: '调整方式', dataIndex: 'mode', key: 'mode', render: (value: string) => value === 'percent' ? '按比例' : value === 'amount' ? '按吨' : value },
+    { title: '调整方式', dataIndex: 'mode', key: 'mode', render: (value: string) => value === 'percent' ? '按比例' : value === 'amount' ? '按吨' : value === 'multi' ? '多项调整' : value },
     { title: '车次', dataIndex: 'tickets', key: 'tickets', align: 'right' },
     { title: '占比', key: 'share', align: 'right', render: (_, row) => formatBp(row.shareBp) },
   ];

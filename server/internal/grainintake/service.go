@@ -11,6 +11,7 @@ type Store interface {
 	Trips(context.Context, int64, Query) (TripPage, error)
 	Permits(context.Context, int64, Query) (PermitPage, error)
 	Detail(context.Context, int64, int64, string) (Detail, error)
+	TicketCandidates(context.Context, int64, int64) ([]TicketCandidate, error)
 	Save(context.Context, int64, int64, Input, audit.Event) (Detail, error)
 	Command(context.Context, int64, string, Command, audit.Event) (Detail, error)
 	Defaults(context.Context, int64) (string, error)
@@ -41,6 +42,11 @@ func normalizeQuery(q Query) (Query, error) {
 	default:
 		return q, ErrInvalid
 	}
+	switch q.Method {
+	case "", "lab", "visual":
+	default:
+		return q, ErrInvalid
+	}
 	return q, nil
 }
 func (s *Service) Trips(ctx context.Context, actor int64, q Query) (TripPage, error) {
@@ -60,6 +66,12 @@ func (s *Service) Permits(ctx context.Context, actor int64, q Query) (PermitPage
 func (s *Service) Detail(ctx context.Context, actor, id int64, scope string) (Detail, error) {
 	return s.store.Detail(ctx, actor, id, scope)
 }
+func (s *Service) TicketCandidates(ctx context.Context, actor, id int64) ([]TicketCandidate, error) {
+	if id <= 0 {
+		return nil, ErrInvalid
+	}
+	return s.store.TicketCandidates(ctx, actor, id)
+}
 func (s *Service) Save(ctx context.Context, id, version int64, in Input, e audit.Event) (Detail, error) {
 	in.normalize()
 	if err := in.validate(); err != nil {
@@ -69,11 +81,15 @@ func (s *Service) Save(ctx context.Context, id, version int64, in Input, e audit
 }
 func (s *Service) Command(ctx context.Context, id int64, action string, in Command, e audit.Event) (Detail, error) {
 	switch action {
-	case "confirm-unloading", "link-ticket", "issue-permit", "approve-permit", "confirm-exit":
+	case "record-visual", "confirm-unloading", "link-ticket", "issue-permit", "approve-permit", "confirm-exit":
 	default:
 		return Detail{}, ErrInvalid
 	}
 	in.Location = strings.TrimSpace(in.Location)
+	in.Reason = strings.TrimSpace(in.Reason)
+	if action == "record-visual" && ((in.Conclusion != "accept" && in.Conclusion != "reject") || (in.Conclusion == "reject" && in.Reason == "") || utf8.RuneCountInString(in.Reason) > 2000) {
+		return Detail{}, ErrInvalid
+	}
 	if action == "confirm-unloading" && (in.Location == "" || utf8.RuneCountInString(in.Location) > 200) {
 		return Detail{}, ErrInvalid
 	}
@@ -92,7 +108,7 @@ func (s *Service) Rejections(ctx context.Context, actor int64, q Query) (TripPag
 	return s.store.Trips(ctx, actor, q)
 }
 
-// Defaults 返回登记页的默认厂区：当前用户最近一张流转单的厂区，取不到则为空。
+// Defaults 返回当前用户最近一张流转单的厂区，供登记页作为默认值。
 func (s *Service) Defaults(ctx context.Context, actor int64) (string, error) {
 	return s.store.Defaults(ctx, actor)
 }

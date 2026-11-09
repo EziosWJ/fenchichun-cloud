@@ -46,6 +46,7 @@ func find(tx *gorm.DB, id int64, lock bool) (Inspection, error) {
 
 type tripReference struct {
 	ID                                                              int64
+	SiteCode                                                        string
 	Plate, MaterialCode, PartyCode, Driver, DriverPhone, ContractNo string
 	ExitedAt, UnloadedAt                                            *time.Time
 	TicketID, EffectiveInspectionID                                 *int64
@@ -151,6 +152,9 @@ func (r *Repository) Create(ctx context.Context, in Input, e audit.Event) (Inspe
 		if err := requireAccess(tx, e.Metadata.ActorID); err != nil {
 			return err
 		}
+		if in.TripID == nil || *in.TripID <= 0 {
+			return fmt.Errorf("%w：请先选择待化验的流转单", ErrInvalid)
+		}
 		trip, err := inspectionTrip(tx, *in.TripID)
 		if err != nil {
 			return err
@@ -162,12 +166,16 @@ func (r *Repository) Create(ctx context.Context, in Input, e audit.Event) (Inspe
 		if n > 0 {
 			return fmt.Errorf("%w：该流转单已录入化验结果", ErrConflict)
 		}
+		in.SiteCode = trip.SiteCode
 		in.Plate = trip.Plate
 		in.MaterialCode = trip.MaterialCode
 		in.PartyCode = trip.PartyCode
 		in.Driver = trip.Driver
 		in.DriverPhone = trip.DriverPhone
 		in.ContractNo = trip.ContractNo
+		if err := in.validate(true); err != nil {
+			return err
+		}
 
 		var seq int64
 		if err := tx.Raw("INSERT INTO wb_cloud_sequence (kind,value) VALUES (?,1) ON CONFLICT (kind) DO UPDATE SET value=wb_cloud_sequence.value+1 RETURNING value", "inspection").Scan(&seq).Error; err != nil {

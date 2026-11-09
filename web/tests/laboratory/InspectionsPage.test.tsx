@@ -14,6 +14,7 @@ const base: Trip = {
   driver: '', driverPhone: '', contractNo: '', remark: '', effectiveInspectionId: null, effectiveSelectedAt: null, effectiveSelectedBy: null,
   effectiveConclusion: '', unloadingLocation: '', unloadedAt: null, unloadedBy: null, ticketId: null, createdBy: 1,
   createdAt: '2026-11-06T07:00:00Z', updatedAt: '2026-11-06T07:00:00Z', exitedAt: null, exitedBy: null, exitBasis: '', exitInspectionId: null,
+  inspectionMethod: 'lab', visualConclusion: '', visualReason: '', visualInspectedAt: null, visualInspectedBy: null,
   stage: 'pending_inspection', inspectionId: null, inspectionConclusion: '',
 };
 

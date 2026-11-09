@@ -103,9 +103,7 @@ func deriveTicketAnalytics(snapshot TicketSnapshot) (ticketAnalyticsFields, erro
 		fields.Adjusted = adjustment != 0
 	}
 
-	fields.AdjustmentMode = textPointer(snapshot.NetAdjustmentMode)
-	fields.AdjustmentCategory = textPointer(snapshot.NetAdjustmentCategory)
-	fields.AdjustmentCategoryName = textPointer(snapshot.NetAdjustmentCategoryName)
+	deriveAdjustmentClassification(&fields, snapshot)
 
 	if !snapshot.FirstConfirmedAt.IsZero() {
 		value := snapshot.FirstConfirmedAt
@@ -153,6 +151,39 @@ func setTicketAnalytics(ticket *cloudTicket, snapshot TicketSnapshot) error {
 	}
 	fields.apply(ticket)
 	return nil
+}
+
+// MultiAdjustmentCode marks a ticket whose net adjustment has more than one
+// detail item. Reports group such tickets under 多项调整 and use the ticket's
+// total adjustment instead of splitting it across categories.
+const (
+	MultiAdjustmentCode = "multi"
+	MultiAdjustmentName = "多项调整"
+)
+
+// deriveAdjustmentClassification picks the report category and mode. A
+// version 5 ticket is classified from its detail array; older snapshots keep
+// using the whole-ticket single-item fields.
+func deriveAdjustmentClassification(fields *ticketAnalyticsFields, snapshot TicketSnapshot) {
+	if snapshot.NetAdjustments != nil {
+		switch len(*snapshot.NetAdjustments) {
+		case 0:
+			return
+		case 1:
+			item := (*snapshot.NetAdjustments)[0]
+			fields.AdjustmentMode = textPointer(item.Mode)
+			fields.AdjustmentCategory = textPointer(item.Category)
+			fields.AdjustmentCategoryName = textPointer(item.CategoryName)
+		default:
+			fields.AdjustmentMode = textPointer(MultiAdjustmentCode)
+			fields.AdjustmentCategory = textPointer(MultiAdjustmentCode)
+			fields.AdjustmentCategoryName = textPointer(MultiAdjustmentName)
+		}
+		return
+	}
+	fields.AdjustmentMode = textPointer(snapshot.NetAdjustmentMode)
+	fields.AdjustmentCategory = textPointer(snapshot.NetAdjustmentCategory)
+	fields.AdjustmentCategoryName = textPointer(snapshot.NetAdjustmentCategoryName)
 }
 
 func parseOptionalMilliTonne(value string) (*int64, error) {

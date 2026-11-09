@@ -68,7 +68,7 @@ func exerciseGrainIntake(t *testing.T, db *gorm.DB) {
 		in := laboratory.Input{TripID: &v.Trip.ID, Moisture: "14.1", Impurity: "0", BulkDensity: "750", Conclusion: conclusion, Reason: "人工判定"}
 		i, err := lab.Save(ctx, 0, 0, in, e)
 		check(err)
-		if i.Plate != v.Trip.Plate || i.PartyCode != v.Trip.PartyCode {
+		if i.SiteCode != v.Trip.SiteCode || i.Plate != v.Trip.Plate || i.PartyCode != v.Trip.PartyCode {
 			t.Fatal("trip information not inherited")
 		}
 		i, err = lab.Transition(ctx, i.ID, i.Version, "confirm", "", e)
@@ -142,7 +142,7 @@ func exerciseGrainIntake(t *testing.T, db *gorm.DB) {
 		t.Fatal("void did not clear effective result")
 	}
 	// Independent confirmed inspection can be linked; a mismatch and cross-trip reuse are rejected.
-	independent, err := lab.Save(ctx, 0, 0, laboratory.Input{Plate: multiple.Trip.Plate, MaterialCode: multiple.Trip.MaterialCode, PartyCode: multiple.Trip.PartyCode, Moisture: "12", Impurity: "0", BulkDensity: "750", Conclusion: "accept"}, e)
+	independent, err := lab.Save(ctx, 0, 0, laboratory.Input{SiteCode: multiple.Trip.SiteCode, Plate: multiple.Trip.Plate, MaterialCode: multiple.Trip.MaterialCode, PartyCode: multiple.Trip.PartyCode, Moisture: "12", Impurity: "0", BulkDensity: "750", Conclusion: "accept"}, e)
 	check(err)
 	independent, err = lab.Transition(ctx, independent.ID, independent.Version, "confirm", "", e)
 	check(err)
@@ -151,6 +151,40 @@ func exerciseGrainIntake(t *testing.T, db *gorm.DB) {
 	_, err = flow.Command(ctx, other.Trip.ID, "link-inspection", grainintake.Command{Version: other.Trip.Version, InspectionID: independent.ID, InspectionVersion: independent.Version}, e)
 	if !errors.Is(err, grainintake.ErrConflict) {
 		t.Fatalf("cross-trip association: %v", err)
+	}
+	// An inspection from another site cannot be linked even when plate, material and supplier match.
+	if _, err := wb.CreateSite(ctx, weighbridge.SiteInput{Code: "GRAIN-OTHER", Name: "其他厂"}, e); err != nil {
+		t.Fatal(err)
+	}
+	foreign, err := lab.Save(ctx, 0, 0, laboratory.Input{SiteCode: "GRAIN-OTHER", Plate: multiple.Trip.Plate, MaterialCode: multiple.Trip.MaterialCode, PartyCode: multiple.Trip.PartyCode, Moisture: "12", Impurity: "0", BulkDensity: "750", Conclusion: "accept"}, e)
+	check(err)
+	foreign, err = lab.Transition(ctx, foreign.ID, foreign.Version, "confirm", "", e)
+	check(err)
+	_, err = flow.Command(ctx, other.Trip.ID, "link-inspection", grainintake.Command{Version: other.Trip.Version, InspectionID: foreign.ID, InspectionVersion: foreign.Version}, e)
+	if !errors.Is(err, grainintake.ErrConflict) {
+		t.Fatalf("cross-site inspection: %v", err)
+	}
+	// A void before the permit is issued detaches the ticket so the trip can be linked again.
+	detached, detachedChange := makeReady("晋A作废恢复")
+	beforeVoid := read(detached.Trip.ID)
+	_, err = wb.ApplyChange(ctx, weighbridge.Change{SchemaVersion: 2, ChangeID: detachedChange.ChangeID + "-void", SiteCode: detachedChange.SiteCode, TicketNo: detachedChange.TicketNo, Type: "void", Void: &weighbridge.VoidInfo{Reason: "选错磅单", Actor: "库管", At: time.Now().UTC()}})
+	check(err)
+	detached = read(detached.Trip.ID)
+	if detached.Trip.TicketID != nil || detached.Trip.Stage != "accepted" || detached.Trip.Version != beforeVoid.Trip.Version+1 {
+		t.Fatalf("void did not detach ticket: stage=%s ticket=%v version=%d", detached.Trip.Stage, detached.Trip.TicketID, detached.Trip.Version)
+	}
+	if len(detached.Events) == 0 || detached.Events[0].Action != "trip.ticket-voided" || detached.Events[0].ActorID != nil {
+		t.Fatalf("missing system event: %+v", detached.Events)
+	}
+	number++
+	no := fmt.Sprintf("GRAIN-TICKET-%d", number)
+	first := detached.Trip.EffectiveSelectedAt.Add(time.Microsecond)
+	second := detached.Trip.UnloadedAt.Add(time.Microsecond)
+	_, err = wb.ApplyChange(ctx, weighbridge.Change{SchemaVersion: 2, ChangeID: no, SiteCode: "GRAIN-TEST", TicketNo: no, Type: "issue", Ticket: &weighbridge.TicketSnapshot{TicketNo: no, Title: "重开磅单", Plate: detached.Trip.Plate, Direction: "inbound", MaterialCode: detached.Trip.MaterialCode, MaterialName: detached.Trip.MaterialName, PartyCode: detached.Trip.PartyCode, PartyName: detached.Trip.PartyName, FirstConfirmedAt: first, SecondConfirmedAt: second, IssuedAt: second, IssuerName: "验证库管", OriginalGross: "30", OriginalTare: "10", FinalGross: "30", FinalTare: "10"}})
+	check(err)
+	detached = command(detached, "link-ticket", grainintake.Command{TicketSiteCode: "GRAIN-TEST", TicketNo: no})
+	if detached.Trip.Stage != "ready" || detached.Trip.TicketID == nil {
+		t.Fatalf("relink after void: stage=%s", detached.Trip.Stage)
 	}
 	// Complete normal exit, preserving the distinction between approval and actual departure.
 	normal, _ := makeReady("晋A正常")
@@ -217,6 +251,59 @@ func exerciseGrainIntake(t *testing.T, db *gorm.DB) {
 	check(err)
 	if permits.Total != 2 {
 		t.Fatalf("permit list: %d", permits.Total)
+	}
+	// Visual inspection supports both rejection at the gate and the normal permit path.
+	check(db.Exec("INSERT INTO wb_cloud_material(code,name,inspection_method) VALUES ('WOOD-TEST','木片','visual')").Error)
+	createWood := func(plate string) grainintake.Detail {
+		v, err := flow.Save(ctx, 0, 0, grainintake.Input{SiteCode: "GRAIN-TEST", Plate: plate, MaterialCode: "WOOD-TEST", PartyCode: "C-P-0001"}, e)
+		check(err)
+		return v
+	}
+	wood := createWood("晋A木拒")
+	if wood.Trip.InspectionMethod != "visual" || wood.Trip.Stage != "pending_inspection" {
+		t.Fatalf("visual registration: %+v", wood.Trip)
+	}
+	_, err = flow.Command(ctx, wood.Trip.ID, "record-visual", grainintake.Command{Version: wood.Trip.Version, Conclusion: "reject"}, e)
+	if !errors.Is(err, grainintake.ErrInvalid) {
+		t.Fatalf("missing rejection reason: %v", err)
+	}
+	_, err = flow.Command(ctx, wood.Trip.ID, "confirm-unloading", grainintake.Command{Version: wood.Trip.Version, Location: "仓库"}, e)
+	if !errors.Is(err, grainintake.ErrConflict) {
+		t.Fatalf("uninspected unloading: %v", err)
+	}
+	wood = command(wood, "record-visual", grainintake.Command{Conclusion: "reject", Reason: "夹杂异物"})
+	if wood.Trip.Stage != "rejected" {
+		t.Fatalf("visual rejection stage: %s", wood.Trip.Stage)
+	}
+	page, err = flow.Rejections(ctx, gateActor, grainintake.Query{Keyword: wood.Trip.Number})
+	check(err)
+	if page.Total != 1 {
+		t.Fatal("visual rejection missing from gate list")
+	}
+	wood, err = flow.Command(ctx, wood.Trip.ID, "confirm-exit", grainintake.Command{Version: wood.Trip.Version, Basis: "rejection"}, gateEvent)
+	check(err)
+	if wood.Trip.ExitedAt == nil || wood.Permit != nil || wood.Ticket != nil || wood.Trip.ExitInspectionID != nil {
+		t.Fatal("visual rejection evidence")
+	}
+
+	wood = createWood("晋A木收")
+	wood = command(wood, "record-visual", grainintake.Command{Conclusion: "accept"})
+	firstWood := wood.Trip.VisualInspectedAt.Add(time.Microsecond)
+	wood = command(wood, "confirm-unloading", grainintake.Command{Location: "木片场"})
+	secondWood := wood.Trip.UnloadedAt.Add(time.Microsecond)
+	woodTicket := weighbridge.Change{SchemaVersion: 2, ChangeID: "WOOD-TICKET", SiteCode: "GRAIN-TEST", TicketNo: "WOOD-TICKET", Type: "issue", Ticket: &weighbridge.TicketSnapshot{TicketNo: "WOOD-TICKET", Title: "木片磅单", Plate: wood.Trip.Plate, Direction: "inbound", MaterialCode: wood.Trip.MaterialCode, MaterialName: wood.Trip.MaterialName, PartyCode: wood.Trip.PartyCode, PartyName: wood.Trip.PartyName, FirstConfirmedAt: firstWood, SecondConfirmedAt: secondWood, IssuedAt: secondWood, IssuerName: "库管", OriginalGross: "30", OriginalTare: "10", FinalGross: "30", FinalTare: "10"}}
+	_, err = wb.ApplyChange(ctx, woodTicket)
+	check(err)
+	wood = command(wood, "link-ticket", grainintake.Command{TicketSiteCode: "GRAIN-TEST", TicketNo: "WOOD-TICKET"})
+	wood = command(wood, "issue-permit", grainintake.Command{})
+	if wood.Permit.InspectionID != nil {
+		t.Fatal("visual permit has lab evidence")
+	}
+	wood = command(wood, "approve-permit", grainintake.Command{PermitID: wood.Permit.ID})
+	wood, err = flow.Command(ctx, wood.Trip.ID, "confirm-exit", grainintake.Command{Version: wood.Trip.Version, Basis: "permit", PermitID: wood.Permit.ID}, gateEvent)
+	check(err)
+	if wood.Trip.ExitedAt == nil {
+		t.Fatal("visual accepted trip did not exit")
 	}
 	if len(departed.Events) == 0 {
 		t.Fatal("missing process history")

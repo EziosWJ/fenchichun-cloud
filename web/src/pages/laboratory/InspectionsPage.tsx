@@ -23,7 +23,7 @@ export default function InspectionsPage() {
   const [search, setSearch] = useState('');
   const [selected, setSelected] = useState<Trip>();
   const [viewId, setViewId] = useState<number>();
-  const params = { page, pageSize, keyword: search || undefined, order: 'inspection_first' };
+  const params = { page, pageSize, keyword: search || undefined, order: 'inspection_first', method: 'lab' };
   const list = useQuery({ queryKey: ['laboratory', 'trips', params], queryFn: () => trips(params) });
   const detail = useQuery({
     queryKey: ['laboratory', 'inspection', viewId],

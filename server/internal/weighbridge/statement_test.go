@@ -52,6 +52,33 @@ func TestAggregateStatementPartiesGroupsBySiteAndParty(t *testing.T) {
 	}
 }
 
+func TestSortStatementParties(t *testing.T) {
+	at := time.Date(2026, 11, 1, 2, 0, 0, 0, time.UTC)
+	parties := []StatementParty{
+		{SiteCode: "F001", PartyCode: "P1", LastIssuedAt: at.Add(2 * time.Hour)},
+		{SiteCode: "F001", PartyCode: "P2", LastIssuedAt: at.Add(4 * time.Hour)},
+		{SiteCode: "F002", PartyCode: "P1", LastIssuedAt: at.Add(3 * time.Hour)},
+	}
+	parties[0].StatementTotals = StatementTotals{TicketCount: 3, NetMilliTonne: 1000, NetAdjustmentMilliTonne: 300}
+	parties[1].StatementTotals = StatementTotals{TicketCount: 1, NetMilliTonne: 3000, NetAdjustmentMilliTonne: 100}
+	parties[2].StatementTotals = StatementTotals{TicketCount: 2, NetMilliTonne: 2000, NetAdjustmentMilliTonne: 200}
+
+	sortStatementParties(parties, "ticketCount", "asc")
+	if parties[0].PartyCode != "P2" || parties[2].TicketCount != 3 {
+		t.Fatalf("ticketCount sort = %+v", parties)
+	}
+
+	sortStatementParties(parties, "adjustment", "desc")
+	if parties[0].NetAdjustmentMilliTonne != 300 || parties[2].NetAdjustmentMilliTonne != 100 {
+		t.Fatalf("adjustment sort = %+v", parties)
+	}
+
+	sortStatementParties(parties, "issued", "asc")
+	if parties[0].SiteCode != "F001" || parties[0].PartyCode != "P1" {
+		t.Fatalf("issued sort = %+v", parties)
+	}
+}
+
 func TestAggregateStatementDetailBuildsMaterialAndDailyRows(t *testing.T) {
 	at := time.Date(2026, 11, 1, 2, 0, 0, 0, time.UTC)
 	from := at

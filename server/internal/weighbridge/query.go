@@ -17,6 +17,7 @@ type TicketQuery struct {
 	Keyword      string
 	MaterialCode string
 	PartyCode    string
+	Adjusted     *bool
 	From         *time.Time
 	Until        *time.Time
 }
@@ -65,6 +66,9 @@ func applyTicketFilter(tx *gorm.DB, q TicketQuery) *gorm.DB {
 	}
 	if q.PartyCode != "" {
 		tx = tx.Where("t.party_code = ?", q.PartyCode)
+	}
+	if q.Adjusted != nil {
+		tx = tx.Where("t.adjusted = ?", *q.Adjusted)
 	}
 	if q.Keyword != "" {
 		term := "%" + q.Keyword + "%"

@@ -6,7 +6,6 @@ import (
 	"fenchichun.local/server/internal/laboratory"
 	"fenchichun.local/server/internal/weighbridge"
 	"fmt"
-	"regexp"
 	"strings"
 	"time"
 	"unicode/utf8"
@@ -22,9 +21,6 @@ var (
 const TripPermission = "grain-intake:trips"
 const PermitPermission = "grain-intake:permits"
 const LabPermission = "laboratory:inspections"
-
-// platePattern 覆盖普通、新能源、挂车、教练、警用及使领馆车牌。
-var platePattern = regexp.MustCompile(`^[京津沪渝冀豫云辽黑湘皖鲁新苏浙赣鄂桂甘晋蒙陕吉闽贵粤青藏川宁琼使领][A-Z]([A-Z0-9]{5}|[A-Z0-9]{6}|[A-Z0-9]{5}[挂学警港澳])$`)
 
 type Input struct {
 	SiteCode     string `json:"siteCode"`
@@ -44,11 +40,8 @@ func (in *Input) normalize() {
 	in.PartyCode = strings.TrimSpace(in.PartyCode)
 }
 func (in Input) validate() error {
-	if in.SiteCode == "" || in.Plate == "" || in.MaterialCode == "" || in.PartyCode == "" {
-		return fmt.Errorf("%w：厂区、车牌、粮种和供应商必填", ErrInvalid)
-	}
-	if !platePattern.MatchString(in.Plate) {
-		return fmt.Errorf("%w：车牌格式不正确，示例：京A12345、京A12345挂", ErrInvalid)
+	if in.SiteCode == "" || in.Plate == "" || in.MaterialCode == "" {
+		return fmt.Errorf("%w：厂区、车牌和粮种必填", ErrInvalid)
 	}
 	for _, f := range []struct {
 		s string
@@ -66,6 +59,11 @@ type Trip struct {
 	Number                string `json:"number"`
 	Version               int64  `json:"version"`
 	Input                 `gorm:"embedded"`
+	InspectionMethod      string     `json:"inspectionMethod"`
+	VisualConclusion      string     `json:"visualConclusion"`
+	VisualReason          string     `json:"visualReason"`
+	VisualInspectedAt     *time.Time `json:"visualInspectedAt"`
+	VisualInspectedBy     *int64     `json:"visualInspectedBy"`
 	MaterialName          string     `json:"materialName"`
 	PartyName             string     `json:"partyName"`
 	EffectiveInspectionID *int64     `json:"effectiveInspectionId"`
@@ -96,7 +94,7 @@ type Permit struct {
 	TripID       int64      `json:"tripId"`
 	Version      int64      `json:"version"`
 	Status       string     `json:"status"`
-	InspectionID int64      `json:"inspectionId"`
+	InspectionID *int64     `json:"inspectionId"`
 	TicketID     int64      `json:"ticketId"`
 	CreatedBy    int64      `json:"createdBy"`
 	CreatedAt    time.Time  `json:"createdAt"`
@@ -116,7 +114,7 @@ type Event struct {
 	TripID      int64     `json:"tripId"`
 	Action      string    `json:"action"`
 	Description string    `json:"description"`
-	ActorID     int64     `json:"actorId"`
+	ActorID     *int64    `json:"actorId"`
 	ActorName   string    `json:"actorName" gorm:"->"`
 	CreatedAt   time.Time `json:"createdAt"`
 }
@@ -130,10 +128,33 @@ type Detail struct {
 	Ticket      *weighbridge.TicketResult `json:"ticket"`
 	Events      []Event                   `json:"events"`
 }
+
+// TicketCandidate is a cloud ticket that matches this trip's site, plate,
+// material and supplier. Linkable reports whether the weighing order also
+// satisfies the link-ticket time rules.
+type TicketCandidate struct {
+	SiteCode           string    `json:"siteCode"`
+	TicketNo           string    `json:"ticketNo"`
+	Plate              string    `json:"plate"`
+	MaterialCode       string    `json:"materialCode"`
+	MaterialName       string    `json:"materialName"`
+	PartyCode          string    `json:"partyCode"`
+	PartyName          string    `json:"partyName"`
+	FinalGross         string    `json:"finalGross"`
+	FinalTare          string    `json:"finalTare"`
+	FinalNetMilliTonne int64     `json:"finalNetMilliTonne"`
+	FirstConfirmedAt   time.Time `json:"firstConfirmedAt"`
+	SecondConfirmedAt  time.Time `json:"secondConfirmedAt"`
+	IssuedAt           time.Time `json:"issuedAt"`
+	Linkable           bool      `json:"linkable"`
+	Reason             string    `json:"reason"`
+}
+
 type Query struct {
 	Page, PageSize int
 	Keyword, Stage string
 	Order          string
+	Method         string
 	Gate           bool
 }
 type TripPage struct {
@@ -149,6 +170,8 @@ type PermitPage struct {
 	PageSize int      `json:"pageSize"`
 }
 type Command struct {
+	Conclusion        string `json:"conclusion"`
+	Reason            string `json:"reason"`
 	Version           int64  `json:"version"`
 	InspectionID      int64  `json:"inspectionId"`
 	InspectionVersion int64  `json:"inspectionVersion"`

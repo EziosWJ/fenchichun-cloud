@@ -24,6 +24,13 @@ echarts.use([
   CanvasRenderer,
 ]);
 
+export interface EChartClickParams {
+  dataIndex?: number;
+  name?: string;
+  value?: unknown;
+  seriesIndex?: number;
+}
+
 interface EChartProps {
   option: EChartsOption;
   height?: number;
@@ -31,6 +38,7 @@ interface EChartProps {
   empty?: boolean;
   emptyDescription?: string;
   ariaLabel?: string;
+  onClick?: (params: EChartClickParams) => void;
 }
 
 export function EChart({
@@ -40,17 +48,26 @@ export function EChart({
   empty = false,
   emptyDescription = '暂无数据',
   ariaLabel,
+  onClick,
 }: EChartProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<echarts.ECharts | null>(null);
+  const clickRef = useRef(onClick);
+
+  useEffect(() => {
+    clickRef.current = onClick;
+  }, [onClick]);
 
   useEffect(() => {
     if (empty || !containerRef.current) return;
     const chart = echarts.init(containerRef.current);
     chartRef.current = chart;
+    const handleClick = (params: unknown) => clickRef.current?.(params as EChartClickParams);
+    chart.on('click', handleClick);
     const observer = new ResizeObserver(() => chart.resize());
     observer.observe(containerRef.current);
     return () => {
+      chart.off('click', handleClick);
       observer.disconnect();
       chart.dispose();
       chartRef.current = null;

@@ -50,6 +50,7 @@ func RegisterRoutes(api gin.IRouter, handler *Handler) {
 	api.POST("/weighbridge/sync/changes", handler.change)
 	api.GET("/weighbridge/sync/master", handler.master)
 	RegisterSyncV4Routes(api, handler)
+	RegisterSyncV5Routes(api, handler)
 }
 
 func RegisterManagementRoutes(authenticated gin.IRouter, handler *Handler) {

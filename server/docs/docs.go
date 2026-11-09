@@ -410,6 +410,36 @@ const docTemplate = `{
                 }
             }
         },
+        "/api/v1/grain-intake/trips/{id}/ticket-candidates": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "tags": [
+                    "原粮流转"
+                ],
+                "summary": "查询本趟可关联的正式磅单",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "流转单ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/grainintake.ApiEnvelope"
+                        }
+                    }
+                }
+            }
+        },
         "/api/v1/grain-intake/trips/{id}/{action}": {
             "post": {
                 "security": [
@@ -417,7 +447,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "select-inspection要求化验菜单权限；approve-permit、confirm-exit要求出门证菜单权限；其他动作要求流转单菜单权限。拒收凭生效化验出厂，无需正常出门证。",
+                "description": "record-visual要求流转单菜单权限；select-inspection要求化验菜单权限；approve-permit、confirm-exit要求出门证菜单权限；其他动作要求流转单菜单权限。拒收凭生效化验或目测记录出厂，无需正常出门证。",
                 "tags": [
                     "原粮流转"
                 ],
@@ -432,6 +462,7 @@ const docTemplate = `{
                     },
                     {
                         "enum": [
+                            "record-visual",
                             "link-inspection",
                             "select-inspection",
                             "confirm-unloading",
@@ -5671,6 +5702,174 @@ const docTemplate = `{
                 }
             }
         },
+        "/api/v1/weighbridge/sync/v5/changes": {
+            "get": {
+                "description": "允许使用旧出单厂区编码只读查询已接收的历史确认，用于处理回执丢失。",
+                "tags": [
+                    "厂云同步"
+                ],
+                "summary": "厂端按摘要查询历史确认",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "出单厂区编码",
+                        "name": "siteCode",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "变化摘要",
+                        "name": "digest",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/weighbridge.ApiEnvelope"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/weighbridge.ApiEnvelope"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "description": "摘要协议（schemaVersion 5 / digestVersion 3）：保存厂端计算的 SHA-256 摘要及完整 netAdjustments 明细，不重新计算摘要；校验逐项、比例折算、调整合计与最终净重。重复摘要返回原确认。",
+                "tags": [
+                    "厂云同步"
+                ],
+                "summary": "厂端上传多项净重调整变化",
+                "parameters": [
+                    {
+                        "description": "单据变化",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/weighbridge.ChangeV5"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/weighbridge.ChangeV5Response"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/weighbridge.ApiEnvelope"
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
+                        "schema": {
+                            "$ref": "#/definitions/weighbridge.ApiEnvelope"
+                        }
+                    },
+                    "413": {
+                        "description": "Request Entity Too Large",
+                        "schema": {
+                            "$ref": "#/definitions/weighbridge.ApiEnvelope"
+                        }
+                    },
+                    "503": {
+                        "description": "Service Unavailable",
+                        "schema": {
+                            "$ref": "#/definitions/weighbridge.ApiEnvelope"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/weighbridge/sync/v5/reconcile": {
+            "post": {
+                "description": "批量上限 200 条；逐项返回单据状态和最新摘要，不返回变化历史；单项配置错误在 items[].error 中返回。需要变化历史时使用单张对账接口。",
+                "tags": [
+                    "厂云同步"
+                ],
+                "summary": "厂端批量核对云端单据",
+                "parameters": [
+                    {
+                        "description": "批量对账请求",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/weighbridge.BatchReconcileRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/weighbridge.ApiEnvelope"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/weighbridge.ApiEnvelope"
+                        }
+                    },
+                    "413": {
+                        "description": "Request Entity Too Large",
+                        "schema": {
+                            "$ref": "#/definitions/weighbridge.ApiEnvelope"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/weighbridge/sync/v5/tickets": {
+            "get": {
+                "description": "可信网络内按出单厂区编码和单号返回云端单据快照、作废信息、最新摘要和历史变化确认；历史编码只读，厂区编码不认证来源。",
+                "tags": [
+                    "厂云同步"
+                ],
+                "summary": "厂端按单号核对云端单据",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "出单厂区编码",
+                        "name": "siteCode",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "单号",
+                        "name": "ticketNo",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/weighbridge.ApiEnvelope"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/weighbridge.ApiEnvelope"
+                        }
+                    }
+                }
+            }
+        },
         "/api/v1/weighbridge/ticket-totals": {
             "get": {
                 "security": [
@@ -6092,10 +6291,25 @@ const docTemplate = `{
                 }
             }
         },
+        "grainintake.ApiEnvelope": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "integer"
+                },
+                "data": {},
+                "message": {
+                    "type": "string"
+                }
+            }
+        },
         "grainintake.Command": {
             "type": "object",
             "properties": {
                 "basis": {
+                    "type": "string"
+                },
+                "conclusion": {
                     "type": "string"
                 },
                 "inspectionId": {
@@ -6109,6 +6323,9 @@ const docTemplate = `{
                 },
                 "permitId": {
                     "type": "integer"
+                },
+                "reason": {
+                    "type": "string"
                 },
                 "ticketNo": {
                     "type": "string"
@@ -6380,6 +6597,9 @@ const docTemplate = `{
                 "id": {
                     "type": "integer"
                 },
+                "inspectionMethod": {
+                    "type": "string"
+                },
                 "materialCode": {
                     "type": "string"
                 },
@@ -6424,6 +6644,18 @@ const docTemplate = `{
                 },
                 "version": {
                     "type": "integer"
+                },
+                "visualConclusion": {
+                    "type": "string"
+                },
+                "visualInspectedAt": {
+                    "type": "string"
+                },
+                "visualInspectedBy": {
+                    "type": "integer"
+                },
+                "visualReason": {
+                    "type": "string"
                 }
             }
         },
@@ -6511,6 +6743,9 @@ const docTemplate = `{
                 "remark": {
                     "type": "string"
                 },
+                "siteCode": {
+                    "type": "string"
+                },
                 "tripId": {
                     "type": "integer"
                 }
@@ -6580,6 +6815,9 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "remark": {
+                    "type": "string"
+                },
+                "siteCode": {
                     "type": "string"
                 },
                 "status": {
@@ -6690,6 +6928,9 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "remark": {
+                    "type": "string"
+                },
+                "siteCode": {
                     "type": "string"
                 },
                 "tripId": {
@@ -7742,6 +7983,26 @@ const docTemplate = `{
                 }
             }
         },
+        "weighbridge.ChangeReceiptV5": {
+            "type": "object",
+            "properties": {
+                "changeType": {
+                    "type": "string"
+                },
+                "digest": {
+                    "type": "string"
+                },
+                "duplicate": {
+                    "type": "boolean"
+                },
+                "receivedAt": {
+                    "type": "string"
+                },
+                "ticketNo": {
+                    "type": "string"
+                }
+            }
+        },
         "weighbridge.ChangeResponse": {
             "type": "object",
             "properties": {
@@ -7796,6 +8057,52 @@ const docTemplate = `{
                 },
                 "data": {
                     "$ref": "#/definitions/weighbridge.ChangeReceiptV4"
+                },
+                "message": {
+                    "type": "string"
+                }
+            }
+        },
+        "weighbridge.ChangeV5": {
+            "type": "object",
+            "properties": {
+                "digest": {
+                    "type": "string"
+                },
+                "digestVersion": {
+                    "type": "integer"
+                },
+                "previousSiteCode": {
+                    "type": "string"
+                },
+                "schemaVersion": {
+                    "type": "integer"
+                },
+                "siteCode": {
+                    "type": "string"
+                },
+                "ticket": {
+                    "$ref": "#/definitions/weighbridge.TicketSnapshot"
+                },
+                "ticketNo": {
+                    "type": "string"
+                },
+                "type": {
+                    "type": "string"
+                },
+                "void": {
+                    "$ref": "#/definitions/weighbridge.VoidInfo"
+                }
+            }
+        },
+        "weighbridge.ChangeV5Response": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "integer"
+                },
+                "data": {
+                    "$ref": "#/definitions/weighbridge.ChangeReceiptV5"
                 },
                 "message": {
                     "type": "string"
@@ -7880,6 +8187,13 @@ const docTemplate = `{
                 "enabled": {
                     "type": "boolean"
                 },
+                "inspectionMethod": {
+                    "type": "string",
+                    "enum": [
+                        "lab",
+                        "visual"
+                    ]
+                },
                 "name": {
                     "type": "string"
                 },
@@ -7900,6 +8214,13 @@ const docTemplate = `{
                 "enabled": {
                     "type": "boolean"
                 },
+                "inspectionMethod": {
+                    "type": "string",
+                    "enum": [
+                        "lab",
+                        "visual"
+                    ]
+                },
                 "name": {
                     "type": "string"
                 },
@@ -7907,6 +8228,29 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "spec": {
+                    "type": "string"
+                }
+            }
+        },
+        "weighbridge.NetAdjustmentItem": {
+            "type": "object",
+            "properties": {
+                "amount": {
+                    "type": "string"
+                },
+                "category": {
+                    "type": "string"
+                },
+                "categoryName": {
+                    "type": "string"
+                },
+                "mode": {
+                    "type": "string"
+                },
+                "rateBp": {
+                    "type": "integer"
+                },
+                "remark": {
                     "type": "string"
                 }
             }
@@ -8124,6 +8468,13 @@ const docTemplate = `{
                 },
                 "netAdjustmentRateBp": {
                     "type": "integer"
+                },
+                "netAdjustments": {
+                    "description": "NetAdjustments is present for schema version 5 snapshots and absent for\nolder protocols. A pointer distinguishes a missing array (invalid in\nversion 5) from an empty array (no adjustment).",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/weighbridge.NetAdjustmentItem"
+                    }
                 },
                 "originalGross": {
                     "type": "string"

@@ -11,12 +11,19 @@ import (
 
 type Handler struct{ service *Service }
 
+type ApiEnvelope struct {
+	Code    int    `json:"code"`
+	Message string `json:"message"`
+	Data    any    `json:"data"`
+}
+
 func NewHandler(s *Service) *Handler { return &Handler{s} }
 func (h *Handler) Register(api gin.IRouter) {
 	g := api.Group("/grain-intake")
 	g.GET("/trips", h.trips)
 	g.POST("/trips", h.create)
 	g.GET("/trips/:id", h.trip)
+	g.GET("/trips/:id/ticket-candidates", h.ticketCandidates)
 	g.PUT("/trips/:id", h.update)
 	g.POST("/trips/:id/:action", h.command)
 	g.GET("/rejections", h.rejections)
@@ -65,7 +72,7 @@ func key(c *gin.Context) (int64, bool) {
 func query(c *gin.Context) Query {
 	page, _ := strconv.Atoi(c.Query("page"))
 	size, _ := strconv.Atoi(c.Query("pageSize"))
-	return Query{Page: page, PageSize: size, Keyword: c.Query("keyword"), Stage: c.Query("stage"), Order: c.Query("order")}
+	return Query{Page: page, PageSize: size, Keyword: c.Query("keyword"), Stage: c.Query("stage"), Order: c.Query("order"), Method: c.Query("method")}
 }
 
 // defaults godoc
@@ -150,6 +157,26 @@ func (h *Handler) permits(c *gin.Context) {
 // @Router /api/v1/grain-intake/trips/{id} [get]
 func (h *Handler) trip(c *gin.Context) { h.read(c, TripPermission) }
 
+// ticketCandidates godoc
+// @Summary 查询本趟可关联的正式磅单
+// @Tags 原粮流转
+// @Security BearerAuth
+// @Param id path int true "流转单ID"
+// @Success 200 {object} ApiEnvelope
+// @Router /api/v1/grain-intake/trips/{id}/ticket-candidates [get]
+func (h *Handler) ticketCandidates(c *gin.Context) {
+	e, ok := actorEvent(c, "trip.ticket-candidates")
+	if !ok {
+		return
+	}
+	id, ok := key(c)
+	if !ok {
+		return
+	}
+	v, err := h.service.TicketCandidates(c.Request.Context(), e.Metadata.ActorID, id)
+	respond(c, v, err)
+}
+
 // exitBasis godoc
 // @Summary 门卫核验正常或拒收出厂依据
 // @Tags 出门证
@@ -210,11 +237,11 @@ func (h *Handler) save(c *gin.Context, id int64) {
 
 // command godoc
 // @Summary 关联化验、指定生效、确认卸粮、关联磅单及出门放行
-// @Description select-inspection要求化验菜单权限；approve-permit、confirm-exit要求出门证菜单权限；其他动作要求流转单菜单权限。拒收凭生效化验出厂，无需正常出门证。
+// @Description record-visual要求流转单菜单权限；select-inspection要求化验菜单权限；approve-permit、confirm-exit要求出门证菜单权限；其他动作要求流转单菜单权限。拒收凭生效化验或目测记录出厂，无需正常出门证。
 // @Tags 原粮流转
 // @Security BearerAuth
 // @Param id path int true "流转单ID"
-// @Param action path string true "业务动作" Enums(link-inspection,select-inspection,confirm-unloading,link-ticket,issue-permit,approve-permit,confirm-exit)
+// @Param action path string true "业务动作" Enums(record-visual,link-inspection,select-inspection,confirm-unloading,link-ticket,issue-permit,approve-permit,confirm-exit)
 // @Param request body Command true "本趟版本及对应依据"
 // @Success 200 {object} DetailResponse
 // @Router /api/v1/grain-intake/trips/{id}/{action} [post]

@@ -19,6 +19,7 @@ var (
 
 type Input struct {
 	TripID       *int64 `json:"tripId,omitempty"`
+	SiteCode     string `json:"siteCode"`
 	Plate        string `json:"plate"`
 	MaterialCode string `json:"materialCode"`
 	PartyCode    string `json:"partyCode"`
@@ -57,6 +58,7 @@ func (Inspection) TableName() string { return "grain_inspection" }
 type Query struct {
 	Page, PageSize  int
 	Keyword, Status string
+	SiteCode        string
 	TripID          int64
 	Unlinked        bool
 }
@@ -70,6 +72,7 @@ type Page struct {
 var decimal = regexp.MustCompile(`^(0|[1-9][0-9]{0,5})(\.[0-9]{1,6})?$`)
 
 func (in *Input) normalize() {
+	in.SiteCode = strings.TrimSpace(in.SiteCode)
 	in.Plate = strings.ToUpper(strings.TrimSpace(in.Plate))
 	in.MaterialCode = strings.TrimSpace(in.MaterialCode)
 	in.PartyCode = strings.TrimSpace(in.PartyCode)
@@ -78,24 +81,27 @@ func (in *Input) normalize() {
 	in.Impurity = strings.TrimSpace(in.Impurity)
 	in.BulkDensity = strings.TrimSpace(in.BulkDensity)
 }
-func (in Input) validate() error {
-	if in.TripID == nil || *in.TripID <= 0 {
-		return fmt.Errorf("%w：请先选择待化验的流转单", ErrInvalid)
+func (in Input) validate(confirm bool) error {
+	if in.TripID != nil && *in.TripID <= 0 {
+		return ErrInvalid
 	}
 	for _, field := range []struct {
 		value string
 		limit int
-	}{{in.Plate, 40}, {in.MaterialCode, 80}, {in.PartyCode, 80}, {in.Driver, 100}, {in.DriverPhone, 50}, {in.ContractNo, 100}, {in.Reason, 2000}, {in.Remark, 2000}} {
+	}{{in.SiteCode, 80}, {in.Plate, 40}, {in.MaterialCode, 80}, {in.PartyCode, 80}, {in.Driver, 100}, {in.DriverPhone, 50}, {in.ContractNo, 100}, {in.Reason, 2000}, {in.Remark, 2000}} {
 		if utf8.RuneCountInString(field.value) > field.limit {
 			return fmt.Errorf("%w：字段长度超限", ErrInvalid)
 		}
 	}
-	if in.Conclusion != "accept" && in.Conclusion != "reject" {
-		return fmt.Errorf("%w：请选择接收或拒收", ErrInvalid)
+	if in.Conclusion != "" && in.Conclusion != "accept" && in.Conclusion != "reject" {
+		return ErrInvalid
 	}
 	for i, value := range []string{in.Moisture, in.Impurity, in.BulkDensity} {
 		if value == "" {
-			return fmt.Errorf("%w：请补齐三项检测值", ErrInvalid)
+			if confirm {
+				return fmt.Errorf("%w：请补齐三项检测值", ErrInvalid)
+			}
+			continue
 		}
 		if !decimal.MatchString(value) {
 			return fmt.Errorf("%w：检测值须为非负十进制数，最多6位小数", ErrInvalid)
@@ -105,7 +111,10 @@ func (in Input) validate() error {
 			return fmt.Errorf("%w：水分、杂质范围为0至100，容重须大于0", ErrInvalid)
 		}
 	}
-	if in.Conclusion == "reject" && in.Reason == "" {
+	if confirm && (in.SiteCode == "" || in.Plate == "" || in.MaterialCode == "" || in.PartyCode == "" || in.Conclusion == "") {
+		return fmt.Errorf("%w：请补齐厂区、车牌、粮种、供应商和结论", ErrInvalid)
+	}
+	if confirm && in.Conclusion == "reject" && in.Reason == "" {
 		return fmt.Errorf("%w：拒收必须填写原因", ErrInvalid)
 	}
 	return nil

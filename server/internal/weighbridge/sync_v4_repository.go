@@ -25,17 +25,76 @@ type cloudTicketChange struct {
 
 func (cloudTicketChange) TableName() string { return "wb_cloud_ticket_change" }
 
-// ApplyChangeV4 stores one digest-protocol change together with its ticket
-// result in a single transaction. The digest is taken from the request and is
-// never recomputed.
+// syncChangeRecord is the version-neutral input of the shared receive
+// transaction. Versions 4 and 5 differ only in validation and digest rules;
+// storage, deduplication, receipts and predecessor checks are shared.
+type syncChangeRecord struct {
+	SchemaVersion    int
+	DigestVersion    int
+	Digest           string
+	SiteCode         string
+	TicketNo         string
+	Type             string
+	PreviousSiteCode string
+	Ticket           *TicketSnapshot
+	Void             *VoidInfo
+}
+
+func changeRecordFromV4(c ChangeV4) syncChangeRecord {
+	return syncChangeRecord{
+		SchemaVersion:    c.SchemaVersion,
+		DigestVersion:    c.DigestVersion,
+		Digest:           c.Digest,
+		SiteCode:         c.SiteCode,
+		TicketNo:         c.TicketNo,
+		Type:             c.Type,
+		PreviousSiteCode: c.PreviousSiteCode,
+		Ticket:           c.Ticket,
+		Void:             c.Void,
+	}
+}
+
+func changeRecordFromV5(c ChangeV5) syncChangeRecord {
+	return syncChangeRecord{
+		SchemaVersion:    c.SchemaVersion,
+		DigestVersion:    c.DigestVersion,
+		Digest:           c.Digest,
+		SiteCode:         c.SiteCode,
+		TicketNo:         c.TicketNo,
+		Type:             c.Type,
+		PreviousSiteCode: c.PreviousSiteCode,
+		Ticket:           c.Ticket,
+		Void:             c.Void,
+	}
+}
+
+// ApplyChangeV4 stores one version 4 change. See applyChange for the shared
+// transaction. The digest is taken from the request and is never recomputed.
 func (r *Repository) ApplyChangeV4(ctx context.Context, c ChangeV4) (ChangeReceiptV4, error) {
 	net, err := c.Validate()
 	if err != nil {
 		return ChangeReceiptV4{}, newSyncError(SyncCategoryConfigOrData, "invalid_request", "变化报文不符合新协议")
 	}
+	return r.applyChange(ctx, changeRecordFromV4(c), net)
+}
+
+// ApplyChangeV5 stores one version 5 change with its ordered net adjustment
+// details. Existing version 4 data and receipts are untouched.
+func (r *Repository) ApplyChangeV5(ctx context.Context, c ChangeV5) (ChangeReceiptV5, error) {
+	net, err := c.Validate()
+	if err != nil {
+		return ChangeReceiptV5{}, newSyncError(SyncCategoryConfigOrData, "invalid_request", "变化报文不符合新协议")
+	}
+	return r.applyChange(ctx, changeRecordFromV5(c), net)
+}
+
+// applyChange saves one change together with its ticket result in a single
+// transaction. Duplicate digests return the original receipt; an earlier
+// state cannot overwrite a later one.
+func (r *Repository) applyChange(ctx context.Context, c syncChangeRecord, net int64) (ChangeReceiptV4, error) {
 	receivedAt := time.Now().UTC()
 	receipt := ChangeReceiptV4{Digest: c.Digest, TicketNo: c.TicketNo, ChangeType: c.Type, ReceivedAt: receivedAt}
-	err = r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+	err := r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		var s site
 		if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).Where("code = ? AND enabled = ?", c.SiteCode, true).Take(&s).Error; err != nil {
 			if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -71,12 +130,24 @@ func (r *Repository) ApplyChangeV4(ctx context.Context, c ChangeV4) (ChangeRecei
 			if err := ensureTicketAbsent(tx, c.SiteCode, c.TicketNo); err != nil {
 				return err
 			}
-			ticket, err := createTicketV4(tx, &s, c, net, receivedAt)
+			ticket, err := createTicket(tx, &s, c, net, receivedAt)
 			if err != nil {
 				return err
 			}
 			ticketID = ticket.ID
 		case "void":
+			var linkedTicketID int64
+			if err := tx.Table("wb_cloud_ticket").Select("id").Where("issued_site_code = ? AND ticket_no = ?", c.SiteCode, c.TicketNo).Scan(&linkedTicketID).Error; err != nil {
+				return err
+			}
+			var tripIDs []int64
+			if linkedTicketID > 0 {
+				var err error
+				tripIDs, err = linkedTripsForUpdate(tx, linkedTicketID)
+				if err != nil {
+					return err
+				}
+			}
 			ticket, err := lockTicketV4(tx, c.SiteCode, c.TicketNo, "ticket_missing", "前序出单尚未在云端创建，等待前序变化")
 			if err != nil {
 				return err
@@ -93,6 +164,9 @@ func (r *Repository) ApplyChangeV4(ctx context.Context, c ChangeV4) (ChangeRecei
 				"latest_change_type": c.Type,
 				"latest_received_at": receivedAt,
 			}).Error; err != nil {
+				return err
+			}
+			if err := releaseVoidedTicket(tx, tripIDs, c.TicketNo, c.Void.Reason); err != nil {
 				return err
 			}
 			ticketID = ticket.ID
@@ -121,7 +195,7 @@ func (r *Repository) ApplyChangeV4(ctx context.Context, c ChangeV4) (ChangeRecei
 			if reopened != 0 {
 				return newSyncError(SyncCategoryConflict, "original_already_reopened", "原单已重开，不能重复重开")
 			}
-			ticket, err := createTicketV4(tx, &s, c, net, receivedAt)
+			ticket, err := createTicket(tx, &s, c, net, receivedAt)
 			if err != nil {
 				return err
 			}
@@ -171,7 +245,7 @@ func lockTicketV4(tx *gorm.DB, siteCode, ticketNo, reason, message string) (clou
 	return ticket, nil
 }
 
-func createTicketV4(tx *gorm.DB, s *site, c ChangeV4, net int64, receivedAt time.Time) (cloudTicket, error) {
+func createTicket(tx *gorm.DB, s *site, c syncChangeRecord, net int64, receivedAt time.Time) (cloudTicket, error) {
 	snapshot, err := json.Marshal(c.Ticket)
 	if err != nil {
 		return cloudTicket{}, err

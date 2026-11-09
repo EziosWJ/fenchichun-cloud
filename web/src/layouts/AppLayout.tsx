@@ -28,6 +28,7 @@ import {
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { appConfig } from '../config/app.config';
+import { paths } from '../config/paths';
 import { layoutTokens } from '../config/theme';
 import { findRouteDefinition, getActiveMenuPath, getPageTitle, getTabKey } from '../config/routeUtils';
 import { useAppPreferences } from '../app/AppProviders';
@@ -42,6 +43,15 @@ import styles from './AppLayout.module.css';
 
 const { Sider } = Layout;
 const COLLAPSE_STORAGE_KEY = 'admin-sidebar-collapsed';
+
+/** 客户对账从菜单/页签进入时回到销售客户，但保留日期、厂区、物料等其它筛选。 */
+function statementHrefWithoutDirection(href: string): string {
+  const [pathname, search = ''] = href.split('?');
+  const params = new URLSearchParams(search);
+  params.delete('direction');
+  const nextSearch = params.toString();
+  return nextSearch ? `${pathname}?${nextSearch}` : pathname;
+}
 
 export default function AppLayout() {
   const screens = Grid.useBreakpoint();
@@ -159,12 +169,20 @@ export default function AppLayout() {
   }, []);
 
   const handleMenuClick: MenuProps['onClick'] = ({ key }) => {
-    const external = navigation.externalUrls.get(String(key));
+    const menuKey = String(key);
+    const external = navigation.externalUrls.get(menuKey);
     if (external) {
       window.open(external, '_blank', 'noopener,noreferrer');
       return;
     }
-    navigate(String(key));
+    if (menuKey === paths.analyticsStatement) {
+      const statementTab = tabs.find((tab) => tab.key === paths.analyticsStatement);
+      navigate(
+        statementTab ? statementHrefWithoutDirection(statementTab.href) : paths.analyticsStatement,
+      );
+    } else {
+      navigate(menuKey);
+    }
     setMobileMenuOpen(false);
   };
 
@@ -347,7 +365,12 @@ export default function AppLayout() {
               activeKey={tabKey}
               onChange={(key) => {
                 const tab = displayTabs.find((item) => item.key === key);
-                if (tab) navigate(tab.href);
+                if (!tab) return;
+                navigate(
+                  tab.key === paths.analyticsStatement
+                    ? statementHrefWithoutDirection(tab.href)
+                    : tab.href,
+                );
               }}
               onEdit={(targetKey, action) => {
                 if (action === 'remove') handleCloseTab(String(targetKey));

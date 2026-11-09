@@ -25,6 +25,7 @@ type Store interface {
 	StatementDetail(context.Context, StatementQuery) (StatementDetail, error)
 	StatementTickets(context.Context, StatementQuery) ([]StatementTicket, error)
 	ApplyChangeV4(context.Context, ChangeV4) (ChangeReceiptV4, error)
+	ApplyChangeV5(context.Context, ChangeV5) (ChangeReceiptV5, error)
 	ReconcileTicket(context.Context, string, string) (TicketReconcile, error)
 	ReconcileTickets(context.Context, []TicketRef) (BatchTicketReconcile, error)
 	LookupChange(context.Context, string, string) (ChangeLookup, error)
@@ -85,6 +86,10 @@ func (s *Service) UpdateSite(ctx context.Context, code string, in SiteInput, eve
 
 func (s *Service) ApplyChangeV4(ctx context.Context, c ChangeV4) (ChangeReceiptV4, error) {
 	return s.store.ApplyChangeV4(ctx, c)
+}
+
+func (s *Service) ApplyChangeV5(ctx context.Context, c ChangeV5) (ChangeReceiptV5, error) {
+	return s.store.ApplyChangeV5(ctx, c)
 }
 
 func (s *Service) ReconcileTicket(ctx context.Context, siteCode, ticketNo string) (TicketReconcile, error) {

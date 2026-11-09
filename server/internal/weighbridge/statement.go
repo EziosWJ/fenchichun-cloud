@@ -14,15 +14,19 @@ var statementZone = time.FixedZone("Asia/Shanghai", 8*60*60)
 // statement. The cloud stores the full ticket snapshot as JSON text, so the
 // service aggregates it in Go instead of requiring derived database columns.
 type StatementQuery struct {
-	Page         int
-	PageSize     int
-	SiteCode     string
-	Direction    string
-	PartyCode    string
-	PartyKeyword string
-	MaterialCode string
-	From         *time.Time
-	Until        *time.Time
+	Page          int
+	PageSize      int
+	SiteCode      string
+	Direction     string
+	PartyCode     string
+	PartyKeyword  string
+	MaterialCode  string
+	TicketKeyword string
+	Adjusted      *bool
+	SortBy        string
+	SortOrder     string
+	From          *time.Time
+	Until         *time.Time
 }
 
 type StatementTotals struct {
@@ -56,12 +60,19 @@ type StatementPageSummary struct {
 	StatementTotals
 }
 
+type StatementFreshness struct {
+	DataThrough    *time.Time `json:"dataThrough"`
+	LastReceivedAt *time.Time `json:"lastReceivedAt"`
+	HistoryStart   *time.Time `json:"historyStart"`
+}
+
 type StatementPartyPage struct {
-	Records  []StatementParty     `json:"records"`
-	Total    int64                `json:"total"`
-	Page     int                  `json:"page"`
-	PageSize int                  `json:"pageSize"`
-	Summary  StatementPageSummary `json:"summary"`
+	Records   []StatementParty     `json:"records"`
+	Total     int64                `json:"total"`
+	Page      int                  `json:"page"`
+	PageSize  int                  `json:"pageSize"`
+	Summary   StatementPageSummary `json:"summary"`
+	Freshness StatementFreshness   `json:"freshness"`
 }
 
 type StatementMaterial struct {
@@ -293,6 +304,52 @@ func aggregateStatementDetail(q StatementQuery, tickets []statementTicket) State
 		detail.SiteName = detail.SiteCode
 	}
 	return detail
+}
+
+func sortStatementParties(parties []StatementParty, sortBy, sortOrder string) {
+	if sortBy == "" {
+		return
+	}
+	ascending := sortOrder == "asc"
+	sort.SliceStable(parties, func(i, j int) bool {
+		left, right := parties[i], parties[j]
+		compare := 0
+		switch sortBy {
+		case "ticketCount":
+			compare = compareInt64(left.TicketCount, right.TicketCount)
+		case "adjustment":
+			compare = compareInt64(left.NetAdjustmentMilliTonne, right.NetAdjustmentMilliTonne)
+		case "issued":
+			if left.LastIssuedAt.Before(right.LastIssuedAt) {
+				compare = -1
+			} else if left.LastIssuedAt.After(right.LastIssuedAt) {
+				compare = 1
+			}
+		default:
+			compare = compareInt64(left.NetMilliTonne, right.NetMilliTonne)
+		}
+		if compare == 0 {
+			if left.SiteCode != right.SiteCode {
+				return left.SiteCode < right.SiteCode
+			}
+			return left.PartyCode < right.PartyCode
+		}
+		if ascending {
+			return compare < 0
+		}
+		return compare > 0
+	})
+}
+
+func compareInt64(left, right int64) int {
+	switch {
+	case left < right:
+		return -1
+	case left > right:
+		return 1
+	default:
+		return 0
+	}
 }
 
 func pageStatementParties(parties []StatementParty, page, pageSize int) []StatementParty {

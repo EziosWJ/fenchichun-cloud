@@ -1,27 +1,39 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Alert,
   App,
   Button,
+  DatePicker,
+  Descriptions,
+  Dropdown,
   Empty,
+  Input,
+  Select,
   Skeleton,
   Table,
   Tag,
   Tooltip,
   type TableColumnsType,
 } from 'antd';
-import { useQuery } from '@tanstack/react-query';
+import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import dayjs from 'dayjs';
-import { Download, Printer, X } from 'lucide-react';
+import { ChevronDown, Download, Printer, X } from 'lucide-react';
 import type { EChartsOption } from 'echarts';
 import { EChart } from '../../components/charts/EChart';
 import { getApiErrorMessage } from '../../lib/api/errors';
 import { downloadBlob } from '../../features/analytics/download';
 import { exportStatementDetail, statementDetail } from '../../features/analytics/api';
 import { formatMilliTonne, statementDirectionLabel } from '../../features/analytics/format';
+import {
+  aggregateStatementDaily,
+  statementChartGranularity,
+  type StatementChartPoint,
+} from '../../features/analytics/statementChart';
 import { tickets, type Ticket, type TicketRecord } from '../../features/weighbridge/api';
 import { formatDateTime, formatPercent } from '../../utils/format';
 import styles from './StatementSheet.module.css';
+
+const { RangePicker } = DatePicker;
 
 interface StatementSheetProps {
   siteCode: string;
@@ -48,6 +60,86 @@ function finalNet(ticket: Ticket): string {
   return Number.isFinite(value) ? value.toFixed(3) : '—';
 }
 
+function sourceLabel(value: string | null | undefined): string {
+  if (value === 'collected') return '采集';
+  if (value === 'manual') return '手工';
+  return value || '—';
+}
+
+function adjustmentModeLabel(value: string | null | undefined): string {
+  if (value === 'amount') return '按金额';
+  if (value === 'rate') return '按比例';
+  return value || '—';
+}
+
+function TicketDetails({ record }: { record: TicketRecord }) {
+  const ticket = record.ticket;
+  const material = [ticket.materialName, ticket.materialSpec].filter(Boolean).join(' / ');
+  return (
+    <Descriptions
+      className={styles.ticketDetail}
+      size="small"
+      column={{ xs: 1, sm: 2, lg: 3 }}
+      items={[
+        { key: 'ticketNo', label: '单号', children: ticket.ticketNo },
+        { key: 'plate', label: '车牌', children: ticket.plate || '—' },
+        { key: 'direction', label: '方向', children: statementDirectionLabel(ticket.direction) },
+        { key: 'issuedAt', label: '出单时间', children: formatDateTime(ticket.issuedAt) },
+        { key: 'issuer', label: '司磅员', children: ticket.issuerName || '—' },
+        { key: 'material', label: '物料', children: material || '—' },
+        { key: 'gross', label: '毛重（吨）', children: weightText(ticket.finalGross) },
+        { key: 'tare', label: '皮重（吨）', children: weightText(ticket.finalTare) },
+        {
+          key: 'adjustment',
+          label: '净重调整（吨）',
+          children: weightText(ticket.netAdjustment ?? 0),
+        },
+        { key: 'net', label: '最终净重（吨）', children: finalNet(ticket) },
+        {
+          key: 'firstConfirmed',
+          label: '第一次确认',
+          children: formatDateTime(ticket.firstConfirmedAt),
+        },
+        {
+          key: 'secondConfirmed',
+          label: '第二次确认',
+          children: formatDateTime(ticket.secondConfirmedAt),
+        },
+        { key: 'grossSource', label: '毛重来源', children: sourceLabel(ticket.grossSource) },
+        { key: 'tareSource', label: '皮重来源', children: sourceLabel(ticket.tareSource) },
+        {
+          key: 'adjustmentMode',
+          label: '调整方式',
+          children: adjustmentModeLabel(ticket.netAdjustmentMode),
+        },
+        {
+          key: 'adjustmentCategory',
+          label: '调整分类',
+          children: ticket.netAdjustmentCategoryName || '—',
+        },
+        { key: 'adjustmentRemark', label: '调整原因', children: ticket.adjustmentRemark || '—' },
+        { key: 'adjustedBy', label: '调整经办人', children: ticket.adjustedBy || '—' },
+        { key: 'adjustedAt', label: '调整时间', children: formatDateTime(ticket.adjustedAt) },
+        { key: 'driver', label: '司机', children: ticket.driver || '—' },
+        { key: 'driverPhone', label: '司机电话', children: ticket.driverPhone || '—' },
+        { key: 'contact', label: '联系人', children: ticket.contactName || '—' },
+        { key: 'contactPhone', label: '联系电话', children: ticket.contactPhone || '—' },
+        { key: 'previousTicketNo', label: '原单号', children: ticket.previousTicketNo || '—' },
+        {
+          key: 'status',
+          label: '状态',
+          children:
+            record.status === 'void' ? (
+              <Tag color="red">已作废</Tag>
+            ) : (
+              <Tag color="green">有效</Tag>
+            ),
+        },
+      ]}
+    />
+  );
+}
+
 export function StatementSheet({
   siteCode,
   partyCode,
@@ -63,9 +155,22 @@ export function StatementSheet({
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [exporting, setExporting] = useState(false);
+  const [ticketKeyword, setTicketKeyword] = useState('');
+  const [ticketKeywordInput, setTicketKeywordInput] = useState('');
+  const [ticketMaterial, setTicketMaterial] = useState(materialCode ?? '');
+  const [ticketAdjusted, setTicketAdjusted] = useState<'all' | 'true' | 'false'>('all');
+  const [ticketFrom, setTicketFrom] = useState(from);
+  const [ticketTo, setTicketTo] = useState(to);
+  const ticketSectionRef = useRef<HTMLElement>(null);
 
   useEffect(() => {
     setPage(1);
+    setTicketKeyword('');
+    setTicketKeywordInput('');
+    setTicketMaterial(materialCode ?? '');
+    setTicketAdjusted('all');
+    setTicketFrom(from);
+    setTicketTo(to);
   }, [siteCode, partyCode, direction, from, to, materialCode]);
 
   useEffect(() => {
@@ -87,13 +192,40 @@ export function StatementSheet({
   });
 
   const ticketParams = useMemo(
-    () => ({ siteCode, partyCode, direction, from, to, materialCode, status: 'valid', page, pageSize }),
-    [siteCode, partyCode, direction, from, to, materialCode, page, pageSize],
+    () => ({
+      siteCode,
+      partyCode,
+      direction,
+      from: ticketFrom || from,
+      to: ticketTo || to,
+      materialCode: ticketMaterial || materialCode || undefined,
+      keyword: ticketKeyword || undefined,
+      adjusted: ticketAdjusted === 'all' ? undefined : ticketAdjusted,
+      status: 'valid',
+      page,
+      pageSize,
+    }),
+    [
+      siteCode,
+      partyCode,
+      direction,
+      ticketFrom,
+      ticketTo,
+      ticketMaterial,
+      materialCode,
+      ticketKeyword,
+      ticketAdjusted,
+      from,
+      to,
+      page,
+      pageSize,
+    ],
   );
   const ticketList = useQuery({
     queryKey: ['weighbridge', 'statement-tickets', ticketParams],
     queryFn: () => tickets(ticketParams),
     enabled: Boolean(siteCode && partyCode && direction),
+    placeholderData: keepPreviousData,
   });
 
   const data = detail.data;
@@ -122,19 +254,59 @@ export function StatementSheet({
 
   const materialRows = useMemo(() => data?.materials ?? [], [data]);
   const daily = useMemo(() => data?.daily ?? [], [data]);
+  const chartGranularity = useMemo(
+    () => statementChartGranularity(resolvedFrom, resolvedTo, daily[0]?.date),
+    [resolvedFrom, resolvedTo, daily],
+  );
+  const chartPoints = useMemo(
+    () =>
+      aggregateStatementDaily(
+        daily,
+        chartGranularity,
+        resolvedFrom || daily[0]?.date || '',
+        resolvedTo || daily[daily.length - 1]?.date || '',
+      ),
+    [daily, chartGranularity, resolvedFrom, resolvedTo],
+  );
+  const chartTitle = chartGranularity === 'day' ? '每日净重' : '净重趋势';
+  const granularityLabel =
+    chartGranularity === 'day'
+      ? '按日'
+      : chartGranularity === 'week'
+        ? '按周汇总（每 7 天）'
+        : '按月汇总';
   const dailyOption = useMemo<EChartsOption>(
     () => ({
       tooltip: {
         trigger: 'axis',
-        valueFormatter: (value) => `${(Number(value) / 1000).toFixed(3)} 吨`,
+        formatter: (params) => {
+          const item = (Array.isArray(params) ? params[0] : params) as {
+            dataIndex?: number;
+            name?: string;
+            value?: unknown;
+          };
+          const point = typeof item?.dataIndex === 'number' ? chartPoints[item.dataIndex] : undefined;
+          const value = Number(point?.netMilliTonne ?? item?.value ?? 0);
+          return `${point?.range ?? item?.name ?? ''}<br/>${(value / 1000).toFixed(3)} 吨`;
+        },
       },
-      grid: { left: 42, right: 10, top: 16, bottom: 26 },
+      grid: { left: 42, right: 10, top: 16, bottom: 34 },
       xAxis: {
         type: 'category',
-        data: daily.map((point) => dayjs(point.date).format('MM-DD')),
+        data: chartPoints.map((point) => point.label),
         axisTick: { show: false },
         axisLine: { lineStyle: { color: 'rgba(148, 163, 184, 0.35)' } },
-        axisLabel: { color: '#94a3b8', fontSize: 11, hideOverlap: true },
+        axisLabel: {
+          color: '#94a3b8',
+          fontSize: 10,
+          lineHeight: 13,
+          interval: chartPoints.length <= 16 ? 0 : 'auto',
+          hideOverlap: true,
+          formatter: (value: string, index: number) => {
+            const point = chartPoints[index];
+            return point?.secondaryLabel ? `${value}\n${point.secondaryLabel}` : value;
+          },
+        },
       },
       yAxis: {
         type: 'value',
@@ -149,16 +321,55 @@ export function StatementSheet({
       series: [
         {
           type: 'bar',
-          data: daily.map((point) => point.netMilliTonne),
-          barMaxWidth: 18,
+          data: chartPoints.map((point) => point.netMilliTonne),
+          barMaxWidth: chartPoints.length <= 12 ? 24 : 18,
           itemStyle: { color: '#1677ff', borderRadius: [4, 4, 0, 0] },
         },
       ],
     }),
-    [daily],
+    [chartPoints],
   );
 
-  const exportDetail = async () => {
+  const hasTicketFilters =
+    Boolean(ticketKeyword) ||
+    ticketAdjusted !== 'all' ||
+    ticketFrom !== from ||
+    ticketTo !== to ||
+    Boolean(ticketMaterial && ticketMaterial !== (materialCode ?? ''));
+
+  const scrollTicketSection = () => {
+    window.requestAnimationFrame(() => {
+      ticketSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+  };
+
+  const filterByMaterial = (code: string) => {
+    setTicketMaterial(code);
+    setPage(1);
+    scrollTicketSection();
+  };
+
+  const filterByChartPoint = (params: { dataIndex?: number }) => {
+    if (typeof params.dataIndex !== 'number') return;
+    const point: StatementChartPoint | undefined = chartPoints[params.dataIndex];
+    if (!point) return;
+    setTicketFrom(point.startDate);
+    setTicketTo(point.endDate);
+    setPage(1);
+    scrollTicketSection();
+  };
+
+  const resetTicketFilters = () => {
+    setTicketKeyword('');
+    setTicketKeywordInput('');
+    setTicketMaterial(materialCode ?? '');
+    setTicketAdjusted('all');
+    setTicketFrom(from);
+    setTicketTo(to);
+    setPage(1);
+  };
+
+  const exportFullDetail = async () => {
     setExporting(true);
     try {
       const blob = await exportStatementDetail({
@@ -171,6 +382,33 @@ export function StatementSheet({
       });
       downloadBlob(blob, `对账单-${siteCode}-${partyCode}-${resolvedFrom}至${resolvedTo}.csv`);
       message.success('对账单明细 CSV 已导出');
+    } catch (error) {
+      message.error(getApiErrorMessage(error));
+    } finally {
+      setExporting(false);
+    }
+  };
+
+  const exportFilteredDetail = async () => {
+    setExporting(true);
+    try {
+      const filteredFrom = ticketFrom || from;
+      const filteredTo = ticketTo || to;
+      const blob = await exportStatementDetail({
+        siteCode,
+        partyCode,
+        direction,
+        from: filteredFrom,
+        to: filteredTo,
+        materialCode: ticketMaterial || materialCode,
+        ticketKeyword: ticketKeyword || undefined,
+        adjusted: ticketAdjusted === 'all' ? undefined : ticketAdjusted,
+      });
+      downloadBlob(
+        blob,
+        `对账单筛选明细-${siteCode}-${partyCode}-${filteredFrom}至${filteredTo}.csv`,
+      );
+      message.success('筛选明细 CSV 已导出');
     } catch (error) {
       message.error(getApiErrorMessage(error));
     } finally {
@@ -275,14 +513,31 @@ export function StatementSheet({
               打印
             </Button>
           </Tooltip>
-          <Button
-            type="primary"
-            icon={<Download size={15} aria-hidden="true" />}
-            loading={exporting}
-            onClick={() => void exportDetail()}
+          <Dropdown
+            menu={{
+              items: [
+                { key: 'full', label: '导出全量对账单' },
+                {
+                  key: 'filtered',
+                  label: '导出当前筛选明细',
+                  disabled: !hasTicketFilters,
+                },
+              ],
+              onClick: ({ key }) => {
+                if (key === 'full') void exportFullDetail();
+                if (key === 'filtered') void exportFilteredDetail();
+              },
+            }}
+            trigger={['click']}
           >
-            导出 CSV
-          </Button>
+            <Button
+              type="primary"
+              icon={<Download size={15} aria-hidden="true" />}
+              loading={exporting}
+            >
+              导出 CSV <ChevronDown size={13} aria-hidden="true" />
+            </Button>
+          </Dropdown>
           {onClose && (
             <Tooltip title="关闭对账单">
               <Button
@@ -387,8 +642,24 @@ export function StatementSheet({
                         .join(' / ');
                       return (
                         <div
-                          className={styles.materialRow}
+                          className={[
+                            styles.materialRow,
+                            styles.materialRowClickable,
+                            ticketMaterial === material.materialCode ? styles.materialRowActive : '',
+                          ]
+                            .filter(Boolean)
+                            .join(' ')}
                           key={`${material.materialCode}:${material.materialName}:${material.materialSpec}`}
+                          role="button"
+                          tabIndex={0}
+                          title="点击筛选该物料明细"
+                          aria-label={`筛选物料 ${label || material.materialCode} 的明细`}
+                          onClick={() => filterByMaterial(material.materialCode)}
+                          onKeyDown={(event) => {
+                            if (event.key !== 'Enter' && event.key !== ' ') return;
+                            event.preventDefault();
+                            filterByMaterial(material.materialCode);
+                          }}
                         >
                           <div className={styles.materialName} title={label}>
                             <span>{label || material.materialCode}</span>
@@ -415,25 +686,109 @@ export function StatementSheet({
 
               <section className={styles.breakdownSection}>
                 <div className={styles.sectionHead}>
-                  <h3>每日净重</h3>
-                  <span>{daily.length} 天有数据</span>
+                  <h3>{chartTitle}</h3>
+                  <span>
+                    {daily.length} 天有数据 · {granularityLabel}
+                  </span>
                 </div>
                 <EChart
                   option={dailyOption}
                   height={200}
                   loading={detail.isLoading}
-                  empty={!daily.length}
-                  emptyDescription="暂无每日汇总"
-                  ariaLabel="每日净重趋势图"
+                  empty={!chartPoints.length}
+                  emptyDescription="暂无净重汇总"
+                  ariaLabel="净重趋势图"
+                  onClick={filterByChartPoint}
                 />
               </section>
             </div>
 
-            <section className={styles.ticketsSection}>
+            <p className={styles.filterHint}>点击物料条或净重柱，筛选下方过磅单明细</p>
+
+            <section ref={ticketSectionRef} className={styles.ticketsSection}>
               <div className={styles.sectionHead}>
                 <h3>过磅单明细</h3>
-                <span>共 {ticketList.data?.total ?? 0} 条有效单据</span>
+                <span>
+                  {hasTicketFilters
+                    ? `筛选后 ${ticketList.data?.total ?? 0} 条 / 全期间 ${data?.ticketCount ?? 0} 条`
+                    : `共 ${ticketList.data?.total ?? 0} 条有效单据`}
+                </span>
               </div>
+
+              <div className={styles.ticketFilters} role="group" aria-label="过磅单明细筛选">
+                <Input.Search
+                  className={styles.ticketSearch}
+                  allowClear
+                  placeholder="单号 / 车牌"
+                  value={ticketKeywordInput}
+                  onChange={(event) => {
+                    setTicketKeywordInput(event.target.value);
+                    if (!event.target.value) {
+                      setTicketKeyword('');
+                      setPage(1);
+                    }
+                  }}
+                  onSearch={(value) => {
+                    setTicketKeyword(value.trim());
+                    setPage(1);
+                  }}
+                />
+                <Select
+                  className={styles.ticketSelect}
+                  allowClear={!materialCode}
+                  placeholder="全部物料"
+                  value={ticketMaterial || undefined}
+                  onChange={(value) => {
+                    setTicketMaterial(value ?? (materialCode ?? ''));
+                    setPage(1);
+                  }}
+                  options={materialRows.map((material) => ({
+                    value: material.materialCode,
+                    label: [material.materialName, material.materialSpec]
+                      .filter(Boolean)
+                      .join(' / '),
+                  }))}
+                />
+                <Select
+                  className={styles.ticketSelectSmall}
+                  value={ticketAdjusted}
+                  onChange={(value) => {
+                    setTicketAdjusted(value as 'all' | 'true' | 'false');
+                    setPage(1);
+                  }}
+                  options={[
+                    { value: 'all', label: '全部调整' },
+                    { value: 'true', label: '有调整' },
+                    { value: 'false', label: '无调整' },
+                  ]}
+                />
+                <RangePicker
+                  className={styles.ticketRange}
+                  value={ticketFrom && ticketTo ? [dayjs(ticketFrom), dayjs(ticketTo)] : null}
+                  allowClear={false}
+                  format="MM-DD"
+                  placeholder={['开始', '结束']}
+                  disabledDate={(current) =>
+                    Boolean(from && current.isBefore(dayjs(from), 'day')) ||
+                    Boolean(to && current.isAfter(dayjs(to), 'day'))
+                  }
+                  onChange={(values) => {
+                    if (!values?.[0] || !values[1]) return;
+                    setTicketFrom(values[0].format('YYYY-MM-DD'));
+                    setTicketTo(values[1].format('YYYY-MM-DD'));
+                    setPage(1);
+                  }}
+                />
+                <Button
+                  type="link"
+                  size="small"
+                  onClick={resetTicketFilters}
+                  disabled={!hasTicketFilters}
+                >
+                  重置
+                </Button>
+              </div>
+
               {ticketList.isError && (
                 <Alert
                   type="error"
@@ -447,9 +802,14 @@ export function StatementSheet({
                 rowKey={(row) => `${row.siteCode}:${row.ticket.ticketNo}`}
                 columns={ticketColumns}
                 dataSource={ticketList.data?.items ?? []}
-                loading={ticketList.isLoading}
+                loading={ticketList.isFetching}
                 size="small"
-                scroll={{ x: 960 }}
+                scroll={{ x: 1000 }}
+                expandable={{
+                  columnWidth: 40,
+                  expandRowByClick: true,
+                  expandedRowRender: (row) => <TicketDetails record={row} />,
+                }}
                 pagination={{
                   current: page,
                   pageSize,
@@ -457,7 +817,7 @@ export function StatementSheet({
                   showSizeChanger: true,
                   pageSizeOptions: ['10', '20', '50'],
                   size: 'small',
-                  showTotal: (total) => `共 ${total} 条`,
+                  showTotal: (total, range) => `${range[0]}-${range[1]} / 共 ${total} 条`,
                   onChange: (nextPage, nextPageSize) => {
                     setPage(nextPage);
                     setPageSize(nextPageSize);

@@ -14,6 +14,7 @@ import {
   type Site,
   type SyncChangeConfirmation,
   type SyncTicketReceipt,
+  type NetAdjustmentItem,
   type SyncTicketRef,
   type Ticket,
   type TicketRecord,
@@ -71,9 +72,28 @@ function finalNet(ticket: Ticket): string {
   return ticket.finalNet || difference(ticket.finalGross, ticket.finalTare);
 }
 
+function weight(value: string): string {
+  const [whole, fractional = ''] = value.split('.');
+  return `${whole}.${(fractional + '000').slice(0, 3)}`;
+}
+
+function adjustmentModeLabel(mode: string, rateBp: number | null): string {
+  return mode === 'percent'
+    ? `按比例 ${(Number(rateBp ?? 0) / 100).toFixed(2).replace(/\.?0+$/, '')}%`
+    : '按吨';
+}
+
 function dateValue(value?: string) {
   return value && dayjs(value).isValid() ? dayjs(value) : null;
 }
+
+const adjustmentColumns: ColumnsType<NetAdjustmentItem> = [
+  { title: '序号', key: 'index', width: 70, render: (_, __, index) => index + 1 },
+  { title: '方式', key: 'mode', render: (_, item) => adjustmentModeLabel(item.mode, item.rateBp) },
+  { title: '折算重量（吨）', key: 'amount', render: (_, item) => weight(item.amount) },
+  { title: '类别', key: 'category', render: (_, item) => item.categoryName || item.category || '—' },
+  { title: '备注', key: 'remark', render: (_, item) => item.remark || '—' },
+];
 
 const changeColumns: ColumnsType<SyncChangeConfirmation> = [
   { title: '变化类型', dataIndex: 'changeType', key: 'changeType', render: (value: string) => <Tag>{changeType(value)}</Tag> },
@@ -144,6 +164,16 @@ function TicketDetail({ detail, onOpenRef }: { detail: SyncTicketReceipt; onOpen
                 ]
               : []),
           ]}
+        />
+      )}
+      {ticket?.netAdjustments && ticket.netAdjustments.length > 0 && (
+        <Table
+          rowKey={(item) => `${item.mode}:${item.amount}:${item.category}:${item.remark}`}
+          size="small"
+          pagination={false}
+          title={() => '净重调整明细'}
+          columns={adjustmentColumns}
+          dataSource={ticket.netAdjustments}
         />
       )}
       <Table

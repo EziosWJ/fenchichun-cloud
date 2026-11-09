@@ -49,7 +49,7 @@ const config = {
     to: 'text',
     materialCode: 'text',
   },
-  sortKeys: [],
+  sortKeys: ['net', 'ticketCount', 'adjustment', 'issued'],
   pageSizeOptions: [10, 20, 50, 100],
   defaultPageSize: 10,
 } as const;
@@ -122,7 +122,7 @@ export default function StatementPage() {
 
   const defaultFrom = dayjs().startOf('month').format('YYYY-MM-DD');
   const defaultTo = dayjs().endOf('month').format('YYYY-MM-DD');
-  const direction = state.filters.direction === 'inbound' ? 'inbound' : 'outbound';
+  const direction = state.filters.direction === 'outbound' ? 'outbound' : 'inbound';
   const from = state.filters.from || defaultFrom;
   const to = state.filters.to || defaultTo;
 
@@ -130,7 +130,7 @@ export default function StatementPage() {
     if (initialized.current) return;
     initialized.current = true;
     const next: Record<string, string> = {};
-    if (!state.filters.direction) next.direction = 'outbound';
+    if (!state.filters.direction) next.direction = 'inbound';
     if (!state.filters.from) next.from = defaultFrom;
     if (!state.filters.to) next.to = defaultTo;
     if (Object.keys(next).length) actions.setFilters(next);
@@ -156,6 +156,8 @@ export default function StatementPage() {
       materialCode: state.filters.materialCode || undefined,
       from,
       to,
+      sortBy: state.sortBy,
+      sortOrder: state.sortOrder,
       page: state.page,
       pageSize: state.pageSize,
     }),
@@ -166,6 +168,8 @@ export default function StatementPage() {
       state.keyword,
       from,
       to,
+      state.sortBy,
+      state.sortOrder,
       state.page,
       state.pageSize,
     ],
@@ -179,6 +183,7 @@ export default function StatementPage() {
   const materialsQuery = useQuery({ queryKey: ['weighbridge', 'materials'], queryFn: materials });
 
   const summary = list.data?.summary;
+  const freshness = list.data?.freshness;
   const gross = summary?.grossMilliTonne ?? 0;
   const tare = summary?.tareMilliTonne ?? 0;
   const adjustment = summary?.netAdjustmentMilliTonne ?? 0;
@@ -329,6 +334,7 @@ export default function StatementPage() {
       align: 'right',
       width: 76,
       className: styles.numeric,
+      sorter: true,
     },
     {
       title: '毛重',
@@ -352,6 +358,7 @@ export default function StatementPage() {
       align: 'right',
       width: 90,
       className: styles.numeric,
+      sorter: true,
       render: (_, row) => (
         <span className={row.netAdjustmentMilliTonne ? undefined : styles.zeroValue}>
           {tonnes(row.netAdjustmentMilliTonne)}
@@ -364,6 +371,7 @@ export default function StatementPage() {
       align: 'right',
       width: 110,
       className: styles.numeric,
+      sorter: true,
       render: (_, row) => (
         <div className={styles.netCell}>
           <strong>{tonnes(row.netMilliTonne)}</strong>
@@ -397,6 +405,7 @@ export default function StatementPage() {
       title: '出单区间',
       key: 'issued',
       width: 140,
+      sorter: true,
       render: (_, row) => {
         const first = compactDateTime(row.firstIssuedAt);
         const last = compactDateTime(row.lastIssuedAt);
@@ -612,9 +621,17 @@ export default function StatementPage() {
                 </Popover>
               </div>
 
-              <div className={styles.periodRange}>
-                {from} 至 {to}
-                {periodDays ? ` · ${periodDays} 天` : ''}
+              <div className={styles.periodMeta}>
+                <div className={styles.periodRange}>
+                  {from} 至 {to}
+                  {periodDays ? ` · ${periodDays} 天` : ''}
+                </div>
+                {freshness && (
+                  <div className={styles.freshness}>
+                    数据截止 {formatDateTime(freshness.dataThrough)} · 最近接收{' '}
+                    {formatDateTime(freshness.lastReceivedAt)}
+                  </div>
+                )}
               </div>
             </div>
 
@@ -737,6 +754,12 @@ export default function StatementPage() {
             page={state.page}
             pageSize={state.pageSize}
             onPageChange={handlePageChange}
+            sortBy={state.sortBy}
+            sortOrder={state.sortOrder}
+            onSortChange={(sortBy, sortOrder) => {
+              setSelected(null);
+              actions.setSort(sortBy, sortOrder);
+            }}
             loading={list.isLoading}
             refreshing={list.isFetching}
             onRefresh={() => void list.refetch()}
