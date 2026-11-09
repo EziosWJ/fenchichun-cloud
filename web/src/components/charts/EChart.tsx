@@ -60,12 +60,24 @@ export function EChart({
 
   useEffect(() => {
     if (empty || !containerRef.current) return;
-    const chart = echarts.init(containerRef.current);
+    const container = containerRef.current;
+    const chart = echarts.init(container);
     chartRef.current = chart;
     const handleClick = (params: unknown) => clickRef.current?.(params as EChartClickParams);
     chart.on('click', handleClick);
-    const observer = new ResizeObserver(() => chart.resize());
-    observer.observe(containerRef.current);
+    // 初始化后观察器会立即回调一次；尺寸没变时不要 resize，避免打断首次进入动画。
+    let lastWidth = container.clientWidth;
+    let lastHeight = container.clientHeight;
+    const observer = new ResizeObserver((entries) => {
+      const rect = entries[0]?.contentRect;
+      const width = rect?.width ?? container.clientWidth;
+      const height = rect?.height ?? container.clientHeight;
+      if (Math.abs(width - lastWidth) < 1 && Math.abs(height - lastHeight) < 1) return;
+      lastWidth = width;
+      lastHeight = height;
+      chart.resize();
+    });
+    observer.observe(container);
     return () => {
       chart.off('click', handleClick);
       observer.disconnect();

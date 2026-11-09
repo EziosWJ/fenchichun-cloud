@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import dayjs from 'dayjs';
 import OverviewPage from '../../src/pages/analytics/OverviewPage';
 import FlowPage from '../../src/pages/analytics/FlowPage';
 import MaterialsPage from '../../src/pages/analytics/MaterialsPage';
@@ -72,7 +73,7 @@ const summary = {
 };
 
 describe('统计与分析页面', () => {
-  it('经营总览展示核心指标和异常', async () => {
+  it('经营总览展示两个核心净重和结构排名', async () => {
     weighing.sites.mockResolvedValue([]);
     weighing.materials.mockResolvedValue([]);
     weighing.categories.mockResolvedValue([]);
@@ -88,8 +89,15 @@ describe('统计与分析页面', () => {
     });
     renderWithProviders(<OverviewPage />, { route: '/analytics/overview' });
     expect(await screen.findByText('经营总览')).toBeInTheDocument();
-    expect(await screen.findByText('有效车次')).toBeInTheDocument();
-    expect(await screen.findByText('作废率偏高')).toBeInTheDocument();
+    expect((await screen.findAllByText('入厂净重')).length).toBeGreaterThan(0);
+    expect((await screen.findAllByText('出厂净重')).length).toBeGreaterThan(0);
+    expect((await screen.findAllByText('100.000', {}, { timeout: 3000 })).length).toBeGreaterThan(0);
+    expect((await screen.findAllByText('30.000', {}, { timeout: 3000 })).length).toBeGreaterThan(0);
+    expect(await screen.findByText('高粱')).toBeInTheDocument();
+    expect(await screen.findByText('供应商甲')).toBeInTheDocument();
+    expect(screen.queryByText('有效车次')).not.toBeInTheDocument();
+    expect(screen.queryByText('作废率偏高')).not.toBeInTheDocument();
+    expect(screen.queryByText('数据截止')).not.toBeInTheDocument();
     expect(analytics.analyticsOverview).toHaveBeenCalled();
   });
 
@@ -213,7 +221,7 @@ describe('统计与分析页面（扩展）', () => {
 
 
 describe('经营总览交互', () => {
-  it('重置筛选并刷新数据', async () => {
+  it('按预设切换时间范围并刷新数据', async () => {
     weighing.sites.mockResolvedValue([]);
     weighing.materials.mockResolvedValue([]);
     weighing.categories.mockResolvedValue([]);
@@ -231,14 +239,23 @@ describe('经营总览交互', () => {
       route: '/analytics/overview?from=2026-10-01&to=2026-10-31&compare=year&siteCode=SITE01',
     });
     await waitFor(() => expect(analytics.analyticsOverview).toHaveBeenCalled());
-    const beforeRefresh = analytics.analyticsOverview.mock.calls.length;
-    await userEvent.click(screen.getByRole('button', { name: '重置' }));
     await waitFor(() => {
       const last = analytics.analyticsOverview.mock.calls.at(-1)?.[0] as Record<string, unknown>;
-      expect(last.siteCode).toBeUndefined();
-      expect(last.compare).toBe('previous');
+      expect(last.compare).toBe('none');
+      expect(last.granularity).toBeUndefined();
+      expect(last.siteCode).toBe('SITE01');
     });
-    await userEvent.click(screen.getByRole('button', { name: '刷新' }));
+    expect(screen.queryByRole('button', { name: '重置' })).not.toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', { name: '本月' }));
+    await waitFor(() => {
+      const last = analytics.analyticsOverview.mock.calls.at(-1)?.[0] as Record<string, unknown>;
+      expect(last.from).toBe(dayjs().startOf('month').format('YYYY-MM-DD'));
+      expect(last.siteCode).toBe('SITE01');
+    });
+
+    const beforeRefresh = analytics.analyticsOverview.mock.calls.length;
+    await userEvent.click(screen.getByRole('button', { name: '刷新数据' }));
     await waitFor(() => expect(analytics.analyticsOverview.mock.calls.length).toBeGreaterThan(beforeRefresh));
   });
 });

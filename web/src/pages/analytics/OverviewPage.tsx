@@ -1,24 +1,225 @@
-import { useMemo } from 'react';
-import { Alert, Button, Card, Col, Row, Space, Typography } from 'antd';
+import { useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react';
+import { Alert, Button, DatePicker, Empty, Segmented, Select, Skeleton, Tooltip, theme } from 'antd';
 import { useQuery } from '@tanstack/react-query';
-import dayjs from 'dayjs';
-import { PageHeader } from '../../components/PageHeader';
+import dayjs, { type Dayjs } from 'dayjs';
+import { ArrowDownToLine, ArrowUpFromLine, RefreshCw } from 'lucide-react';
 import { EChart } from '../../components/charts/EChart';
 import { useListUrlState } from '../../hooks/useListUrlState';
 import { getApiErrorMessage } from '../../lib/api/errors';
-import { analyticsOverview } from '../../features/analytics/api';
-import { analyticsFilterConfig, AnalyticsFilterBar, useAnalyticsDefaults } from '../../features/analytics/filters';
-import { analyticsFilterParams } from '../../features/analytics/params';
+import { analyticsOverview, type StructureRow, type TopRow } from '../../features/analytics/api';
+import { analyticsFilterConfig } from '../../features/analytics/filters';
 import { formatBp, formatMilliTonne } from '../../features/analytics/format';
-import { ChartCard, ComparisonText, FreshnessNote, KpiCard } from '../../features/analytics/ui';
-import { pieChartOption, topBarChartOption, trendChartOption } from '../../features/analytics/charts';
-import { useAnalyticsMasterData } from '../../features/analytics/useMasterData';
-import { formatNumber } from '../../utils/format';
+import {
+  overviewStructureChartOption,
+  overviewTrendChartOption,
+  type OverviewChartPalette,
+} from '../../features/analytics/charts';
+import { sites as fetchSites } from '../../features/weighbridge/api';
+import styles from './OverviewPage.module.css';
+
+const { RangePicker } = DatePicker;
+
+const OUTBOUND_COLOR = '#13c2c2';
+const CATEGORY_ACCENTS = ['#13c2c2', '#fa8c16', '#722ed1', '#52c41a', '#eb2f96'];
+
+interface PeriodPreset {
+  key: string;
+  label: string;
+  range: [Dayjs, Dayjs];
+}
+
+function periodPresets(): PeriodPreset[] {
+  const now = dayjs();
+  const lastMonth = now.subtract(1, 'month');
+  return [
+    { key: '7d', label: '近7天', range: [now.subtract(6, 'day').startOf('day'), now.endOf('day')] },
+    { key: 'month', label: '本月', range: [now.startOf('month'), now.endOf('month')] },
+    { key: 'lastMonth', label: '上月', range: [lastMonth.startOf('month'), lastMonth.endOf('month')] },
+    { key: 'year', label: '本年', range: [now.startOf('year'), now.endOf('year')] },
+  ];
+}
+
+function activePresetKey(from: string, to: string, presets: PeriodPreset[]): string | undefined {
+  const start = dayjs(from);
+  const end = dayjs(to);
+  if (!start.isValid() || !end.isValid()) return undefined;
+  return presets.find((preset) => start.isSame(preset.range[0], 'day') && end.isSame(preset.range[1], 'day'))?.key;
+}
+
+function prepareStructure(rows: StructureRow[]): StructureRow[] {
+  const sorted = rows.filter((row) => row.netMilliTonne > 0).sort((a, b) => b.netMilliTonne - a.netMilliTonne);
+  if (sorted.length <= 6) return sorted;
+  const head = sorted.slice(0, 5);
+  const rest = sorted.slice(5);
+  const total = sorted.reduce((sum, row) => sum + row.netMilliTonne, 0);
+  const otherNet = rest.reduce((sum, row) => sum + row.netMilliTonne, 0);
+  return [
+    ...head,
+    {
+      key: '__other__',
+      label: '其他',
+      netMilliTonne: otherNet,
+      shareBp: total > 0 ? (otherNet / total) * 10000 : null,
+    },
+  ];
+}
+
+function Panel({
+  title,
+  meta,
+  extra,
+  className,
+  children,
+}: {
+  title: string;
+  meta?: string;
+  extra?: ReactNode;
+  className?: string;
+  children: ReactNode;
+}) {
+  return (
+    <section className={`${styles.panel} ${className ?? ''}`.trim()}>
+      <header className={styles.panelHead}>
+        <div className={styles.panelHeading}>
+          <h2 className={styles.panelTitle}>{title}</h2>
+          {meta && <span className={styles.panelMeta}>{meta}</span>}
+        </div>
+        {extra}
+      </header>
+      <div className={styles.panelBody}>{children}</div>
+    </section>
+  );
+}
+
+function EmptyState({ description }: { description: string }) {
+  return (
+    <div className={styles.empty}>
+      <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description={description} />
+    </div>
+  );
+}
+
+function AnimatedNumber({ value }: { value: number | null | undefined }) {
+  const [display, setDisplay] = useState(0);
+  const displayRef = useRef(0);
+  const frameRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    if (value == null) {
+      displayRef.current = 0;
+      setDisplay(0);
+      return;
+    }
+    const to = value;
+    // 首次展示只从最终值的 95% 轻轻滚动到最终值，避免数字长时间快速跳变。
+    const from = displayRef.current > 0 ? displayRef.current : to * 0.95;
+    if (from === to) {
+      setDisplay(to);
+      return;
+    }
+    const reduceMotion =
+      typeof window !== 'undefined' &&
+      typeof window.matchMedia === 'function' &&
+      window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (reduceMotion) {
+      displayRef.current = to;
+      setDisplay(to);
+      return;
+    }
+
+    const duration = 700;
+    const start = performance.now();
+    const tick = (now: number) => {
+      const elapsed = Math.max(0, Math.min((now - start) / duration, 1));
+      const eased = 1 - Math.pow(1 - elapsed, 3);
+      const next = from + (to - from) * eased;
+      displayRef.current = next;
+      setDisplay(next);
+      if (elapsed < 1) {
+        frameRef.current = window.requestAnimationFrame(tick);
+      } else {
+        displayRef.current = to;
+        setDisplay(to);
+        frameRef.current = null;
+      }
+    };
+
+    if (frameRef.current != null) window.cancelAnimationFrame(frameRef.current);
+    frameRef.current = window.requestAnimationFrame(tick);
+    return () => {
+      if (frameRef.current != null) window.cancelAnimationFrame(frameRef.current);
+      frameRef.current = null;
+    };
+  }, [value]);
+
+  if (value == null) return <span className={styles.metricValue}>—</span>;
+  return <span className={styles.metricValue}>{formatMilliTonne(display)}</span>;
+}
+
+function RankingList({
+  rows,
+  loading,
+  emptyText,
+  showShare = false,
+  accent = '#1677ff',
+}: {
+  rows: TopRow[];
+  loading: boolean;
+  emptyText: string;
+  showShare?: boolean;
+  accent?: string;
+}) {
+  const signature = rows.map((row) => `${row.code}:${row.netMilliTonne}`).join('|');
+
+  if (loading && !rows.length) return <Skeleton active title={false} paragraph={{ rows: 6 }} />;
+  if (!rows.length) return <EmptyState description={emptyText} />;
+  const max = Math.max(...rows.map((row) => row.netMilliTonne), 1);
+  const accentStyle = { '--rank-accent': accent } as CSSProperties;
+  return (
+    <ol key={signature} className={styles.rankList} style={accentStyle}>
+      {rows.map((row, index) => {
+        const width = row.netMilliTonne > 0 ? Math.max((row.netMilliTonne / max) * 100, 2) : 0;
+        const barStyle = {
+          '--rank-width': `${width}%`,
+          animationDelay: `${index * 45}ms`,
+        } as CSSProperties;
+        return (
+          <li key={`${row.direction ?? 'all'}-${row.code}-${index}`} className={styles.rankItem}>
+            <span className={styles.rankNo}>{String(index + 1).padStart(2, '0')}</span>
+            <div className={styles.rankMain}>
+              <div className={styles.rankTop}>
+                <span className={styles.rankName} title={row.name || row.code}>{row.name || row.code}</span>
+                <span className={styles.rankValue}>
+                  {formatMilliTonne(row.netMilliTonne)}
+                  <span className={styles.rankUnit}> 吨</span>
+                </span>
+              </div>
+              <div className={styles.rankTrack}>
+                <span className={styles.rankBar} style={barStyle} />
+              </div>
+              {showShare && <span className={styles.rankShare}>占比 {formatBp(row.shareBp)}</span>}
+            </div>
+          </li>
+        );
+      })}
+    </ol>
+  );
+}
+
+function TrendLegend() {
+  return (
+    <div className={styles.chartLegend} aria-hidden="true">
+      <span className={styles.chartLegendItem}><i className={styles.legendLineInbound} />入厂净重</span>
+      <span className={styles.chartLegendItem}><i className={styles.legendLineOutbound} />出厂净重</span>
+    </div>
+  );
+}
 
 export default function OverviewPage() {
+  const { token } = theme.useToken();
   const { state, actions } = useListUrlState(analyticsFilterConfig);
-  useAnalyticsDefaults(state, actions);
-  const master = useAnalyticsMasterData();
+  const [partyDirection, setPartyDirection] = useState<'inbound' | 'outbound'>('inbound');
+
   const defaults = useMemo(
     () => ({
       from: dayjs().startOf('month').format('YYYY-MM-DD'),
@@ -26,7 +227,39 @@ export default function OverviewPage() {
     }),
     [],
   );
-  const params = useMemo(() => analyticsFilterParams(state, defaults), [state, defaults]);
+
+  useEffect(() => {
+    const next: Record<string, string | undefined> = {};
+    if (!state.filters.from) next.from = defaults.from;
+    if (!state.filters.to) next.to = defaults.to;
+    if (state.filters.compare) next.compare = undefined;
+    if (state.filters.granularity) next.granularity = undefined;
+    if (Object.keys(next).length) actions.setFilters(next);
+  }, [actions, defaults, state.filters.compare, state.filters.from, state.filters.granularity, state.filters.to]);
+
+  const from = state.filters.from || defaults.from;
+  const to = state.filters.to || defaults.to;
+  const range: [Dayjs, Dayjs] = [dayjs(from), dayjs(to)];
+  const presets = useMemo(() => periodPresets(), []);
+  const activePreset = activePresetKey(from, to, presets);
+
+  const sites = useQuery({ queryKey: ['weighbridge', 'sites'], queryFn: fetchSites });
+  const siteOptions = useMemo(
+    () => (sites.data ?? []).map((site) => ({ value: site.code, label: `${site.name}（${site.code}）` })),
+    [sites.data],
+  );
+  const siteName = (sites.data ?? []).find((site) => site.code === state.filters.siteCode)?.name ?? '全部厂区';
+
+  const params = useMemo(
+    () => ({
+      from,
+      to,
+      siteCode: state.filters.siteCode || undefined,
+      compare: 'none',
+    }),
+    [from, state.filters.siteCode, to],
+  );
+
   const overview = useQuery({
     queryKey: ['analytics', 'overview', params],
     queryFn: () => analyticsOverview(params),
@@ -34,135 +267,236 @@ export default function OverviewPage() {
     refetchInterval: 300_000,
     refetchIntervalInBackground: false,
   });
+
   const data = overview.data;
   const summary = data?.summary;
-  const compareMode = state.filters.compare || 'previous';
-  const comparison = compareMode === 'year' ? data?.comparison.year : compareMode === 'previous' ? data?.comparison.previous : undefined;
-  const inboundTop = data?.topParties.filter((row) => row.direction === 'inbound') ?? [];
-  const outboundTop = data?.topParties.filter((row) => row.direction === 'outbound') ?? [];
+  const trend = data?.trend;
+  const structure = useMemo(() => prepareStructure(data?.materialStructure ?? []), [data?.materialStructure]);
+  const structureTotal = structure.reduce((sum, row) => sum + row.netMilliTonne, 0);
 
-  const kpis = [
-    {
-      label: '有效车次',
-      value: summary ? formatNumber(summary.validTickets) : '—',
-      suffix: '车',
-      hint: <ComparisonText metric={comparison?.validTickets} unit="车" />,
-    },
-    {
-      label: '入厂净重',
-      value: summary ? formatMilliTonne(summary.inboundNetMilliTonne) : '—',
-      suffix: '吨',
-      hint: <ComparisonText metric={comparison?.inboundNetMilliTonne} />,
-    },
-    {
-      label: '出厂净重',
-      value: summary ? formatMilliTonne(summary.outboundNetMilliTonne) : '—',
-      suffix: '吨',
-      hint: <ComparisonText metric={comparison?.outboundNetMilliTonne} />,
-    },
-    {
-      label: '过磅净流入',
-      value: summary ? formatMilliTonne(summary.netFlowMilliTonne) : '—',
-      suffix: '吨',
-      hint: <ComparisonText metric={comparison?.netFlowMilliTonne} />,
-    },
-    {
-      label: '活跃供收方',
-      value: summary ? formatNumber(summary.activeSuppliers + summary.activeCustomers) : '—',
-      suffix: '家',
-      hint: summary ? `供货方 ${summary.activeSuppliers} · 收货方 ${summary.activeCustomers}` : undefined,
-    },
-    {
-      label: '扣量率',
-      value: summary ? formatBp(summary.adjustmentWeightRateBp) : '—',
-      hint: summary ? `调整覆盖率 ${formatBp(summary.adjustmentCoverageBp)}` : undefined,
-    },
-  ];
+  const structureColors = useMemo(
+    () => [token.colorPrimary, ...CATEGORY_ACCENTS],
+    [token.colorPrimary],
+  );
+
+  const structureOption = useMemo(
+    () =>
+      overviewStructureChartOption(structure, structureColors, {
+        background: token.colorBgContainer,
+        border: token.colorBorderSecondary,
+        text: token.colorText,
+      }),
+    [structure, structureColors, token.colorBgContainer, token.colorBorderSecondary, token.colorText],
+  );
+
+  const materialRows = useMemo(() => (data?.topMaterials ?? []).slice(0, 7), [data?.topMaterials]);
+  const partyRows = useMemo(
+    () => (data?.topParties ?? []).filter((row) => row.direction === partyDirection).slice(0, 7),
+    [data?.topParties, partyDirection],
+  );
+
+  const chartPalette = useMemo<OverviewChartPalette>(
+    () => ({
+      primary: token.colorPrimary,
+      outbound: OUTBOUND_COLOR,
+      text: token.colorText,
+      tertiary: token.colorTextTertiary,
+      border: token.colorBorderSecondary,
+      background: token.colorBgContainer,
+    }),
+    [token.colorBgContainer, token.colorBorderSecondary, token.colorPrimary, token.colorText, token.colorTextTertiary],
+  );
+  const trendOption = useMemo(() => overviewTrendChartOption(trend, chartPalette), [chartPalette, trend]);
 
   return (
-    <>
-      <PageHeader
-        title="经营总览"
-        description=""
-        extra={<Button onClick={() => void overview.refetch()} loading={overview.isFetching}>刷新</Button>}
-      />
-      <Space direction="vertical" size="middle" style={{ width: '100%' }}>
-        <Card size="small">
-          <AnalyticsFilterBar
-            state={state}
-            actions={actions}
-            sites={master.sites}
-            materials={master.materials}
-            categories={master.categories}
-            showDirection={false}
-            showKeyword={false}
-          />
-        </Card>
-        {overview.isError && (
-          <Alert
-            type="error"
-            message={`经营总览加载失败：${getApiErrorMessage(overview.error)}`}
-            action={<Button onClick={() => void overview.refetch()}>重试</Button>}
-          />
-        )}
-        <Row gutter={[16, 16]}>
-          {kpis.map((item) => (
-            <Col xs={24} sm={12} xl={4} key={item.label}>
-              <KpiCard label={item.label} value={item.value} suffix={item.suffix} hint={item.hint} />
-            </Col>
-          ))}
-        </Row>
-        <Row gutter={[16, 16]}>
-          <Col xs={24} sm={12} xl={6}>
-            <KpiCard label="作废率" value={summary ? formatBp(summary.voidRateBp) : '—'} hint={summary ? `${summary.voidTickets} 张作废单` : undefined} />
-          </Col>
-          <Col xs={24} sm={12} xl={6}>
-            <KpiCard label="平均单次净重" value={summary?.avgNetPerTicketMilliTonne != null ? formatMilliTonne(summary.avgNetPerTicketMilliTonne) : '—'} suffix="吨" hint="净重 / 有效车次" />
-          </Col>
-          <Col xs={24} sm={12} xl={6}>
-            <KpiCard label="净重调整" value={summary ? formatMilliTonne(summary.adjustmentNetMilliTonne) : '—'} suffix="吨" hint={summary ? `${summary.adjustedTickets} 张调整单` : undefined} />
-          </Col>
-          <Col xs={24} sm={12} xl={6}>
-            <KpiCard label="数据截止" value={data?.freshness.dataThrough ? dayjs(data.freshness.dataThrough).format('MM-DD HH:mm') : '—'} hint={data?.freshness.historyStart ? `历史起点 ${dayjs(data.freshness.historyStart).format('YYYY-MM-DD')}` : undefined} />
-          </Col>
-        </Row>
-        <ChartCard title="进出厂趋势">
+    <div className={styles.page}>
+      <section className={styles.hero} aria-labelledby="overview-title">
+        <div className={styles.heroHead}>
+          <div className={styles.heading}>
+            <h1 id="overview-title" className={styles.title}>经营总览</h1>
+            <div className={styles.period}>
+              {dayjs(from).format('YYYY.MM.DD')} — {dayjs(to).format('YYYY.MM.DD')} · {siteName}
+            </div>
+          </div>
+          <div className={styles.controls}>
+            <div className={styles.presets} role="group" aria-label="时间范围">
+              {presets.map((preset) => (
+                <button
+                  key={preset.key}
+                  type="button"
+                  className={activePreset === preset.key ? styles.presetActive : styles.preset}
+                  aria-pressed={activePreset === preset.key}
+                  onClick={() =>
+                    actions.setFilters({
+                      from: preset.range[0].format('YYYY-MM-DD'),
+                      to: preset.range[1].format('YYYY-MM-DD'),
+                    })
+                  }
+                >
+                  {preset.label}
+                </button>
+              ))}
+            </div>
+            <RangePicker
+              className={styles.range}
+              variant="filled"
+              value={range}
+              allowClear={false}
+              format="YYYY-MM-DD"
+              onChange={(values) => {
+                if (!values?.[0] || !values?.[1]) return;
+                actions.setFilters({
+                  from: values[0].format('YYYY-MM-DD'),
+                  to: values[1].format('YYYY-MM-DD'),
+                });
+              }}
+            />
+            <Select
+              className={styles.siteSelect}
+              variant="filled"
+              placeholder="全部厂区"
+              allowClear
+              showSearch
+              optionFilterProp="label"
+              value={state.filters.siteCode || undefined}
+              onChange={(value) => actions.setFilter('siteCode', value)}
+              options={siteOptions}
+            />
+            <Tooltip title="刷新数据">
+              <Button
+                type="text"
+                className={styles.refresh}
+                icon={<RefreshCw size={16} aria-hidden="true" />}
+                loading={overview.isFetching}
+                onClick={() => void overview.refetch()}
+                aria-label="刷新数据"
+              />
+            </Tooltip>
+          </div>
+        </div>
+
+        <div className={styles.metrics}>
+          <div className={styles.metric}>
+            <div className={styles.metricLabel}>
+              <span className={styles.metricIcon} style={{ color: token.colorPrimary }}>
+                <ArrowDownToLine size={14} aria-hidden="true" />
+              </span>
+              入厂净重
+            </div>
+            <div className={styles.metricValueRow}>
+              <AnimatedNumber value={summary?.inboundNetMilliTonne} />
+              <span className={styles.metricUnit}>吨</span>
+            </div>
+          </div>
+          <span className={styles.metricDivider} aria-hidden="true" />
+          <div className={styles.metric}>
+            <div className={styles.metricLabel}>
+              <span className={styles.metricIcon} style={{ color: OUTBOUND_COLOR }}>
+                <ArrowUpFromLine size={14} aria-hidden="true" />
+              </span>
+              出厂净重
+            </div>
+            <div className={styles.metricValueRow}>
+              <AnimatedNumber value={summary?.outboundNetMilliTonne} />
+              <span className={styles.metricUnit}>吨</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {overview.isError && (
+        <Alert
+          type="error"
+          showIcon
+          message={`经营总览加载失败：${getApiErrorMessage(overview.error)}`}
+          action={<Button size="small" onClick={() => void overview.refetch()}>重试</Button>}
+        />
+      )}
+
+      <div className={styles.grid}>
+        <Panel title="进出厂净重趋势" className={styles.trendPanel} extra={<TrendLegend />}>
           <EChart
-            option={trendChartOption(data?.trend)}
+            option={trendOption}
             loading={overview.isLoading}
-            empty={!data?.trend.points.length}
+            empty={!trend?.points.length}
+            height={368}
             ariaLabel="进出厂净重趋势图"
           />
-        </ChartCard>
-        <Row gutter={[16, 16]}>
-          <Col xs={24} xl={8}>
-            <ChartCard title="物料分类结构">
-              <EChart option={pieChartOption(data?.materialStructure)} loading={overview.isLoading} empty={!data?.materialStructure.length} height={300} ariaLabel="物料分类结构图" />
-            </ChartCard>
-          </Col>
-          <Col xs={24} xl={8}>
-            <ChartCard title="Top 物料">
-              <EChart option={topBarChartOption(data?.topMaterials)} loading={overview.isLoading} empty={!data?.topMaterials.length} height={300} ariaLabel="Top 物料图" />
-            </ChartCard>
-          </Col>
-          <Col xs={24} xl={8}>
-            <ChartCard title="Top 供收方">
-              <EChart option={topBarChartOption([...inboundTop, ...outboundTop])} loading={overview.isLoading} empty={!inboundTop.length && !outboundTop.length} height={300} ariaLabel="Top 供收方图" />
-            </ChartCard>
-          </Col>
-        </Row>
-        {(data?.alerts.length ?? 0) > 0 && (
-          <Space direction="vertical" size="small" style={{ width: '100%' }}>
-            {data?.alerts.map((alert) => (
-              <Alert key={`${alert.type}-${alert.message}`} type={alert.level === 'error' ? 'error' : alert.level === 'warning' ? 'warning' : 'info'} showIcon message={alert.message} description={alert.count ? `涉及 ${alert.count} 条` : undefined} />
-            ))}
-          </Space>
-        )}
-        <FreshnessNote freshness={data?.freshness} />
-        <Typography.Text type="secondary">
-          口径：有效单按出单时间归期；作废单不计入流量；重开只计新的有效单；扣量率仅统计调整字段已知的单据。
-        </Typography.Text>
-      </Space>
-    </>
+        </Panel>
+
+        <Panel title="物料分类结构" meta="按净重占比" className={styles.structurePanel}>
+          {overview.isLoading && !data ? (
+            <Skeleton active title={false} paragraph={{ rows: 6 }} />
+          ) : structure.length && structureTotal > 0 ? (
+            <div className={styles.structureBody}>
+              <div className={styles.donutChartWrap}>
+                <EChart
+                  option={structureOption}
+                  loading={overview.isLoading}
+                  height={190}
+                  ariaLabel="物料分类净重占比"
+                />
+                <div className={styles.donutHole}>
+                  <span className={styles.donutValue}>{formatBp(structure[0]?.shareBp)}</span>
+                  <span className={styles.donutLabel} title={structure[0]?.label}>{structure[0]?.label}</span>
+                </div>
+              </div>
+              <ul className={styles.legendList}>
+                {structure.map((row, index) => (
+                  <li key={row.key} className={styles.legendItem}>
+                    <span
+                      className={styles.legendDot}
+                      style={{ background: structureColors[index % structureColors.length] }}
+                    />
+                    <div className={styles.legendBody}>
+                      <div className={styles.legendTop}>
+                        <span className={styles.legendName} title={row.label}>{row.label}</span>
+                        <span className={styles.legendShare}>{formatBp(row.shareBp)}</span>
+                      </div>
+                      <span className={styles.legendValue}>{formatMilliTonne(row.netMilliTonne)} 吨</span>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ) : (
+            <EmptyState description="暂无物料数据" />
+          )}
+        </Panel>
+
+        <Panel title="Top 物料" meta="按净重" className={styles.materialsPanel}>
+          <RankingList
+            rows={materialRows}
+            loading={overview.isLoading}
+            emptyText="暂无物料数据"
+            showShare
+            accent={token.colorPrimary}
+          />
+        </Panel>
+
+        <Panel
+          title="Top 供收方"
+          className={styles.partiesPanel}
+          extra={
+            <Segmented
+              size="small"
+              value={partyDirection}
+              onChange={(value) => setPartyDirection(value as 'inbound' | 'outbound')}
+              options={[
+                { label: '供货方', value: 'inbound' },
+                { label: '收货方', value: 'outbound' },
+              ]}
+            />
+          }
+        >
+          <RankingList
+            rows={partyRows}
+            loading={overview.isLoading}
+            emptyText="暂无供收方数据"
+            accent={partyDirection === 'inbound' ? token.colorPrimary : OUTBOUND_COLOR}
+          />
+        </Panel>
+      </div>
+    </div>
   );
 }
