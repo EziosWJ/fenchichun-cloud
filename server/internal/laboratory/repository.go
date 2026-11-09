@@ -28,36 +28,20 @@ func requireMenu(tx *gorm.DB, actor int64, permission string) error {
 	return nil
 }
 
-// All linked inspection writes lock the trip before the inspection.
 func find(tx *gorm.DB, id int64, lock bool) (Inspection, error) {
 	var v Inspection
+	if lock {
+		err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).Where("id=?", id).Take(&v).Error
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return v, ErrNotFound
+		}
+		return v, err
+	}
 	err := tx.Where("id=?", id).Take(&v).Error
 	if errors.Is(err, gorm.ErrRecordNotFound) {
 		return v, ErrNotFound
 	}
-	if err != nil {
-		return v, err
-	}
-	if !lock {
-		return v, nil
-	}
-	before := v.TripID
-	if before != nil {
-		if _, err := inspectionTrip(tx, *before); err != nil {
-			return v, err
-		}
-	}
-	err = tx.Clauses(clause.Locking{Strength: "UPDATE"}).Where("id=?", id).Take(&v).Error
-	if errors.Is(err, gorm.ErrRecordNotFound) {
-		return v, ErrNotFound
-	}
-	if err != nil {
-		return v, err
-	}
-	if (before == nil) != (v.TripID == nil) || (before != nil && v.TripID != nil && *before != *v.TripID) {
-		return v, ErrConflict
-	}
-	return v, nil
+	return v, err
 }
 
 type tripReference struct {
@@ -67,6 +51,7 @@ type tripReference struct {
 	TicketID, EffectiveInspectionID                                 *int64
 }
 
+// inspectionTrip 锁定流转单并确认它仍处于可化验阶段。
 func inspectionTrip(tx *gorm.DB, id int64) (tripReference, error) {
 	var t tripReference
 	err := tx.Table("grain_trip").Clauses(clause.Locking{Strength: "UPDATE"}).Where("id=?", id).Take(&t).Error
@@ -81,23 +66,11 @@ func inspectionTrip(tx *gorm.DB, id int64) (tripReference, error) {
 		return t, err
 	}
 	if t.ExitedAt != nil || t.UnloadedAt != nil || t.TicketID != nil || n > 0 {
-		return t, fmt.Errorf("%w：流转单已卸粮、关联磅单、开证或出厂，不能更改化验依据", ErrConflict)
+		return t, fmt.Errorf("%w：流转单已卸粮、关联磅单、开证或出厂，不能录入化验结果", ErrConflict)
 	}
 	return t, nil
 }
-func matchesTrip(tx *gorm.DB, in Input) error {
-	if in.TripID == nil {
-		return nil
-	}
-	t, err := inspectionTrip(tx, *in.TripID)
-	if err != nil {
-		return err
-	}
-	if t.Plate != in.Plate || t.MaterialCode != in.MaterialCode || t.PartyCode != in.PartyCode {
-		return fmt.Errorf("%w：化验单须与关联流转单的车牌、粮种和供应商一致", ErrConflict)
-	}
-	return nil
-}
+
 func (r *Repository) Detail(ctx context.Context, actor, id int64) (Inspection, error) {
 	var v Inspection
 	err := r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
@@ -110,23 +83,16 @@ func (r *Repository) Detail(ctx context.Context, actor, id int64) (Inspection, e
 	})
 	return v, err
 }
+
 func (r *Repository) List(ctx context.Context, actor int64, q Query) (Page, error) {
 	result := Page{Records: []Inspection{}, Page: q.Page, PageSize: q.PageSize}
 	err := r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		if err := requireAccess(tx, actor); err != nil {
-			if !errors.Is(err, ErrForbidden) || !q.Unlinked {
-				return err
-			}
-			if err := requireMenu(tx, actor, "grain-intake:trips"); err != nil {
-				return err
-			}
+			return err
 		}
 		query := tx.Model(&Inspection{})
 		if q.TripID > 0 {
 			query = query.Where("trip_id=?", q.TripID)
-		}
-		if q.Unlinked {
-			query = query.Where("trip_id IS NULL")
 		}
 		if q.Status != "" {
 			query = query.Where("status=?", q.Status)
@@ -177,182 +143,68 @@ func references(tx *gorm.DB, in Input) (string, string, error) {
 	}
 	return material, party, nil
 }
-func create(tx *gorm.DB, in Input, original *int64, actor int64) (Inspection, error) {
-	if in.TripID != nil {
-		t, err := inspectionTrip(tx, *in.TripID)
-		if err != nil {
-			return Inspection{}, err
-		}
-		in.Plate = t.Plate
-		in.MaterialCode = t.MaterialCode
-		in.PartyCode = t.PartyCode
-		in.Driver = t.Driver
-		in.DriverPhone = t.DriverPhone
-		in.ContractNo = t.ContractNo
-	}
-	var n int64
-	if err := tx.Raw("INSERT INTO wb_cloud_sequence (kind,value) VALUES (?,1) ON CONFLICT (kind) DO UPDATE SET value=wb_cloud_sequence.value+1 RETURNING value", "inspection").Scan(&n).Error; err != nil {
-		return Inspection{}, err
-	}
-	material, party, err := references(tx, in)
-	if err != nil {
-		return Inspection{}, err
-	}
-	now := time.Now().UTC()
-	v := Inspection{Number: fmt.Sprintf("HY-%06d", n), Status: "draft", Version: 1, OriginalID: original, Input: in, MaterialName: material, PartyName: party, CreatedBy: actor, CreatedAt: now, UpdatedAt: now}
-	err = tx.Create(&v).Error
-	return v, err
-}
-func record(ctx context.Context, tx *gorm.DB, e audit.Event, v Inspection) error {
-	if v.TripID != nil {
-		if err := tx.Table("grain_trip").Where("id=?", *v.TripID).Updates(map[string]any{"version": gorm.Expr("version+1"), "updated_at": time.Now().UTC()}).Error; err != nil {
-			return err
-		}
-		if err := tx.Exec("INSERT INTO grain_trip_event(trip_id,action,description,actor_id) VALUES (?,?,?,?)", *v.TripID, e.Action, "化验单 "+v.Number+"："+map[string]string{"inspection.save": "保存草稿", "inspection.confirm": "确认结果", "inspection.void": "作废", "inspection.delete": "删除草稿", "inspection.retest": "创建复检"}[e.Action], e.Metadata.ActorID).Error; err != nil {
-			return err
-		}
-	}
-	e.Resource = "laboratory-inspection"
-	e.ResourceID = v.ID
-	return audit.RecordOn(ctx, tx, e)
-}
-func (r *Repository) Save(ctx context.Context, id, version int64, in Input, e audit.Event) (Inspection, error) {
+
+// Create 为一张流转单录入唯一一次化验结果，提交即确认并自动成为本趟生效依据。
+func (r *Repository) Create(ctx context.Context, in Input, e audit.Event) (Inspection, error) {
 	var v Inspection
 	err := r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		if err := requireAccess(tx, e.Metadata.ActorID); err != nil {
 			return err
 		}
-		var err error
-		if id == 0 {
-			v, err = create(tx, in, nil, e.Metadata.ActorID)
-			if err != nil {
-				return err
-			}
-		} else {
-			v, err = find(tx, id, true)
-			if err != nil {
-				return err
-			}
-			if v.Status != "draft" || v.Version != version {
-				return ErrConflict
-			}
-			if in.TripID != nil && (v.TripID == nil || *in.TripID != *v.TripID) {
-				return ErrConflict
-			}
-			in.TripID = v.TripID
-			if err := matchesTrip(tx, in); err != nil {
-				return err
-			}
-			material, party, err := references(tx, in)
-			if err != nil {
-				return err
-			}
-			v.Input = in
-			v.MaterialName = material
-			v.PartyName = party
-			v.Version++
-			v.UpdatedAt = time.Now().UTC()
-			if err := tx.Save(&v).Error; err != nil {
-				return err
-			}
-		}
-		return record(ctx, tx, e, v)
-	})
-	return v, err
-}
-func (r *Repository) Transition(ctx context.Context, id, version int64, action, reason string, e audit.Event) (Inspection, error) {
-	var v Inspection
-	err := r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-		if err := requireAccess(tx, e.Metadata.ActorID); err != nil {
-			return err
-		}
-		var err error
-		v, err = find(tx, id, true)
+		trip, err := inspectionTrip(tx, *in.TripID)
 		if err != nil {
 			return err
 		}
-		if v.Version != version {
-			return ErrConflict
-		}
-		now, actor := time.Now().UTC(), e.Metadata.ActorID
-		switch action {
-		case "confirm":
-			if v.Status != "draft" {
-				return ErrConflict
-			}
-			if err := matchesTrip(tx, v.Input); err != nil {
-				return err
-			}
-			if err := v.Input.validate(true); err != nil {
-				return err
-			}
-			material, party, err := references(tx, v.Input)
-			if err != nil {
-				return err
-			}
-			v.MaterialName = material
-			v.PartyName = party
-			v.Status = "confirmed"
-			v.ConfirmedAt = &now
-			v.ConfirmedBy = &actor
-		case "void":
-			if v.Status != "confirmed" {
-				return ErrConflict
-			}
-			if v.TripID != nil {
-				if err := tx.Table("grain_trip").Where("id=? AND effective_inspection_id=?", *v.TripID, v.ID).Updates(map[string]any{"effective_inspection_id": nil, "effective_selected_at": nil, "effective_selected_by": nil}).Error; err != nil {
-					return err
-				}
-			}
-			v.Status = "void"
-			v.VoidReason = reason
-			v.VoidedAt = &now
-			v.VoidedBy = &actor
-		case "delete":
-			if v.Status != "draft" {
-				return ErrConflict
-			}
-			if err := tx.Delete(&v).Error; err != nil {
-				return err
-			}
-			return record(ctx, tx, e, v)
-		default:
-			return ErrInvalid
-		}
-		v.Version++
-		v.UpdatedAt = now
-		if err := tx.Save(&v).Error; err != nil {
+		var n int64
+		if err := tx.Model(&Inspection{}).Where("trip_id=?", *in.TripID).Count(&n).Error; err != nil {
 			return err
 		}
-		return record(ctx, tx, e, v)
-	})
-	return v, err
-}
-func (r *Repository) Retest(ctx context.Context, id, version int64, e audit.Event) (Inspection, error) {
-	var v Inspection
-	err := r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-		if err := requireAccess(tx, e.Metadata.ActorID); err != nil {
+		if n > 0 {
+			return fmt.Errorf("%w：该流转单已录入化验结果", ErrConflict)
+		}
+		in.Plate = trip.Plate
+		in.MaterialCode = trip.MaterialCode
+		in.PartyCode = trip.PartyCode
+		in.Driver = trip.Driver
+		in.DriverPhone = trip.DriverPhone
+		in.ContractNo = trip.ContractNo
+
+		var seq int64
+		if err := tx.Raw("INSERT INTO wb_cloud_sequence (kind,value) VALUES (?,1) ON CONFLICT (kind) DO UPDATE SET value=wb_cloud_sequence.value+1 RETURNING value", "inspection").Scan(&seq).Error; err != nil {
 			return err
 		}
-		original, err := find(tx, id, true)
+		material, party, err := references(tx, in)
 		if err != nil {
 			return err
 		}
-		if original.Status != "confirmed" || original.Version != version {
-			return ErrConflict
+		now := time.Now().UTC()
+		actor := e.Metadata.ActorID
+		v = Inspection{
+			Number: fmt.Sprintf("HY-%06d", seq), Status: "confirmed", Version: 1,
+			Input: in, MaterialName: material, PartyName: party,
+			CreatedBy: actor, CreatedAt: now, UpdatedAt: now,
+			ConfirmedBy: &actor, ConfirmedAt: &now,
 		}
-		in := original.Input
-		in.Moisture = ""
-		in.Impurity = ""
-		in.BulkDensity = ""
-		in.Conclusion = ""
-		in.Reason = ""
-		in.Remark = ""
-		v, err = create(tx, in, &original.ID, e.Metadata.ActorID)
-		if err != nil {
+		if err := tx.Create(&v).Error; err != nil {
+			return fmt.Errorf("%w：该流转单已录入化验结果", ErrConflict)
+		}
+		if err := tx.Table("grain_trip").Where("id=?", *in.TripID).Updates(map[string]any{
+			"effective_inspection_id": v.ID,
+			"effective_selected_at":   now,
+			"effective_selected_by":   actor,
+			"version":                 gorm.Expr("version+1"),
+			"updated_at":              now,
+		}).Error; err != nil {
 			return err
 		}
-		return record(ctx, tx, e, v)
+		conclusion := map[string]string{"accept": "接收", "reject": "拒收"}[in.Conclusion]
+		description := fmt.Sprintf("化验单 %s：%s（水分 %s%%，杂质 %s%%，容重 %s g/L）", v.Number, conclusion, in.Moisture, in.Impurity, in.BulkDensity)
+		if err := tx.Exec("INSERT INTO grain_trip_event(trip_id,action,description,actor_id) VALUES (?,?,?,?)", *in.TripID, "inspection.create", description, actor).Error; err != nil {
+			return err
+		}
+		e.Resource = "laboratory-inspection"
+		e.ResourceID = v.ID
+		return audit.RecordOn(ctx, tx, e)
 	})
 	return v, err
 }

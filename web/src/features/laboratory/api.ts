@@ -1,42 +1,41 @@
-import { get, getPage, post, put } from '../../lib/api/client';
+import { get, getPage, post } from '../../lib/api/client';
 
 export interface InspectionInput {
-  tripId?: number | null;
-  plate: string;
-  materialCode: string;
-  partyCode: string;
-  driver: string;
-  driverPhone: string;
-  contractNo: string;
+  tripId: number;
   moisture: string;
   impurity: string;
   bulkDensity: string;
-  conclusion: '' | 'accept' | 'reject';
+  conclusion: 'accept' | 'reject';
   reason: string;
   remark: string;
 }
-export interface Inspection extends InspectionInput {
+
+export interface Inspection extends Omit<InspectionInput, 'conclusion'> {
   id: number;
   number: string;
-  status: 'draft' | 'confirmed' | 'void';
+  status: string;
   version: number;
-  originalId: number | null;
+  plate: string;
+  materialCode: string;
   materialName: string;
+  partyCode: string;
   partyName: string;
+  driver: string;
+  driverPhone: string;
+  contractNo: string;
+  conclusion: '' | 'accept' | 'reject';
   createdBy: number;
   createdAt: string;
   updatedAt: string;
   confirmedBy: number | null;
   confirmedAt: string | null;
-  voidedBy: number | null;
-  voidedAt: string | null;
-  voidReason: string;
 }
+
 const base = '/laboratory/inspections';
+
 export const inspections = (params: Record<string, unknown>) => getPage<Inspection>(base, params);
+
 export const inspection = (id: number) => get<Inspection>(`${base}/${id}`);
-export const saveInspection = (input: InspectionInput, original?: Inspection) => original
-  ? put<Inspection>(`${base}/${original.id}`, { ...input, version: original.version })
-  : post<Inspection>(base, input);
-export const inspectionAction = (original: Inspection, action: 'confirm' | 'void' | 'delete' | 'retest', reason = '') =>
-  post<Inspection>(`${base}/${original.id}/${action}`, { version: original.version, reason });
+
+/** 为流转单录入化验结果；一张流转单只能录入一次，提交即生效。 */
+export const createInspection = (input: InspectionInput) => post<Inspection>(base, input);

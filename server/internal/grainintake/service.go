@@ -13,6 +13,7 @@ type Store interface {
 	Detail(context.Context, int64, int64, string) (Detail, error)
 	Save(context.Context, int64, int64, Input, audit.Event) (Detail, error)
 	Command(context.Context, int64, string, Command, audit.Event) (Detail, error)
+	Defaults(context.Context, int64) (string, error)
 }
 type Service struct{ store Store }
 
@@ -32,6 +33,11 @@ func normalizeQuery(q Query) (Query, error) {
 	}
 	switch q.Stage {
 	case "", "pending_inspection", "accepted", "rejected", "ready", "permit_pending", "permit_approved", "exited", "blocked":
+	default:
+		return q, ErrInvalid
+	}
+	switch q.Order {
+	case "", "inspection_first":
 	default:
 		return q, ErrInvalid
 	}
@@ -63,7 +69,7 @@ func (s *Service) Save(ctx context.Context, id, version int64, in Input, e audit
 }
 func (s *Service) Command(ctx context.Context, id int64, action string, in Command, e audit.Event) (Detail, error) {
 	switch action {
-	case "link-inspection", "select-inspection", "confirm-unloading", "link-ticket", "issue-permit", "approve-permit", "confirm-exit":
+	case "confirm-unloading", "link-ticket", "issue-permit", "approve-permit", "confirm-exit":
 	default:
 		return Detail{}, ErrInvalid
 	}
@@ -84,4 +90,9 @@ func (s *Service) Rejections(ctx context.Context, actor int64, q Query) (TripPag
 		return TripPage{}, err
 	}
 	return s.store.Trips(ctx, actor, q)
+}
+
+// Defaults 返回登记页的默认厂区：当前用户最近一张流转单的厂区，取不到则为空。
+func (s *Service) Defaults(ctx context.Context, actor int64) (string, error) {
+	return s.store.Defaults(ctx, actor)
 }

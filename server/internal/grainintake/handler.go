@@ -22,6 +22,7 @@ func (h *Handler) Register(api gin.IRouter) {
 	g.GET("/rejections", h.rejections)
 	g.GET("/permits", h.permits)
 	g.GET("/exit-basis/:id", h.exitBasis)
+	g.GET("/trip-defaults", h.defaults)
 }
 func respond(c *gin.Context, value any, err error) {
 	if err == nil {
@@ -64,7 +65,22 @@ func key(c *gin.Context) (int64, bool) {
 func query(c *gin.Context) Query {
 	page, _ := strconv.Atoi(c.Query("page"))
 	size, _ := strconv.Atoi(c.Query("pageSize"))
-	return Query{Page: page, PageSize: size, Keyword: c.Query("keyword"), Stage: c.Query("stage")}
+	return Query{Page: page, PageSize: size, Keyword: c.Query("keyword"), Stage: c.Query("stage"), Order: c.Query("order")}
+}
+
+// defaults godoc
+// @Summary 登记页默认值
+// @Tags 原粮流转
+// @Security BearerAuth
+// @Success 200 {object} map[string]string
+// @Router /api/v1/grain-intake/trip-defaults [get]
+func (h *Handler) defaults(c *gin.Context) {
+	e, ok := actorEvent(c, "trip.defaults")
+	if !ok {
+		return
+	}
+	site, err := h.service.Defaults(c.Request.Context(), e.Metadata.ActorID)
+	respond(c, gin.H{"siteCode": site}, err)
 }
 
 type SaveRequest struct {

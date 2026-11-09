@@ -16,10 +16,8 @@ func NewHandler(s *Service) *Handler { return &Handler{service: s} }
 func (h *Handler) Register(api gin.IRouter) {
 	g := api.Group("/laboratory/inspections")
 	g.GET("", h.list)
-	g.POST("", h.create)
 	g.GET("/:id", h.detail)
-	g.PUT("/:id", h.update)
-	g.POST("/:id/:action", h.action)
+	g.POST("", h.create)
 }
 func result(c *gin.Context, value any, err error) {
 	if err == nil {
@@ -71,25 +69,16 @@ type PageResponse struct {
 	Message string `json:"message"`
 	Data    Page   `json:"data"`
 }
-type SaveRequest struct {
-	Input
-	Version int64 `json:"version"`
-}
-type ActionRequest struct {
-	Version int64  `json:"version"`
-	Reason  string `json:"reason"`
-}
 
 // list godoc
-// @Summary 分页查询独立化验单
+// @Summary 分页查询化验记录
 // @Tags 化验室
 // @Security BearerAuth
 // @Param page query int false "页码"
 // @Param pageSize query int false "每页条数"
 // @Param keyword query string false "单号、车牌、粮种或供应商"
-// @Param status query string false "draft/confirmed/void"
+// @Param status query string false "confirmed/void"
 // @Param tripId query int false "流转单ID"
-// @Param unlinked query boolean false "仅查询未关联流转单的化验单"
 // @Success 200 {object} PageResponse
 // @Router /api/v1/laboratory/inspections [get]
 func (h *Handler) list(c *gin.Context) {
@@ -100,12 +89,12 @@ func (h *Handler) list(c *gin.Context) {
 	tripID, _ := strconv.ParseInt(c.Query("tripId"), 10, 64)
 	page, _ := strconv.Atoi(c.Query("page"))
 	size, _ := strconv.Atoi(c.Query("pageSize"))
-	value, err := h.service.List(c.Request.Context(), e.Metadata.ActorID, Query{Page: page, PageSize: size, Keyword: c.Query("keyword"), Status: c.Query("status"), TripID: tripID, Unlinked: c.Query("unlinked") == "true"})
+	value, err := h.service.List(c.Request.Context(), e.Metadata.ActorID, Query{Page: page, PageSize: size, Keyword: c.Query("keyword"), Status: c.Query("status"), TripID: tripID})
 	result(c, value, err)
 }
 
 // detail godoc
-// @Summary 查询独立化验单详情
+// @Summary 查询化验记录详情
 // @Tags 化验室
 // @Security BearerAuth
 // @Param id path int true "化验单ID"
@@ -125,72 +114,23 @@ func (h *Handler) detail(c *gin.Context) {
 }
 
 // create godoc
-// @Summary 保存化验单草稿
+// @Summary 为流转单录入化验结果（提交即生效）
+// @Description 必须关联流转单；一张流转单只能录入一次；结果只有接收/拒收；拒收必须填写原因。
 // @Tags 化验室
 // @Security BearerAuth
-// @Param request body Input true "化验单草稿（水分%、杂质%、容重g/L；最多6位小数）"
+// @Param request body Input true "流转单ID、三项检测值与结论"
 // @Success 200 {object} Response
 // @Router /api/v1/laboratory/inspections [post]
-func (h *Handler) create(c *gin.Context) { h.save(c, 0) }
-
-// update godoc
-// @Summary 更新化验单草稿（确认后禁止修改）
-// @Tags 化验室
-// @Security BearerAuth
-// @Param id path int true "化验单ID"
-// @Param request body SaveRequest true "草稿及当前版本"
-// @Success 200 {object} Response
-// @Router /api/v1/laboratory/inspections/{id} [put]
-func (h *Handler) update(c *gin.Context) {
-	key, ok := id(c)
-	if ok {
-		h.save(c, key)
-	}
-}
-func (h *Handler) save(c *gin.Context, key int64) {
-	e, ok := event(c, "inspection.save")
+func (h *Handler) create(c *gin.Context) {
+	e, ok := event(c, "inspection.create")
 	if !ok {
 		return
 	}
-	var input SaveRequest
+	var input Input
 	if err := c.ShouldBindJSON(&input); err != nil {
 		result(c, nil, ErrInvalid)
 		return
 	}
-	value, err := h.service.Save(c.Request.Context(), key, input.Version, input.Input, e)
-	result(c, value, err)
-}
-
-// action godoc
-// @Summary 确认、作废、删除草稿或建立复检单
-// @Description confirm要求信息完整且拒收填写原因；void仅限已确认单且须原因；delete仅限草稿；retest仅限已确认单，新建关联草稿，不改变原单。
-// @Tags 化验室
-// @Security BearerAuth
-// @Param id path int true "化验单ID"
-// @Param action path string true "动作" Enums(confirm,void,delete,retest)
-// @Param request body ActionRequest true "当前版本及作废原因"
-// @Success 200 {object} Response
-// @Router /api/v1/laboratory/inspections/{id}/{action} [post]
-func (h *Handler) action(c *gin.Context) {
-	key, ok := id(c)
-	if !ok {
-		return
-	}
-	action := c.Param("action")
-	e, ok := event(c, "inspection."+action)
-	if !ok {
-		return
-	}
-	var input ActionRequest
-	if err := c.ShouldBindJSON(&input); err != nil {
-		result(c, nil, ErrInvalid)
-		return
-	}
-	if action == "retest" {
-		value, err := h.service.Retest(c.Request.Context(), key, input.Version, e)
-		result(c, value, err)
-		return
-	}
-	value, err := h.service.Transition(c.Request.Context(), key, input.Version, action, input.Reason, e)
+	value, err := h.service.Create(c.Request.Context(), input, e)
 	result(c, value, err)
 }

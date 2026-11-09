@@ -78,9 +78,9 @@ func (in *Input) normalize() {
 	in.Impurity = strings.TrimSpace(in.Impurity)
 	in.BulkDensity = strings.TrimSpace(in.BulkDensity)
 }
-func (in Input) validate(confirm bool) error {
-	if in.TripID != nil && *in.TripID <= 0 {
-		return ErrInvalid
+func (in Input) validate() error {
+	if in.TripID == nil || *in.TripID <= 0 {
+		return fmt.Errorf("%w：请先选择待化验的流转单", ErrInvalid)
 	}
 	for _, field := range []struct {
 		value string
@@ -90,15 +90,12 @@ func (in Input) validate(confirm bool) error {
 			return fmt.Errorf("%w：字段长度超限", ErrInvalid)
 		}
 	}
-	if in.Conclusion != "" && in.Conclusion != "accept" && in.Conclusion != "reject" {
-		return ErrInvalid
+	if in.Conclusion != "accept" && in.Conclusion != "reject" {
+		return fmt.Errorf("%w：请选择接收或拒收", ErrInvalid)
 	}
 	for i, value := range []string{in.Moisture, in.Impurity, in.BulkDensity} {
 		if value == "" {
-			if confirm {
-				return fmt.Errorf("%w：请补齐三项检测值", ErrInvalid)
-			}
-			continue
+			return fmt.Errorf("%w：请补齐三项检测值", ErrInvalid)
 		}
 		if !decimal.MatchString(value) {
 			return fmt.Errorf("%w：检测值须为非负十进制数，最多6位小数", ErrInvalid)
@@ -108,10 +105,7 @@ func (in Input) validate(confirm bool) error {
 			return fmt.Errorf("%w：水分、杂质范围为0至100，容重须大于0", ErrInvalid)
 		}
 	}
-	if confirm && (in.Plate == "" || in.MaterialCode == "" || in.PartyCode == "" || in.Conclusion == "") {
-		return fmt.Errorf("%w：请补齐车牌、粮种、供应商和结论", ErrInvalid)
-	}
-	if confirm && in.Conclusion == "reject" && in.Reason == "" {
+	if in.Conclusion == "reject" && in.Reason == "" {
 		return fmt.Errorf("%w：拒收必须填写原因", ErrInvalid)
 	}
 	return nil

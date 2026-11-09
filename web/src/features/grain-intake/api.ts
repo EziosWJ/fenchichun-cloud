@@ -12,6 +12,7 @@ export interface Trip extends TripInput {
   ticketId: number | null; createdBy: number; createdAt: string; updatedAt: string;
   exitedAt: string | null; exitedBy: number | null; exitBasis: string; exitInspectionId: number | null;
   stage: string; effectiveConclusion: string;
+  inspectionId: number | null; inspectionConclusion: string;
 }
 export interface Permit {
   id: number; number: string; tripId: number; version: number; status: 'pending' | 'approved';
@@ -21,13 +22,14 @@ export interface Permit {
 }
 export interface TripEvent { id: number; tripId: number; action: string; description: string; actorId: number; actorName: string; createdAt: string }
 export interface TripDetail { trip: Trip; inspections: Inspection[]; permit: Permit | null; ticket: TicketRecord | null; events: TripEvent[] }
-export type TripAction = 'link-inspection' | 'select-inspection' | 'confirm-unloading' | 'link-ticket' | 'issue-permit' | 'approve-permit' | 'confirm-exit';
+export type TripAction = 'confirm-unloading' | 'link-ticket' | 'issue-permit' | 'approve-permit' | 'confirm-exit';
 export interface TripCommand {
   inspectionId?: number; inspectionVersion?: number; location?: string;
   ticketSiteCode?: string; ticketNo?: string; basis?: 'permit' | 'rejection'; permitId?: number;
 }
 const base = '/grain-intake';
 export const trips = (params: Record<string, unknown>) => getPage<Trip>(`${base}/trips`, params);
+export const tripDefaults = () => get<{ siteCode: string }>(`${base}/trip-defaults`);
 export const permits = (params: Record<string, unknown>) => getPage<Permit>(`${base}/permits`, params);
 export const rejections = (params: Record<string, unknown>) => getPage<Trip>(`${base}/rejections`, params);
 export const tripDetail = (id: number, gate = false) => get<TripDetail>(`${base}/${gate ? 'exit-basis' : 'trips'}/${id}`);

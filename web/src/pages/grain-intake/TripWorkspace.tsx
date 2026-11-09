@@ -1,17 +1,14 @@
 import { useState } from 'react';
-import { Alert, App, Button, Card, Descriptions, Empty, Input, Modal, Space, Table, Tabs, Tag } from 'antd';
-import type { ColumnsType } from 'antd/es/table';
+import { Alert, App, Button, Card, Descriptions, Empty, Input, Space, Table, Tabs, Tag } from 'antd';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useParams } from 'react-router-dom';
 import { tripAction, tripDetail, stageLabel, type TripAction, type TripCommand } from '../../features/grain-intake/api';
-import { inspections, type Inspection } from '../../features/laboratory/api';
-import { DataTable } from '../../components/DataTable';
 import { PageHeader } from '../../components/PageHeader';
 import { getApiErrorMessage } from '../../lib/api/errors';
 import { collectMenuPaths } from '../../lib/menus';
 import { useAuthStore } from '../../stores/useAuthStore';
 import { formatDateTime } from '../../utils/format';
-import InspectionsPage from '../laboratory/InspectionsPage';
+import InspectionFormModal from '../laboratory/InspectionFormModal';
 import TripEditor from './TripEditor';
 
 export default function TripWorkspace({ gate = false }: { gate?: boolean }) {
@@ -21,22 +18,17 @@ export default function TripWorkspace({ gate = false }: { gate?: boolean }) {
   const client = useQueryClient();
   const menuPaths = collectMenuPaths(useAuthStore((s) => s.menus));
   const canTrip = menuPaths.has('/grain-intake/trips');
-  const canLab = menuPaths.has('/laboratory/inspections');
   const canGate = menuPaths.has('/grain-intake/permits');
   const query = useQuery({ queryKey: ['grain-intake', 'detail', key, gate], queryFn: () => tripDetail(key, gate), enabled: Number.isSafeInteger(key) && key > 0 });
   const [editing, setEditing] = useState(false);
   const [location, setLocation] = useState('');
   const [ticketSite, setTicketSite] = useState('');
   const [ticketNo, setTicketNo] = useState('');
-  const [linkOpen, setLinkOpen] = useState(false);
-  const [linkKeyword, setLinkKeyword] = useState('');
-  const [linkPage, setLinkPage] = useState(1);
-  const linkParams = { page: linkPage, pageSize: 10, keyword: linkKeyword, unlinked: true };
-  const candidates = useQuery({ queryKey: ['laboratory', 'unlinked', linkParams], queryFn: () => inspections(linkParams), enabled: linkOpen });
+  const [inspectionOpen, setInspectionOpen] = useState(false);
   const refresh = () => { void client.invalidateQueries({ queryKey: ['grain-intake'] }); void client.invalidateQueries({ queryKey: ['laboratory'] }); };
   const action = useMutation({
     mutationFn: ({ kind, input }: { kind: TripAction; input?: TripCommand }) => tripAction(query.data!.trip, kind, input),
-    onSuccess: () => { message.success('办理成功'); setLinkOpen(false); refresh(); },
+    onSuccess: () => { message.success('办理成功'); refresh(); },
     onError: (error) => { message.error(getApiErrorMessage(error)); refresh(); },
   });
   if (!Number.isSafeInteger(key) || key <= 0) return <Alert type="error" title="流转单地址无效" />;
@@ -47,18 +39,19 @@ export default function TripWorkspace({ gate = false }: { gate?: boolean }) {
   const effective = query.data.inspections.find((i) => i.id === trip.effectiveInspectionId);
   const locked = !!(trip.unloadedAt || trip.ticketId || permit || trip.exitedAt);
   const ask = (title: string, kind: TripAction, input?: TripCommand, content?: string) => modal.confirm({ title, content, okText: '确认', cancelText: '取消', onOk: () => action.mutateAsync({ kind, input }).then(() => undefined) });
-  const linkColumns: ColumnsType<Inspection> = [
-    { title: '单号', dataIndex: 'number' }, { title: '车牌', dataIndex: 'plate' }, { title: '粮种', dataIndex: 'materialName' }, { title: '供应商', dataIndex: 'partyName' },
-    { title: '操作', key: 'action', render: (_, row) => <Button disabled={action.isPending || row.status === 'void' || row.plate !== trip.plate || row.materialCode !== trip.materialCode || row.partyCode !== trip.partyCode} onClick={() => ask(`关联 ${row.number}？`, 'link-inspection', { inspectionId: row.id, inspectionVersion: row.version })}>关联</Button> },
-  ];
-  const labView = canLab && !gate
-    ? <InspectionsPage trip={trip} locked={locked} onMakeEffective={(row) => ask(`将 ${row.number} 设为本趟唯一生效化验单？`, 'select-inspection', { inspectionId: row.id, inspectionVersion: row.version }, '原化验结果保留，新建复检不会自动替换生效结果。')} />
-    : <Table rowKey="id" dataSource={query.data.inspections} pagination={false} columns={[
-      { title: '化验单号', dataIndex: 'number' }, { title: '状态', dataIndex: 'status', render: (v: string) => ({ draft: '草稿', confirmed: '已确认', void: '已作废' })[v] },
-      { title: '水分（%）', dataIndex: 'moisture' }, { title: '杂质（%）', dataIndex: 'impurity' }, { title: '容重（g/L）', dataIndex: 'bulkDensity' },
-      { title: '结论', dataIndex: 'conclusion', render: (v: string) => v === 'accept' ? '接收' : v === 'reject' ? '拒收' : '—' }, { title: '原因', dataIndex: 'reason' },
-      { title: '本趟采用', key: 'effective', render: (_, row) => row.id === trip.effectiveInspectionId ? <Tag color="green">生效</Tag> : '—' },
-    ]} />;
+  const inspection = query.data.inspections[0];
+  const labView = <Space orientation="vertical" size="middle" style={{ width: '100%' }}>
+    {inspection ? <Descriptions column={3} items={[
+      { key: 'number', label: '化验单号', children: inspection.number },
+      { key: 'conclusion', label: '结论', children: inspection.conclusion === 'accept' ? <Tag color="green">接收</Tag> : <Tag color="red">拒收</Tag> },
+      { key: 'confirmed', label: '化验时间', children: formatDateTime(inspection.confirmedAt ?? inspection.createdAt) },
+      { key: 'moisture', label: '水分（%）', children: inspection.moisture },
+      { key: 'impurity', label: '杂质（%）', children: inspection.impurity },
+      { key: 'density', label: '容重（g/L）', children: inspection.bulkDensity },
+      { key: 'reason', label: '拒收原因', children: inspection.reason || '—' },
+    ]} /> : <Empty description="尚未录入化验结果" />}
+    {!gate && canTrip && !locked && !inspection && <Button type="primary" onClick={() => setInspectionOpen(true)}>录入化验结果</Button>}
+  </Space>;
   return <>
     <PageHeader title={gate ? `出厂核验 · ${trip.number}` : trip.number} description="本趟化验、卸粮、磅单和出厂依据集中核对。" />
     <Space orientation="vertical" size="middle" style={{ width: '100%' }}>
@@ -78,8 +71,7 @@ export default function TripWorkspace({ gate = false }: { gate?: boolean }) {
         ]} /> : <Empty description="尚未指定生效化验单；确认化验单后，由化验员明确选择。" />}
       </Card>
       <Tabs items={[
-        { key: 'inspections', label: `化验单（${query.data.inspections.length}）`, children: <Space orientation="vertical" size="middle" style={{ width: '100%' }}>
-          {!gate && canTrip && !locked && <Button onClick={() => { setLinkKeyword(trip.plate); setLinkPage(1); setLinkOpen(true); }}>关联已有化验单</Button>}
+        { key: 'inspections', label: '化验结果', children: <Space orientation="vertical" size="middle" style={{ width: '100%' }}>
           {labView}
         </Space> },
         { key: 'weighing', label: '卸粮与磅单', children: <Space orientation="vertical" size="middle" style={{ width: '100%' }}>
@@ -116,11 +108,6 @@ export default function TripWorkspace({ gate = false }: { gate?: boolean }) {
       ]} />
     </Space>
     {editing && <TripEditor original={trip} onClose={() => setEditing(false)} onSaved={() => { setEditing(false); refresh(); }} />}
-    <Modal title="关联已有化验单" open={linkOpen} onCancel={() => setLinkOpen(false)} footer={<Button onClick={() => setLinkOpen(false)}>关闭</Button>} width={900}>
-      <p>只显示未关联流转单的化验单；车牌、粮种、供应商一致时可以关联。</p>
-      <Input.Search aria-label="查找未关联化验单" placeholder="单号或车牌" value={linkKeyword} onChange={(e) => { setLinkKeyword(e.target.value); setLinkPage(1); }} />
-      {candidates.isError && <Alert type="error" title={getApiErrorMessage(candidates.error)} action={<Button onClick={() => void candidates.refetch()}>重试</Button>} />}
-      <DataTable tableKey="grain-inspection-candidates" rowKey="id" columns={linkColumns} dataSource={candidates.data?.items ?? []} total={candidates.data?.total ?? 0} page={linkPage} pageSize={10} onPageChange={setLinkPage} loading={candidates.isLoading} />
-    </Modal>
+    {inspectionOpen && <InspectionFormModal trip={trip} open onClose={() => setInspectionOpen(false)} onSaved={() => { setInspectionOpen(false); refresh(); }} />}
   </>;
 }

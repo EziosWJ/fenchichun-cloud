@@ -1,44 +1,49 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { screen, waitFor } from '@testing-library/react';
+import { screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import InspectionsPage from '../../src/pages/laboratory/InspectionsPage';
 import { renderWithProviders } from '../utils/renderWithProviders';
-import type { Inspection } from '../../src/features/laboratory/api';
+import type { Trip } from '../../src/features/grain-intake/api';
 
-const api = vi.hoisted(() => ({ inspections: vi.fn(), inspection: vi.fn(), saveInspection: vi.fn(), inspectionAction: vi.fn() }));
-vi.mock('../../src/features/laboratory/api', () => api);
-vi.mock('../../src/features/weighbridge/api', () => ({ materials: async () => [], parties: async () => [] }));
-const confirmed: Inspection = {
-  id: 1, number: 'HY-000001', status: 'confirmed', version: 3, originalId: null,
-  plate: '晋A12345', materialCode: 'M1', materialName: '高粱', partyCode: 'P1', partyName: '供货方',
-  driver: '', driverPhone: '', contractNo: '', moisture: '14.1', impurity: '0', bulkDensity: '750', conclusion: 'accept', reason: '', remark: '',
-  createdBy: 1, createdAt: '2026-11-06T08:00:00Z', updatedAt: '2026-11-06T08:00:00Z', confirmedBy: 1, confirmedAt: '2026-11-06T08:00:00Z', voidedBy: null, voidedAt: null, voidReason: '',
+const api = vi.hoisted(() => ({ trips: vi.fn(), tripDefaults: vi.fn() }));
+vi.mock('../../src/features/grain-intake/api', () => api);
+vi.mock('../../src/pages/laboratory/InspectionFormModal', () => ({ default: ({ trip }: { trip: Trip }) => <div>化验录入 {trip.number}</div> }));
+
+const base: Trip = {
+  id: 1, number: 'LZ-000001', version: 2, siteCode: 'F001', plate: '晋A12345', materialCode: 'M1', materialName: '高粱', partyCode: 'P1', partyName: '供货方',
+  driver: '', driverPhone: '', contractNo: '', remark: '', effectiveInspectionId: null, effectiveSelectedAt: null, effectiveSelectedBy: null,
+  effectiveConclusion: '', unloadingLocation: '', unloadedAt: null, unloadedBy: null, ticketId: null, createdBy: 1,
+  createdAt: '2026-11-06T07:00:00Z', updatedAt: '2026-11-06T07:00:00Z', exitedAt: null, exitedBy: null, exitBasis: '', exitInspectionId: null,
+  stage: 'pending_inspection', inspectionId: null, inspectionConclusion: '',
 };
+
 beforeEach(() => {
   vi.clearAllMocks();
-  api.inspections.mockResolvedValue({ items: [confirmed], total: 1, page: 1, pageSize: 10 });
-  api.inspection.mockResolvedValue(confirmed);
-  api.inspectionAction.mockResolvedValue({ ...confirmed, status: 'void' });
-  api.saveInspection.mockResolvedValue({ ...confirmed, status: 'draft' });
+  api.trips.mockResolvedValue({ items: [], total: 0, page: 1, pageSize: 10 });
 });
-describe('independent laboratory inspections', () => {
-  it('preserves confirmed results and requires a reason before voiding', async () => {
+
+describe('laboratory workbench', () => {
+  it('only enables the inspection button for trips without a result', async () => {
+    api.trips.mockResolvedValue({
+      items: [
+        { ...base, id: 1, number: 'LZ-000001' },
+        { ...base, id: 2, number: 'LZ-000002', effectiveInspectionId: 11, inspectionId: 11, inspectionConclusion: 'accept', stage: 'accepted' },
+      ],
+      total: 2, page: 1, pageSize: 10,
+    });
     const user = userEvent.setup();
     renderWithProviders(<InspectionsPage />);
-    await screen.findByText('HY-000001');
-    expect(screen.queryByRole('button', { name: '编辑' })).not.toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: '删除' })).not.toBeInTheDocument();
-    await user.click(screen.getByRole('button', { name: '作废' }));
-    expect(screen.getByRole('button', { name: '确认作废' })).toBeDisabled();
-    await user.type(screen.getByRole('textbox', { name: '作废原因' }), '检测值录错');
-    await user.click(screen.getByRole('button', { name: '确认作废' }));
-    await waitFor(() => expect(api.inspectionAction).toHaveBeenCalledWith(confirmed, 'void', '检测值录错'));
+    await screen.findByText('LZ-000001');
+    const buttons = screen.getAllByRole('button', { name: '化验' });
+    expect(buttons[0]).toBeEnabled();
+    expect(buttons[1]).toBeDisabled();
+    await user.click(buttons[0]);
+    expect(screen.getByText('化验录入 LZ-000001')).toBeInTheDocument();
   });
-  it('allows an incomplete draft without starting a flow', async () => {
-    const user = userEvent.setup();
+
+  it('asks the backend to put uninspected trips first', async () => {
     renderWithProviders(<InspectionsPage />);
-    await user.click(screen.getByRole('button', { name: '新建化验单' }));
-    await user.click(screen.getByRole('button', { name: '保存草稿' }));
-    await waitFor(() => expect(api.saveInspection).toHaveBeenCalledWith(expect.objectContaining({ plate: '', moisture: '', partyCode: '', conclusion: '' }), undefined));
+    await screen.findByText('LZ-000001').catch(() => undefined);
+    expect(api.trips).toHaveBeenCalledWith(expect.objectContaining({ order: 'inspection_first' }));
   });
 });

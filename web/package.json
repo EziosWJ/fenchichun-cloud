@@ -25,6 +25,7 @@
     "dayjs": "^1.11.18",
     "echarts": "^6.1.0",
     "lucide-react": "^0.545.0",
+    "pinyin-pro": "^3.29.5",
     "react": "^19.3.0",
     "react-dom": "^19.3.0",
     "react-router-dom": "^7.9.4",

@@ -41,7 +41,7 @@ const stageSQL = `CASE
  ELSE 'accepted' END`
 
 func tripQuery(tx *gorm.DB) *gorm.DB {
-	return tx.Table("grain_trip t").Joins("LEFT JOIN grain_inspection i ON i.id=t.effective_inspection_id").Joins("LEFT JOIN wb_cloud_ticket w ON w.id=t.ticket_id").Joins("LEFT JOIN grain_exit_permit p ON p.trip_id=t.id")
+	return tx.Table("grain_trip t").Joins("LEFT JOIN grain_inspection i ON i.id=t.effective_inspection_id").Joins("LEFT JOIN grain_inspection ti ON ti.trip_id=t.id").Joins("LEFT JOIN wb_cloud_ticket w ON w.id=t.ticket_id").Joins("LEFT JOIN grain_exit_permit p ON p.trip_id=t.id")
 }
 func (r *Repository) Trips(ctx context.Context, actor int64, q Query) (TripPage, error) {
 	result := TripPage{Records: []Trip{}, Page: q.Page, PageSize: q.PageSize}
@@ -67,7 +67,12 @@ func (r *Repository) Trips(ctx context.Context, actor int64, q Query) (TripPage,
 		if err := query.Count(&result.Total).Error; err != nil {
 			return err
 		}
-		return query.Select("t.*, COALESCE(i.conclusion,'') AS effective_conclusion," + stageSQL + " AS stage").Order("t.created_at DESC,t.id DESC").Offset((q.Page - 1) * q.PageSize).Limit(q.PageSize).Scan(&result.Records).Error
+		selectSQL := "t.*, COALESCE(i.conclusion,'') AS effective_conclusion, ti.id AS inspection_id, COALESCE(ti.conclusion,'') AS inspection_conclusion, " + stageSQL + " AS stage"
+		orderSQL := "t.created_at DESC,t.id DESC"
+		if q.Order == "inspection_first" {
+			orderSQL = "(ti.id IS NULL) DESC,t.created_at DESC,t.id DESC"
+		}
+		return query.Select(selectSQL).Order(orderSQL).Offset((q.Page - 1) * q.PageSize).Limit(q.PageSize).Scan(&result.Records).Error
 	})
 	return result, err
 }
@@ -94,7 +99,7 @@ func (r *Repository) Permits(ctx context.Context, actor int64, q Query) (PermitP
 }
 func detail(tx *gorm.DB, id int64) (Detail, error) {
 	result := Detail{Inspections: []laboratory.Inspection{}, Events: []Event{}}
-	err := tripQuery(tx).Select("t.*,COALESCE(i.conclusion,'') AS effective_conclusion,"+stageSQL+" AS stage").Where("t.id=?", id).Take(&result.Trip).Error
+	err := tripQuery(tx).Select("t.*,COALESCE(i.conclusion,'') AS effective_conclusion,ti.id AS inspection_id,COALESCE(ti.conclusion,'') AS inspection_conclusion,"+stageSQL+" AS stage").Where("t.id=?", id).Take(&result.Trip).Error
 	if errors.Is(err, gorm.ErrRecordNotFound) {
 		return result, ErrNotFound
 	}
@@ -302,9 +307,6 @@ func (r *Repository) Command(ctx context.Context, id int64, action string, in Co
 	var value Detail
 	err := r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		permission := TripPermission
-		if action == "select-inspection" {
-			permission = LabPermission
-		}
 		if action == "approve-permit" || action == "confirm-exit" {
 			permission = PermitPermission
 		}
@@ -347,66 +349,12 @@ func (r *Repository) Command(ctx context.Context, id int64, action string, in Co
 		if err != nil {
 			return err
 		}
-		if exists && (action == "link-inspection" || action == "select-inspection" || action == "confirm-unloading" || action == "link-ticket") {
+		if exists && (action == "confirm-unloading" || action == "link-ticket") {
 			return fmt.Errorf("%w：开证后不能更改依据", ErrConflict)
 		}
 		now, actor := time.Now().UTC(), e.Metadata.ActorID
 		description := ""
 		switch action {
-		case "link-inspection":
-			// Lock an existing retest family in ID order so its records cannot be linked to different trips concurrently.
-			var family []laboratory.Inspection
-			if err := tx.Raw(`WITH RECURSIVE family(id,original_id) AS (
-              SELECT id,original_id FROM grain_inspection WHERE id=?
-              UNION
-              SELECT n.id,n.original_id FROM grain_inspection n JOIN family f ON n.original_id=f.id OR n.id=f.original_id
-            ) SELECT i.* FROM grain_inspection i WHERE i.id IN (SELECT id FROM family) ORDER BY i.id FOR UPDATE`, in.InspectionID).Scan(&family).Error; err != nil {
-				return err
-			}
-			var i laboratory.Inspection
-			for _, member := range family {
-				if member.TripID != nil && *member.TripID != id {
-					return fmt.Errorf("%w：该化验或其复检记录已归属其他流转单", ErrConflict)
-				}
-				if member.ID == in.InspectionID {
-					i = member
-				}
-			}
-			if i.ID == 0 {
-				return ErrNotFound
-			}
-			if i.Version != in.InspectionVersion || i.Status == "void" || (i.TripID != nil && *i.TripID != id) || i.Plate != t.Plate || i.MaterialCode != t.MaterialCode || i.PartyCode != t.PartyCode {
-				return fmt.Errorf("%w：化验单归属、版本、车牌、粮种或供应商不一致", ErrConflict)
-			}
-			if t.TicketID != nil {
-				return ErrConflict
-			}
-			if i.TripID == nil {
-				i.TripID = &t.ID
-				i.Version++
-				if err := tx.Save(&i).Error; err != nil {
-					return err
-				}
-			}
-			description = "关联化验单 " + i.Number
-		case "select-inspection":
-			if t.TicketID != nil || t.UnloadedAt != nil {
-				return fmt.Errorf("%w：已卸粮或关联称重依据，不能替换生效化验单", ErrConflict)
-			}
-			var i laboratory.Inspection
-			if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).Where("id=?", in.InspectionID).Take(&i).Error; err != nil {
-				if errors.Is(err, gorm.ErrRecordNotFound) {
-					return ErrNotFound
-				}
-				return err
-			}
-			if i.TripID == nil || *i.TripID != id || i.Status != "confirmed" || i.Version != in.InspectionVersion || i.Plate != t.Plate || i.MaterialCode != t.MaterialCode || i.PartyCode != t.PartyCode || t.PartyCode == "" {
-				return fmt.Errorf("%w：只能选择本趟已确认且信息一致的化验单", ErrConflict)
-			}
-			t.EffectiveInspectionID = &i.ID
-			t.EffectiveSelectedAt = &now
-			t.EffectiveSelectedBy = &actor
-			description = "指定生效化验单 " + i.Number
 		case "confirm-unloading":
 			i, err := effective(tx, t)
 			if err != nil {
@@ -544,4 +492,16 @@ func (r *Repository) Command(ctx context.Context, id int64, action string, in Co
 		return err
 	})
 	return value, err
+}
+
+// Defaults 返回当前用户最近一张流转单的厂区，供登记页作为默认值。
+func (r *Repository) Defaults(ctx context.Context, actor int64) (string, error) {
+	var site string
+	err := r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		if err := access(tx, actor, TripPermission); err != nil {
+			return err
+		}
+		return tx.Table("grain_trip").Where("created_by=?", actor).Order("id DESC").Limit(1).Pluck("site_code", &site).Error
+	})
+	return site, err
 }
