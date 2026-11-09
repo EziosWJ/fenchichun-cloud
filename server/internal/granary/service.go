@@ -6,8 +6,8 @@ type Service struct{ store *Repository }
 
 func NewService(store *Repository) *Service { return &Service{store: store} }
 
-func (s *Service) List(ctx context.Context, actor int64, siteCode string, onlyEnabled bool) ([]Granary, error) {
-	return s.store.List(ctx, actor, siteCode, onlyEnabled)
+func (s *Service) List(ctx context.Context, actor int64, onlyEnabled bool) ([]Granary, error) {
+	return s.store.List(ctx, actor, onlyEnabled)
 }
 
 func (s *Service) Create(ctx context.Context, actor int64, in Input) (Granary, error) {

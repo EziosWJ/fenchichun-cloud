@@ -29,20 +29,17 @@ func requireAny(tx *gorm.DB, actor int64, permissions ...string) error {
 }
 
 // List 返回指定厂区的粮仓；siteCode 为空时返回全部。
-func (r *Repository) List(ctx context.Context, actor int64, siteCode string, onlyEnabled bool) ([]Granary, error) {
+func (r *Repository) List(ctx context.Context, actor int64, onlyEnabled bool) ([]Granary, error) {
 	records := []Granary{}
 	err := r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		if err := requireAny(tx, actor, ManagePermission, UsePermission, "grain-intake:granaries"); err != nil {
 			return err
 		}
 		query := tx.Model(&Granary{})
-		if siteCode != "" {
-			query = query.Where("site_code=?", siteCode)
-		}
 		if onlyEnabled {
 			query = query.Where("enabled=true")
 		}
-		return query.Order("site_code ASC,name ASC").Find(&records).Error
+		return query.Order("name ASC").Find(&records).Error
 	})
 	return records, err
 }
@@ -58,14 +55,14 @@ func (r *Repository) Create(ctx context.Context, actor int64, in Input) (Granary
 			return err
 		}
 		var n int64
-		if err := tx.Model(&Granary{}).Where("site_code=? AND lower(name)=lower(?)", in.SiteCode, in.Name).Count(&n).Error; err != nil {
+		if err := tx.Model(&Granary{}).Where("lower(name)=lower(?)", in.Name).Count(&n).Error; err != nil {
 			return err
 		}
 		if n > 0 {
 			return ErrConflict
 		}
 		now := time.Now().UTC()
-		v = Granary{SiteCode: in.SiteCode, Name: in.Name, Enabled: in.Enabled, Remark: in.Remark, CreatedAt: now, UpdatedAt: now}
+		v = Granary{Name: in.Name, Enabled: in.Enabled, Remark: in.Remark, CreatedAt: now, UpdatedAt: now}
 		return tx.Create(&v).Error
 	})
 	return v, err
@@ -88,13 +85,13 @@ func (r *Repository) Update(ctx context.Context, actor, id int64, in Input) (Gra
 			return err
 		}
 		var n int64
-		if err := tx.Model(&Granary{}).Where("site_code=? AND lower(name)=lower(?) AND id<>?", in.SiteCode, in.Name, id).Count(&n).Error; err != nil {
+		if err := tx.Model(&Granary{}).Where("lower(name)=lower(?) AND id<>?", in.Name, id).Count(&n).Error; err != nil {
 			return err
 		}
 		if n > 0 {
 			return ErrConflict
 		}
-		v.SiteCode, v.Name, v.Enabled, v.Remark = in.SiteCode, in.Name, in.Enabled, in.Remark
+		v.Name, v.Enabled, v.Remark = in.Name, in.Enabled, in.Remark
 		v.UpdatedAt = time.Now().UTC()
 		return tx.Save(&v).Error
 	})

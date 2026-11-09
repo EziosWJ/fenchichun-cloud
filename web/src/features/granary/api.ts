@@ -2,7 +2,6 @@ import { del, get, post, put } from '../../lib/api/client';
 
 export interface Granary {
   id: number;
-  siteCode: string;
   name: string;
   enabled: boolean;
   remark: string;
@@ -11,7 +10,6 @@ export interface Granary {
 }
 
 export interface GranaryInput {
-  siteCode: string;
   name: string;
   enabled: boolean;
   remark: string;

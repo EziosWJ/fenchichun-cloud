@@ -64,7 +64,6 @@ func key(c *gin.Context) (int64, bool) {
 // @Summary 查询粮仓
 // @Tags 粮仓
 // @Security BearerAuth
-// @Param siteCode query string false "厂区编码"
 // @Param enabled query boolean false "仅启用"
 // @Success 200 {array} Granary
 // @Router /api/v1/granaries [get]
@@ -73,7 +72,7 @@ func (h *Handler) list(c *gin.Context) {
 	if !ok {
 		return
 	}
-	value, err := h.service.List(c.Request.Context(), uid, c.Query("siteCode"), c.Query("enabled") == "true")
+	value, err := h.service.List(c.Request.Context(), uid, c.Query("enabled") == "true")
 	respond(c, value, err)
 }
 

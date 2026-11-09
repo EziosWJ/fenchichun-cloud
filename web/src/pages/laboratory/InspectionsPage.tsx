@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { Alert, Button, Descriptions, Input, Modal, Space, Tag, Tooltip, Typography } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -21,8 +22,10 @@ const pageSize = 10;
 export default function InspectionsPage() {
   const client = useQueryClient();
   const [page, setPage] = useState(1);
-  const [keyword, setKeyword] = useState('');
-  const [search, setSearch] = useState('');
+  const [urlParams] = useSearchParams();
+  const initialKeyword = urlParams.get('keyword') ?? '';
+  const [keyword, setKeyword] = useState(initialKeyword);
+  const [search, setSearch] = useState(initialKeyword);
   const [selected, setSelected] = useState<Trip>();
   const [viewId, setViewId] = useState<number>();
   const { has } = usePermissions();

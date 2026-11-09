@@ -9,7 +9,6 @@ import { getApiErrorMessage } from '../../lib/api/errors';
 import { usePermissions } from '../../hooks/usePermissions';
 import { formatDateTime } from '../../utils/format';
 import { formatTonnes, subtractTonnes } from '../../utils/weight';
-import InspectionFormModal from '../laboratory/InspectionFormModal';
 import TripEditor from './TripEditor';
 
 type NextStep = { tab?: 'inspections' | 'weighing' | 'exit'; title: string; description: string };
@@ -36,11 +35,10 @@ export default function TripWorkspace({ gate = false }: { gate?: boolean }) {
   const [visualConclusion, setVisualConclusion] = useState<'accept' | 'reject'>('accept');
   const [visualReason, setVisualReason] = useState('');
   const [ticketNo, setTicketNo] = useState('');
-  const [inspectionOpen, setInspectionOpen] = useState(false);
   const granaryQuery = useQuery({
-    queryKey: ['granaries', query.data?.trip.siteCode],
-    queryFn: () => granaries({ siteCode: query.data!.trip.siteCode, enabled: true }),
-    enabled: !!query.data?.trip.siteCode,
+    queryKey: ['granaries', 'enabled'],
+    queryFn: () => granaries({ enabled: true }),
+    enabled: !!query.data,
   });
   const ticketOptions = useQuery({
     queryKey: ['grain-intake', 'ticket-candidates', key, query.data?.trip.version],
@@ -91,7 +89,7 @@ export default function TripWorkspace({ gate = false }: { gate?: boolean }) {
       { key: 'density', label: '容重（g/L）', children: inspection.bulkDensity || '—' },
       { key: 'reason', label: '拒收原因', children: inspection.reason || '—' },
     ]} /> : <span style={{ color: 'var(--ant-color-text-secondary)' }}>尚未录入化验结果</span>}
-    {!gate && canInspect && !locked && !inspection && <Button type="primary" onClick={() => setInspectionOpen(true)}>录入化验结果</Button>}
+    {!gate && canInspect && !locked && !inspection && <Button type="primary" onClick={() => navigate(`/laboratory/inspections?keyword=${encodeURIComponent(trip.number)}`)}>去录入化验结果</Button>}
   </Space>;
   return <>
     <PageHeader
@@ -188,6 +186,5 @@ export default function TripWorkspace({ gate = false }: { gate?: boolean }) {
       ]} />
     </div>
     {editing && <TripEditor original={trip} onClose={() => setEditing(false)} onSaved={() => { setEditing(false); refresh(); }} />}
-    {inspectionOpen && <InspectionFormModal trip={trip} open onClose={() => setInspectionOpen(false)} onSaved={() => { setInspectionOpen(false); refresh(); }} />}
   </>;
 }
