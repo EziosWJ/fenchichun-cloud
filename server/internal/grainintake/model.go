@@ -40,8 +40,8 @@ func (in *Input) normalize() {
 	in.PartyCode = strings.TrimSpace(in.PartyCode)
 }
 func (in Input) validate() error {
-	if in.SiteCode == "" || in.Plate == "" || in.MaterialCode == "" {
-		return fmt.Errorf("%w：厂区、车牌和粮种必填", ErrInvalid)
+	if in.SiteCode == "" || in.Plate == "" || in.MaterialCode == "" || in.PartyCode == "" {
+		return fmt.Errorf("%w：厂区、车牌、粮种和供应商必填", ErrInvalid)
 	}
 	for _, f := range []struct {
 		s string

@@ -14,7 +14,7 @@ func TestConfirmationValidation(t *testing.T) {
 		{"missing site", func(v *Input) { v.SiteCode = "" }},
 		{"missing conclusion", func(v *Input) { v.Conclusion = "" }},
 		{"missing supplier", func(v *Input) { v.PartyCode = "" }},
-		{"missing result", func(v *Input) { v.Impurity = "" }},
+		{"missing moisture", func(v *Input) { v.Moisture = "" }},
 		{"reject without reason", func(v *Input) { v.Conclusion = "reject" }},
 		{"negative", func(v *Input) { v.Moisture = "-1" }},
 		{"percentage overflow", func(v *Input) { v.Moisture = "100.000001" }},

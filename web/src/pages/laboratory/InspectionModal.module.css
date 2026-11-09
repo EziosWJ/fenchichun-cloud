@@ -1,0 +1,30 @@
+.detail {
+  max-height: min(70vh, 720px);
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.overview {
+  padding: 4px 0 8px;
+}
+
+.overviewMeta {
+  color: var(--ant-color-text-secondary);
+  margin-top: 6px;
+}
+
+.section {
+  border-bottom: 1px solid var(--ant-color-split);
+  padding: 16px 0 8px;
+}
+
+.section:last-child {
+  border-bottom: 0;
+}
+
+.section h3 {
+  color: var(--ant-color-text);
+  font-size: 15px;
+  font-weight: 600;
+  margin: 0 0 12px;
+}

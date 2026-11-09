@@ -3,6 +3,7 @@ import { Alert, App, Button, Card, Descriptions, Divider, Empty, Input, Select, 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate, useParams } from 'react-router-dom';
 import { ticketCandidates, tripAction, tripDetail, stageLabel, type TripAction, type TripCommand } from '../../features/grain-intake/api';
+import { granaries } from '../../features/granary/api';
 import { PageHeader } from '../../components/PageHeader';
 import { getApiErrorMessage } from '../../lib/api/errors';
 import { collectMenuPaths } from '../../lib/menus';
@@ -31,6 +32,11 @@ export default function TripWorkspace({ gate = false }: { gate?: boolean }) {
   const [visualReason, setVisualReason] = useState('');
   const [ticketNo, setTicketNo] = useState('');
   const [inspectionOpen, setInspectionOpen] = useState(false);
+  const granaryQuery = useQuery({
+    queryKey: ['granaries', query.data?.trip.siteCode],
+    queryFn: () => granaries({ siteCode: query.data!.trip.siteCode, enabled: true }),
+    enabled: !!query.data?.trip.siteCode,
+  });
   const ticketOptions = useQuery({
     queryKey: ['grain-intake', 'ticket-candidates', key, query.data?.trip.version],
     queryFn: () => ticketCandidates(key),
@@ -124,7 +130,7 @@ export default function TripWorkspace({ gate = false }: { gate?: boolean }) {
           <Card size="small" title="现场卸粮确认">
             {trip.unloadedAt ? <Descriptions size="small" column={{ xs: 1, sm: 2 }} items={[{ key: 'location', label: '实际卸粮地点', children: trip.unloadingLocation }, { key: 'time', label: '确认时间', children: formatDateTime(trip.unloadedAt) }]} /> : <>
               {!gate && canTrip && !locked && trip.effectiveConclusion === 'accept' ? <Space.Compact style={{ width: '100%', maxWidth: 560, marginTop: 16 }}>
-                <Input aria-label="实际卸粮地点" placeholder="填写实际卸粮地点编号或名称" maxLength={200} value={location} onChange={(e) => setLocation(e.target.value)} />
+                <Select aria-label="实际卸粮地点" placeholder="选择粮仓" style={{ minWidth: 220 }} loading={granaryQuery.isLoading} value={location || undefined} onChange={(value?: string) => setLocation(value ?? '')} options={(granaryQuery.data ?? []).map((g) => ({ value: g.name, label: g.name }))} notFoundContent={granaryQuery.isLoading ? '加载中…' : '请先在粮仓维护中添加'} />
                 <Button type="primary" disabled={!location.trim() || action.isPending} onClick={() => ask('确认实际卸粮完成？', 'confirm-unloading', { location }, '请确认现场已经完成首磅及卸粮，地点填写准确。')}>确认卸粮</Button>
               </Space.Compact> : <p style={{ marginTop: 16, marginBottom: 0 }}>待确认接收并完成现场卸粮。</p>}
             </>}

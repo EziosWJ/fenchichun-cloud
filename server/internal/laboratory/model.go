@@ -98,8 +98,11 @@ func (in Input) validate(confirm bool) error {
 	}
 	for i, value := range []string{in.Moisture, in.Impurity, in.BulkDensity} {
 		if value == "" {
+			if i == 1 {
+				continue // 杂质暂不采集
+			}
 			if confirm {
-				return fmt.Errorf("%w：请补齐三项检测值", ErrInvalid)
+				return fmt.Errorf("%w：请补齐水分和容重", ErrInvalid)
 			}
 			continue
 		}

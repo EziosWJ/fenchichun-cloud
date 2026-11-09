@@ -19,6 +19,7 @@ import {
   ShieldHalf,
   UserRoundCog,
   Users,
+  Warehouse,
   type LucideIcon,
 } from 'lucide-react';
 import { paths } from './paths';
@@ -59,6 +60,11 @@ export const routeDefinitions: AppRouteDefinition[] = [
     path: '/grain-intake/permits/:id', label: '出厂核验', title: '出厂核验', hideInMenu: true,
     parentPath: '/grain-intake/permits', menuPath: '/grain-intake/permits',
     component: lazy(() => import('../pages/grain-intake/ExitBasisPage')),
+  },
+  {
+    path: '/grain-intake/granaries', label: '粮仓维护', title: '粮仓维护', icon: Warehouse,
+    menuComponent: 'grain-intake/granaries/index', menuPath: '/grain-intake/granaries',
+    component: lazy(() => import('../pages/grain-intake/GranariesPage')),
   },
   {
     path: '/laboratory/inspections',
