@@ -63,8 +63,8 @@ export default function InspectionsPage() {
   ];
   const value = detail.data;
   return <>
-    <PageHeader title="化验" />
-    <Space orientation="vertical" size="middle" style={{ width: '100%' }}>
+    <PageHeader title="化验单" />
+    <Space orientation="vertical" size="middle" style={{ width: '100%', marginTop: 20 }}>
       <Input.Search
         aria-label="单号、车牌或供应商"
         placeholder="单号、车牌或供应商"

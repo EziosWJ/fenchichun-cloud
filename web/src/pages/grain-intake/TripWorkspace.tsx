@@ -166,7 +166,6 @@ export default function TripWorkspace({ gate = false }: { gate?: boolean }) {
                 <Button disabled={!trip.unloadedAt || !selectedTicket || action.isPending} onClick={() => selectedTicket && ask(`关联磅单 ${selectedTicket.ticketNo}？`, 'link-ticket', { ticketSiteCode: selectedTicket.siteCode, ticketNo: selectedTicket.ticketNo }, `${selectedTicket.plate} · ${selectedTicket.materialName} · 净重 ${(selectedTicket.finalNetMilliTonne / 1000).toFixed(3)} 吨`)}>关联磅单</Button>
               </Space>}
               {ticketOptions.isError && <Alert type="error" title={getApiErrorMessage(ticketOptions.error)} action={<Button onClick={() => void ticketOptions.refetch()}>重试</Button>} />}
-              {!ticketOptions.isLoading && trip.unloadedAt && ticketOptions.data?.length === 0 && <Alert type="warning" title="没有匹配的正式磅单" description="没有匹配的磅单，请确认已同步。" />}
             </>}
           </Card>
         </Space> },

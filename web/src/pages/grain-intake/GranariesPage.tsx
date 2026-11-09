@@ -54,7 +54,7 @@ export default function GranariesPage() {
   const rows = (list.data ?? []).filter((row) => !keyword || row.name.toLowerCase().includes(keyword.trim().toLowerCase()));
   return <>
     <PageHeader title="粮仓维护" />
-    <Space orientation="vertical" size="middle" style={{ width: '100%' }}>
+    <Space orientation="vertical" size="middle" style={{ width: '100%', marginTop: 20 }}>
       <Space wrap align="end" style={{ width: '100%', justifyContent: 'space-between' }}>
         <Input.Search aria-label="粮仓名称" placeholder="搜索粮仓名称" allowClear value={keyword} onChange={(e) => { setKeyword(e.target.value); actions.setPage(1); }} style={{ maxWidth: 320 }} />
         {canManage && <Button type="primary" icon={<Plus size={16} />} onClick={() => { setEditing(null); form.resetFields(); form.setFieldsValue(blank); setOpen(true); }}>新增粮仓</Button>}
