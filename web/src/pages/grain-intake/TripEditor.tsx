@@ -58,7 +58,7 @@ export default function TripEditor({ original, onClose, onSaved }: { original?: 
           <Form.Item name="materialCode" label="货品（物料）" rules={[{ required: true, message: '请选择货品' }]} extra={materialCode ? `检验方式：${original?.materialCode === materialCode ? (original.inspectionMethod === 'visual' ? '目测' : '化验') : (materialQuery.data?.find((v) => v.code === materialCode)?.inspectionMethod === 'visual' ? '目测' : '化验')}` : undefined}><Select showSearch optionFilterProp="label" placeholder="请选择货品" loading={materialQuery.isLoading} options={(materialQuery.data ?? []).filter((v) => v.enabled || v.code === original?.materialCode).map((v) => ({ value: v.code, label: v.name, disabled: !v.enabled }))} /></Form.Item>
         </Col>
         <Col xs={24} sm={12}>
-          <Form.Item name="partyCode" label="供应商" extra="暂未明确可留空，正式确认接收前须补齐。"><Select allowClear showSearch optionFilterProp="label" placeholder="请选择供应商" loading={partyQuery.isLoading} options={(partyQuery.data ?? []).filter((v) => v.isSupplier && (v.enabled || v.code === original?.partyCode)).map((v) => ({ value: v.code, label: v.name, disabled: !v.enabled }))} /></Form.Item>
+          <Form.Item name="partyCode" label="供应商" extra="可暂留空"><Select allowClear showSearch optionFilterProp="label" placeholder="请选择供应商" loading={partyQuery.isLoading} options={(partyQuery.data ?? []).filter((v) => v.isSupplier && (v.enabled || v.code === original?.partyCode)).map((v) => ({ value: v.code, label: v.name, disabled: !v.enabled }))} /></Form.Item>
         </Col>
       </Row>
       <Section>其他信息（选填）</Section>

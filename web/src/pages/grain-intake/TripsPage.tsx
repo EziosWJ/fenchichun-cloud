@@ -28,7 +28,7 @@ export default function TripsPage() {
     { title: '操作', key: 'actions', render: (_, row) => <Link to={`/grain-intake/trips/${row.id}`}>查看办理</Link> },
   ];
   return <>
-    <PageHeader title="流转单" description="每次送粮独立登记，汇集化验、卸粮、已同步磅单和出厂记录。" />
+    <PageHeader title="流转单" />
     <Space orientation="vertical" size="middle" style={{ width: '100%' }}>
       <Space wrap align="end"><FilterField label="单号、车牌或供应商" wide><Input.Search aria-label="单号、车牌或供应商" value={keyword} onChange={(e) => setKeyword(e.target.value)} onSearch={(v) => actions.setKeyword(v)} allowClear /></FilterField><FilterField label="办理阶段"><Select aria-label="办理阶段" style={{ width: 160 }} allowClear options={tripStages} value={state.filters.stage} onChange={(v) => actions.setFilter('stage', v)} /></FilterField><Button type="primary" onClick={() => setCreating(true)}>登记流转单</Button></Space>
       {list.isError && <Alert type="error" title={getApiErrorMessage(list.error)} action={<Button onClick={() => void list.refetch()}>重试</Button>} />}

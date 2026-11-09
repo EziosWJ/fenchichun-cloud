@@ -8,10 +8,9 @@ const api = vi.hoisted(() => ({ tickets: vi.fn() }));
 vi.mock('../../src/features/weighbridge/api', () => api);
 
 describe('总部过磅单查询', () => {
-  it('提示同步滞后并按厂区筛选已上传单据', async () => {
+  it('按厂区筛选已上传单据', async () => {
     api.tickets.mockResolvedValue({items:[],total:0,page:1,pageSize:10});
     renderWithProviders(<TicketsPage />);
-    expect(screen.getByText(/数据可能尚未上传/)).toBeInTheDocument();
     expect(screen.queryByText('有效单统计')).not.toBeInTheDocument();
     await screen.findByText('暂无符合条件的数据');
     await userEvent.type(screen.getByLabelText('厂区编码'), 'F001');

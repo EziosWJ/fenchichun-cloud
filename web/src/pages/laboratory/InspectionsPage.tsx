@@ -54,7 +54,7 @@ export default function InspectionsPage() {
   ];
   const value = detail.data;
   return <>
-    <PageHeader title="化验" description="选择待化验的流转单，录入水分、杂质和容重，提交即生效。" />
+    <PageHeader title="化验" />
     <Space orientation="vertical" size="middle" style={{ width: '100%' }}>
       <Input.Search
         aria-label="单号、车牌或供应商"

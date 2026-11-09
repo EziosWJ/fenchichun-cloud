@@ -59,7 +59,7 @@ export default function TripWorkspace({ gate = false }: { gate?: boolean }) {
     if (trip.stage === 'pending_inspection') {
       return visual
         ? { title: '下一步：记录目测结果', description: '目测记录是本趟的检验依据，确认后不能修改。' }
-        : { tab: 'inspections', title: '下一步：录入或关联化验单', description: '化验单确认后，由化验员指定本趟唯一生效结果。' };
+        : { tab: 'inspections', title: '下一步：录入化验单', description: '录入化验结果后自动生效。' };
     }
     if (trip.stage === 'accepted' && !trip.unloadedAt) return { tab: 'weighing', title: '下一步：确认现场卸粮', description: '在现场首磅及卸粮完成后，填写实际卸粮地点并确认。' };
     if (trip.stage === 'accepted' && !trip.ticketId) return { tab: 'weighing', title: '下一步：关联正式磅单', description: '磅单联网同步至云端后，选择厂区、车牌、货品、供应商一致的单据。' };
@@ -85,7 +85,6 @@ export default function TripWorkspace({ gate = false }: { gate?: boolean }) {
   return <>
     <PageHeader
       title={gate ? `出厂核验 · ${trip.number}` : trip.number}
-      description="本趟检验、卸货、磅单和出厂依据集中核对。"
       meta={<Tag color={trip.stage === 'blocked' ? 'red' : trip.exitedAt ? 'green' : 'blue'}>{stageLabel(trip.stage)}</Tag>}
       onBack={() => navigate(gate ? '/grain-intake/permits' : '/grain-intake/trips')}
     />
@@ -115,7 +114,7 @@ export default function TripWorkspace({ gate = false }: { gate?: boolean }) {
           { key: 'selected', label: '生效时间', children: formatDateTime(trip.effectiveSelectedAt) },
           { key: 'moisture', label: '水分（%）', children: effective.moisture || '—' }, { key: 'impurity', label: '杂质（%）', children: effective.impurity || '—' }, { key: 'density', label: '容重（g/L）', children: effective.bulkDensity || '—' },
           { key: 'reason', label: '原因', children: effective.reason || '—' },
-        ]} /> : <Alert type="info" showIcon title="尚未指定生效化验单" description="录入化验结果后自动成为本趟生效依据。" />)}
+        ]} /> : <Empty description="尚未录入化验结果" />)}
       </Card>
       <Tabs activeKey={activeTab} onChange={setTab} items={[
         ...(visual ? [] : [{ key: 'inspections', label: '化验结果', children: <Space orientation="vertical" size="middle" style={{ width: '100%' }}>
@@ -124,7 +123,6 @@ export default function TripWorkspace({ gate = false }: { gate?: boolean }) {
         { key: 'weighing', label: '卸粮与磅单', children: <Space orientation="vertical" size="middle" style={{ width: '100%' }}>
           <Card title="现场卸粮确认">
             {trip.unloadedAt ? <Descriptions size="small" column={{ xs: 1, sm: 2 }} items={[{ key: 'location', label: '实际卸粮地点', children: trip.unloadingLocation }, { key: 'time', label: '确认时间', children: formatDateTime(trip.unloadedAt) }]} /> : <>
-              <Alert type="info" showIcon title="在现场首磅及卸粮完成后办理" description="不要求首磅已上传云端。" />
               {!gate && canTrip && !locked && trip.effectiveConclusion === 'accept' ? <Space.Compact style={{ width: '100%', maxWidth: 560, marginTop: 16 }}>
                 <Input aria-label="实际卸粮地点" placeholder="填写实际卸粮地点编号或名称" maxLength={200} value={location} onChange={(e) => setLocation(e.target.value)} />
                 <Button type="primary" disabled={!location.trim() || action.isPending} onClick={() => ask('确认实际卸粮完成？', 'confirm-unloading', { location }, '请确认现场已经完成首磅及卸粮，地点填写准确。')}>确认卸粮</Button>
@@ -138,7 +136,6 @@ export default function TripWorkspace({ gate = false }: { gate?: boolean }) {
               { key: 'actualNet', label: '实际净重（吨）', children: subtractTonnes(ticket.ticket.finalGross, ticket.ticket.finalTare) }, { key: 'net', label: '扣减后重量（吨）', children: formatTonnes(ticket.ticket.finalNet) },
               { key: 'first', label: '首磅时间', children: formatDateTime(ticket.ticket.firstConfirmedAt) }, { key: 'second', label: '回磅时间', children: formatDateTime(ticket.ticket.secondConfirmedAt) },
             ]} /> : <>
-              <Alert type="info" title="本地称重出单后，联网同步至云端，再关联本趟。云端尚未收到不代表现场未称重。" />
               {!gate && canTrip && !permit && !trip.exitedAt && <Space wrap style={{ marginTop: 16 }}>
                 <Select
                   aria-label="选择正式磅单"
@@ -160,7 +157,7 @@ export default function TripWorkspace({ gate = false }: { gate?: boolean }) {
                 <Button disabled={!trip.unloadedAt || !selectedTicket || action.isPending} onClick={() => selectedTicket && ask(`关联磅单 ${selectedTicket.ticketNo}？`, 'link-ticket', { ticketSiteCode: selectedTicket.siteCode, ticketNo: selectedTicket.ticketNo }, `${selectedTicket.plate} · ${selectedTicket.materialName} · 净重 ${(selectedTicket.finalNetMilliTonne / 1000).toFixed(3)} 吨`)}>关联磅单</Button>
               </Space>}
               {ticketOptions.isError && <Alert type="error" title={getApiErrorMessage(ticketOptions.error)} action={<Button onClick={() => void ticketOptions.refetch()}>重试</Button>} />}
-              {!ticketOptions.isLoading && trip.unloadedAt && ticketOptions.data?.length === 0 && <Alert type="warning" title="没有匹配的正式磅单" description="仅显示厂区、车牌、货品、供应商一致，且未被其他流转单关联的入厂磅单。请确认磅单已同步至云端。" />}
+              {!ticketOptions.isLoading && trip.unloadedAt && ticketOptions.data?.length === 0 && <Alert type="warning" title="没有匹配的正式磅单" description="没有匹配的磅单，请确认已同步。" />}
             </>}
           </Card>
         </Space> },
@@ -168,7 +165,7 @@ export default function TripWorkspace({ gate = false }: { gate?: boolean }) {
           {permit ? <Descriptions size="small" column={{ xs: 1, sm: 2 }} items={[
             { key: 'number', label: '出门证号', children: permit.number }, { key: 'status', label: '审批状态', children: permit.status === 'approved' ? '已审批' : '待审批' },
             { key: 'created', label: '开具时间', children: formatDateTime(permit.createdAt) }, { key: 'approved', label: '审批时间', children: formatDateTime(permit.approvedAt) },
-          ]} /> : trip.effectiveConclusion === 'reject' ? <Alert type="warning" title="本趟拒收：门卫核验检验结论及拒收说明后确认出厂，不另开正常出门证。" /> : <p>实际卸粮已确认、有效磅单已关联后，可开具正常出门证。</p>}
+          ]} /> : trip.effectiveConclusion === 'reject' ? <Alert type="warning" title="本趟拒收，不另开出门证。" /> : null}
           <Space wrap style={{ marginTop: 16 }}>
             {!gate && canTrip && trip.stage === 'ready' && !permit && <Button type="primary" loading={action.isPending} onClick={() => ask('开具本趟出门证？', 'issue-permit')}>开具出门证</Button>}
             {canGate && canTrip && trip.stage === 'permit_pending' && permit && <Button type="primary" loading={action.isPending} onClick={() => ask('审批通过该出门证？', 'approve-permit', { permitId: permit.id }, '审批通过仍需门卫在实际放行时确认出厂。')}>审批通过</Button>}

@@ -83,7 +83,6 @@ export default function TicketsPage() {
   return <>
     <PageHeader title="过磅单查询" description="查看各厂已同步的过磅单。" />
     <Space direction="vertical" size="middle" style={{ width: '100%' }}>
-      <Alert type="info" showIcon message="各厂断网或同步期间，数据可能尚未上传；作废后重开的单据可能暂时少计。" />
       <div className={styles.filters} role="group" aria-label="筛选条件">
         <Input.Search className={styles.keyword} aria-label="单号或车牌" placeholder="单号/车牌" value={keyword} onChange={(e) => setKeyword(e.target.value)} onSearch={(v) => actions.setKeyword(v)} allowClear />
         <Input className={styles.field} aria-label="厂区编码" placeholder="厂区编码" value={state.filters.siteCode ?? ''} onChange={(e) => actions.setFilter('siteCode', e.target.value)} />

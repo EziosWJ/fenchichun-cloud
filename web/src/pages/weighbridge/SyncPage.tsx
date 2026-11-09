@@ -110,7 +110,6 @@ function TicketDetail({ detail, onOpenRef }: { detail: SyncTicketReceipt; onOpen
   const reopenedBy = detail.reopenedBy;
   return (
     <Space direction="vertical" size="middle" style={{ width: '100%' }}>
-      <Alert type="info" showIcon message="摘要一致只表示双方保存的最新变化摘要相同，不代表云端独立校验了业务内容；接收时间不代表厂端在线或已完整上传。" />
       <Descriptions
         bordered
         size="small"
@@ -409,7 +408,7 @@ export default function SyncPage() {
             type="warning"
             showIcon
             message={`云端未找到 ${detailQuery.siteCode} / ${detailQuery.ticketNo} 的已接收单据。`}
-            description="缺单可能表示前序变化尚未上传或已被拒绝；请结合厂端同步状态处理，云端无法得知厂端积压。"
+            description="缺单可能尚未上传或已被拒绝。"
           />
         )}
         {detail && <TicketDetail detail={detail} onOpenRef={setDetailQuery} />}
