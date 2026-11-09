@@ -79,7 +79,7 @@ export default function TripWorkspace({ gate = false }: { gate?: boolean }) {
       { key: 'impurity', label: '杂质（%）', children: inspection.impurity || '—' },
       { key: 'density', label: '容重（g/L）', children: inspection.bulkDensity || '—' },
       { key: 'reason', label: '拒收原因', children: inspection.reason || '—' },
-    ]} /> : <Empty description="尚未录入化验结果" />}
+    ]} /> : <span style={{ color: 'var(--ant-color-text-secondary)' }}>尚未录入化验结果</span>}
     {!gate && canTrip && !locked && !inspection && <Button type="primary" onClick={() => setInspectionOpen(true)}>录入化验结果</Button>}
   </Space>;
   return <>
@@ -114,7 +114,7 @@ export default function TripWorkspace({ gate = false }: { gate?: boolean }) {
           { key: 'selected', label: '生效时间', children: formatDateTime(trip.effectiveSelectedAt) },
           { key: 'moisture', label: '水分（%）', children: effective.moisture || '—' }, { key: 'impurity', label: '杂质（%）', children: effective.impurity || '—' }, { key: 'density', label: '容重（g/L）', children: effective.bulkDensity || '—' },
           { key: 'reason', label: '原因', children: effective.reason || '—' },
-        ]} /> : <Empty description="尚未录入化验结果" />)}
+        ]} /> : <span style={{ color: 'var(--ant-color-text-secondary)' }}>尚未录入化验结果</span>)}
       </Card>
       <Tabs activeKey={activeTab} onChange={setTab} items={[
         ...(visual ? [] : [{ key: 'inspections', label: '化验结果', children: <Space orientation="vertical" size="small" style={{ width: '100%' }}>
