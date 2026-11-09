@@ -88,7 +88,7 @@ export default function TripWorkspace({ gate = false }: { gate?: boolean }) {
       meta={<Tag color={trip.stage === 'blocked' ? 'red' : trip.exitedAt ? 'green' : 'blue'}>{stageLabel(trip.stage)}</Tag>}
       onBack={() => navigate(gate ? '/grain-intake/permits' : '/grain-intake/trips')}
     />
-    <div className="pageStack">
+    <div className="pageStack" style={{ marginTop: 20, gap: 12 }}>
       {trip.stage === 'blocked' && <Alert type="error" title="当前依据已失效或存在冲突，暂停开证和放行，请核查磅单与化验记录。" />}
       {trip.exitedAt && <Alert type="success" title={`已于 ${formatDateTime(trip.exitedAt)} 确认出厂，本趟凭据不能再次使用。`} />}
       {nextStep && <Alert type="info" showIcon title={nextStep.title} description={nextStep.description} action={nextStep.tab ? <Button size="small" onClick={() => { if (nextStep.tab) setTab(nextStep.tab); }}>去办理</Button> : undefined} />}
@@ -98,7 +98,7 @@ export default function TripWorkspace({ gate = false }: { gate?: boolean }) {
           { key: 'party', label: '供应商', children: trip.partyName || '待核实' }, { key: 'driver', label: '司机', children: `${trip.driver || '—'}${trip.driverPhone ? ` ${trip.driverPhone}` : ''}` }, { key: 'contract', label: '合同编号', children: trip.contractNo || '—' },
           { key: 'method', label: '检验方式', children: visual ? '目测' : '化验' }, { key: 'created', label: '登记时间', children: formatDateTime(trip.createdAt) }, { key: 'remark', label: '备注', children: trip.remark || '—' },
         ]} />
-        <Divider style={{ margin: '12px 0' }} />
+        <Divider style={{ margin: '8px 0' }} />
         {visual ? (trip.visualInspectedAt ? <Descriptions size="small" column={{ xs: 1, sm: 2, lg: 3 }} items={[
           { key: 'result', label: '目测结论', children: <Tag color={trip.visualConclusion === 'accept' ? 'green' : 'red'}>{trip.visualConclusion === 'accept' ? '接收' : '拒收'}</Tag> },
           { key: 'reason', label: '说明', children: trip.visualReason || '—' },
@@ -117,11 +117,11 @@ export default function TripWorkspace({ gate = false }: { gate?: boolean }) {
         ]} /> : <Empty description="尚未录入化验结果" />)}
       </Card>
       <Tabs activeKey={activeTab} onChange={setTab} items={[
-        ...(visual ? [] : [{ key: 'inspections', label: '化验结果', children: <Space orientation="vertical" size="middle" style={{ width: '100%' }}>
+        ...(visual ? [] : [{ key: 'inspections', label: '化验结果', children: <Space orientation="vertical" size="small" style={{ width: '100%' }}>
           {labView}
         </Space> }]),
-        { key: 'weighing', label: '卸粮与磅单', children: <Space orientation="vertical" size="middle" style={{ width: '100%' }}>
-          <Card title="现场卸粮确认">
+        { key: 'weighing', label: '卸粮与磅单', children: <Space orientation="vertical" size="small" style={{ width: '100%' }}>
+          <Card size="small" title="现场卸粮确认">
             {trip.unloadedAt ? <Descriptions size="small" column={{ xs: 1, sm: 2 }} items={[{ key: 'location', label: '实际卸粮地点', children: trip.unloadingLocation }, { key: 'time', label: '确认时间', children: formatDateTime(trip.unloadedAt) }]} /> : <>
               {!gate && canTrip && !locked && trip.effectiveConclusion === 'accept' ? <Space.Compact style={{ width: '100%', maxWidth: 560, marginTop: 16 }}>
                 <Input aria-label="实际卸粮地点" placeholder="填写实际卸粮地点编号或名称" maxLength={200} value={location} onChange={(e) => setLocation(e.target.value)} />
@@ -129,7 +129,7 @@ export default function TripWorkspace({ gate = false }: { gate?: boolean }) {
               </Space.Compact> : <p style={{ marginTop: 16, marginBottom: 0 }}>待确认接收并完成现场卸粮。</p>}
             </>}
           </Card>
-          <Card title="关联正式磅单">
+          <Card size="small" title="关联正式磅单">
             {ticket ? <Descriptions size="small" column={{ xs: 1, sm: 2 }} items={[
               { key: 'number', label: '单号', children: ticket.ticket.ticketNo }, { key: 'status', label: '状态', children: ticket.status === 'valid' ? '有效' : '已作废' },
               { key: 'gross', label: '毛重（吨）', children: formatTonnes(ticket.ticket.finalGross) }, { key: 'tare', label: '皮重（吨）', children: formatTonnes(ticket.ticket.finalTare) },
