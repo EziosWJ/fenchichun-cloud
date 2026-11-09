@@ -46,7 +46,7 @@ describe('客户对账页面', () => {
     await screen.findByText('客户甲');
     expect(screen.getByText('销售客户')).toBeInTheDocument();
     expect(screen.getByText('采购供应商')).toBeInTheDocument();
-    expect(screen.getAllByText('34.500').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('34.5').length).toBeGreaterThan(0);
     await waitFor(() => expect(analytics.statementParties).toHaveBeenCalled());
   });
 

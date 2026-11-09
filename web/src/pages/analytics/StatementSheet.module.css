@@ -125,6 +125,14 @@
   line-height: 1.1;
 }
 
+.equationUnit {
+  margin-left: 3px;
+  color: var(--ant-color-text-secondary);
+  font-size: 12px;
+  font-style: normal;
+  font-weight: 400;
+}
+
 .equationNet em {
   margin-left: 3px;
   color: var(--ant-color-text-secondary);

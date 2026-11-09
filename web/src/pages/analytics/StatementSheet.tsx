@@ -23,7 +23,11 @@ import { EChart } from '../../components/charts/EChart';
 import { getApiErrorMessage } from '../../lib/api/errors';
 import { downloadBlob } from '../../features/analytics/download';
 import { exportStatementDetail, statementDetail } from '../../features/analytics/api';
-import { formatMilliTonne, statementDirectionLabel } from '../../features/analytics/format';
+import {
+  formatMilliTonneCompact,
+  formatTonneCompact,
+  statementDirectionLabel,
+} from '../../features/analytics/format';
 import {
   aggregateStatementDaily,
   statementChartGranularity,
@@ -50,14 +54,14 @@ interface StatementSheetProps {
 function weightText(value: string | number | null | undefined): string {
   if (value === null || value === undefined || value === '') return '—';
   const number = Number(value);
-  return Number.isFinite(number) ? number.toFixed(3) : '—';
+  return Number.isFinite(number) ? formatTonneCompact(number) : '—';
 }
 
 function finalNet(ticket: Ticket): string {
   const value = ticket.finalNet
     ? Number(ticket.finalNet)
     : Number(ticket.finalGross) - Number(ticket.finalTare) - Number(ticket.netAdjustment ?? 0);
-  return Number.isFinite(value) ? value.toFixed(3) : '—';
+  return Number.isFinite(value) ? formatTonneCompact(value) : '—';
 }
 
 function sourceLabel(value: string | null | undefined): string {
@@ -241,10 +245,10 @@ export function StatementSheet({
   const adjustment = data?.netAdjustmentMilliTonne ?? 0;
   const net = data?.netMilliTonne ?? 0;
 
-  const grossText = data ? formatMilliTonne(gross) : '—';
-  const tareText = data ? formatMilliTonne(tare) : '—';
-  const adjustmentText = data ? formatMilliTonne(adjustment) : '—';
-  const netText = data ? formatMilliTonne(net) : '—';
+  const grossText = data ? formatMilliTonneCompact(gross) : '—';
+  const tareText = data ? formatMilliTonneCompact(tare) : '—';
+  const adjustmentText = data ? formatMilliTonneCompact(adjustment) : '—';
+  const netText = data ? formatMilliTonneCompact(net) : '—';
 
   const tarePercent = gross > 0 ? (tare / gross) * 100 : 0;
   const adjustmentPercent = gross > 0 ? (adjustment / gross) * 100 : 0;
@@ -287,7 +291,7 @@ export function StatementSheet({
           };
           const point = typeof item?.dataIndex === 'number' ? chartPoints[item.dataIndex] : undefined;
           const value = Number(point?.netMilliTonne ?? item?.value ?? 0);
-          return `${point?.range ?? item?.name ?? ''}<br/>${(value / 1000).toFixed(3)} 吨`;
+          return `${point?.range ?? item?.name ?? ''}<br/>${formatMilliTonneCompact(value)} 吨`;
         },
       },
       grid: { left: 42, right: 10, top: 16, bottom: 34 },
@@ -310,6 +314,9 @@ export function StatementSheet({
       },
       yAxis: {
         type: 'value',
+        name: '吨',
+        nameGap: 8,
+        nameTextStyle: { color: '#94a3b8', fontSize: 10 },
         splitNumber: 3,
         axisLabel: {
           color: '#94a3b8',
@@ -568,21 +575,30 @@ export function StatementSheet({
               <dl className={styles.equation}>
                 <div className={styles.equationRow}>
                   <dt>毛重</dt>
-                  <dd>{grossText}</dd>
+                  <dd>
+                    {grossText}
+                    <em className={styles.equationUnit}>吨</em>
+                  </dd>
                 </div>
                 <div className={styles.equationRow}>
                   <dt>皮重</dt>
-                  <dd>−{tareText}</dd>
+                  <dd>
+                    −{tareText}
+                    <em className={styles.equationUnit}>吨</em>
+                  </dd>
                 </div>
                 <div className={styles.equationRow}>
                   <dt>净重调整</dt>
-                  <dd>−{adjustmentText}</dd>
+                  <dd>
+                    −{adjustmentText}
+                    <em className={styles.equationUnit}>吨</em>
+                  </dd>
                 </div>
                 <div className={`${styles.equationRow} ${styles.equationNet}`}>
                   <dt>最终净重</dt>
                   <dd>
                     {netText}
-                    <em>吨</em>
+                    <em className={styles.equationUnit}>吨</em>
                   </dd>
                 </div>
               </dl>
@@ -613,15 +629,15 @@ export function StatementSheet({
                 <div className={styles.compositionLegend}>
                   <span>
                     <i className={`${styles.legendDot} ${styles.tareDot}`} aria-hidden="true" />
-                    皮重 {tareText}
+                    皮重 {tareText} 吨
                   </span>
                   <span>
                     <i className={`${styles.legendDot} ${styles.adjustDot}`} aria-hidden="true" />
-                    调整 {adjustmentText}
+                    调整 {adjustmentText} 吨
                   </span>
                   <span>
                     <i className={`${styles.legendDot} ${styles.netDot}`} aria-hidden="true" />
-                    净重 {netText}
+                    净重 {netText} 吨
                   </span>
                 </div>
               </div>
@@ -672,7 +688,7 @@ export function StatementSheet({
                             />
                           </div>
                           <div className={styles.materialValue}>
-                            {formatMilliTonne(material.netMilliTonne)}
+                            {formatMilliTonneCompact(material.netMilliTonne)} 吨
                             <small>{formatPercent(share, 1)}</small>
                           </div>
                         </div>

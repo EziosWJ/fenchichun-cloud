@@ -17,6 +17,22 @@ export function formatMilliTonne(milliTonne: number): string {
   }).format(milliTonne / 1000);
 }
 
+const compactTonneFormatter = new Intl.NumberFormat('zh-CN', {
+  minimumFractionDigits: 0,
+  maximumFractionDigits: 3,
+});
+
+/** 对账页重量展示：最多三位小数，去掉末尾无意义的 0。 */
+export function formatTonneCompact(value: number): string {
+  if (!Number.isFinite(value)) return '—';
+  return compactTonneFormatter.format(value);
+}
+
+export function formatMilliTonneCompact(milliTonne: number): string {
+  if (!Number.isFinite(milliTonne)) return '—';
+  return formatTonneCompact(milliTonne / 1000);
+}
+
 export function formatBp(value: number | null | undefined, fractionDigits = 2): string {
   if (value === null || value === undefined || !Number.isFinite(value)) return '—';
   return `${(value / 100).toFixed(fractionDigits)}%`;

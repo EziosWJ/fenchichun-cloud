@@ -31,7 +31,7 @@ import {
 } from '../../features/analytics/api';
 import { downloadBlob } from '../../features/analytics/download';
 import {
-  formatMilliTonne as tonnes,
+  formatMilliTonneCompact as tonnes,
   statementDirectionLabel,
 } from '../../features/analytics/format';
 import { materials, sites } from '../../features/weighbridge/api';
@@ -681,15 +681,15 @@ export default function StatementPage() {
                 <div className={styles.compositionLegend}>
                   <span>
                     <i className={`${styles.legendDot} ${styles.tareDot}`} aria-hidden="true" />
-                    皮重 {tareValue}
+                    皮重 {tareValue} 吨
                   </span>
                   <span>
                     <i className={`${styles.legendDot} ${styles.adjustDot}`} aria-hidden="true" />
-                    调整 {adjustmentValue}
+                    调整 {adjustmentValue} 吨
                   </span>
                   <span>
                     <i className={`${styles.legendDot} ${styles.netDot}`} aria-hidden="true" />
-                    净重 {netValue}
+                    净重 {netValue} 吨
                   </span>
                 </div>
               </div>
