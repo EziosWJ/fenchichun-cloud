@@ -10,8 +10,7 @@ import {
   Tooltip,
   type TableColumnsType,
 } from 'antd';
-import { useQuery } from '@tanstack/react-query';
-import dayjs from 'dayjs';
+import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { Download, Printer, X } from 'lucide-react';
 import type { EChartsOption } from 'echarts';
 import { EChart } from '../../components/charts/EChart';
@@ -19,6 +18,10 @@ import { getApiErrorMessage } from '../../lib/api/errors';
 import { downloadBlob } from '../../features/analytics/download';
 import { exportStatementDetail, statementDetail } from '../../features/analytics/api';
 import { formatMilliTonne, statementDirectionLabel } from '../../features/analytics/format';
+import {
+  aggregateStatementDaily,
+  statementChartGranularity,
+} from '../../features/analytics/statementChart';
 import { tickets, type Ticket, type TicketRecord } from '../../features/weighbridge/api';
 import { formatDateTime, formatPercent } from '../../utils/format';
 import styles from './StatementSheet.module.css';
@@ -94,6 +97,7 @@ export function StatementSheet({
     queryKey: ['weighbridge', 'statement-tickets', ticketParams],
     queryFn: () => tickets(ticketParams),
     enabled: Boolean(siteCode && partyCode && direction),
+    placeholderData: keepPreviousData,
   });
 
   const data = detail.data;
@@ -122,19 +126,59 @@ export function StatementSheet({
 
   const materialRows = useMemo(() => data?.materials ?? [], [data]);
   const daily = useMemo(() => data?.daily ?? [], [data]);
+  const chartGranularity = useMemo(
+    () => statementChartGranularity(resolvedFrom, resolvedTo, daily[0]?.date),
+    [resolvedFrom, resolvedTo, daily],
+  );
+  const chartPoints = useMemo(
+    () =>
+      aggregateStatementDaily(
+        daily,
+        chartGranularity,
+        resolvedFrom || daily[0]?.date || '',
+        resolvedTo || daily[daily.length - 1]?.date || '',
+      ),
+    [daily, chartGranularity, resolvedFrom, resolvedTo],
+  );
+  const chartTitle = chartGranularity === 'day' ? '每日净重' : '净重趋势';
+  const granularityLabel =
+    chartGranularity === 'day'
+      ? '按日'
+      : chartGranularity === 'week'
+        ? '按周汇总（每 7 天）'
+        : '按月汇总';
   const dailyOption = useMemo<EChartsOption>(
     () => ({
       tooltip: {
         trigger: 'axis',
-        valueFormatter: (value) => `${(Number(value) / 1000).toFixed(3)} 吨`,
+        formatter: (params) => {
+          const item = (Array.isArray(params) ? params[0] : params) as {
+            dataIndex?: number;
+            name?: string;
+            value?: unknown;
+          };
+          const point = typeof item?.dataIndex === 'number' ? chartPoints[item.dataIndex] : undefined;
+          const value = Number(point?.netMilliTonne ?? item?.value ?? 0);
+          return `${point?.range ?? item?.name ?? ''}<br/>${(value / 1000).toFixed(3)} 吨`;
+        },
       },
-      grid: { left: 42, right: 10, top: 16, bottom: 26 },
+      grid: { left: 42, right: 10, top: 16, bottom: 34 },
       xAxis: {
         type: 'category',
-        data: daily.map((point) => dayjs(point.date).format('MM-DD')),
+        data: chartPoints.map((point) => point.label),
         axisTick: { show: false },
         axisLine: { lineStyle: { color: 'rgba(148, 163, 184, 0.35)' } },
-        axisLabel: { color: '#94a3b8', fontSize: 11, hideOverlap: true },
+        axisLabel: {
+          color: '#94a3b8',
+          fontSize: 10,
+          lineHeight: 13,
+          interval: chartPoints.length <= 16 ? 0 : 'auto',
+          hideOverlap: true,
+          formatter: (value: string, index: number) => {
+            const point = chartPoints[index];
+            return point?.secondaryLabel ? `${value}\n${point.secondaryLabel}` : value;
+          },
+        },
       },
       yAxis: {
         type: 'value',
@@ -149,13 +193,13 @@ export function StatementSheet({
       series: [
         {
           type: 'bar',
-          data: daily.map((point) => point.netMilliTonne),
-          barMaxWidth: 18,
+          data: chartPoints.map((point) => point.netMilliTonne),
+          barMaxWidth: chartPoints.length <= 12 ? 24 : 18,
           itemStyle: { color: '#1677ff', borderRadius: [4, 4, 0, 0] },
         },
       ],
     }),
-    [daily],
+    [chartPoints],
   );
 
   const exportDetail = async () => {
@@ -415,16 +459,18 @@ export function StatementSheet({
 
               <section className={styles.breakdownSection}>
                 <div className={styles.sectionHead}>
-                  <h3>每日净重</h3>
-                  <span>{daily.length} 天有数据</span>
+                  <h3>{chartTitle}</h3>
+                  <span>
+                    {daily.length} 天有数据 · {granularityLabel}
+                  </span>
                 </div>
                 <EChart
                   option={dailyOption}
                   height={200}
                   loading={detail.isLoading}
-                  empty={!daily.length}
-                  emptyDescription="暂无每日汇总"
-                  ariaLabel="每日净重趋势图"
+                  empty={!chartPoints.length}
+                  emptyDescription="暂无净重汇总"
+                  ariaLabel="净重趋势图"
                 />
               </section>
             </div>
@@ -447,7 +493,7 @@ export function StatementSheet({
                 rowKey={(row) => `${row.siteCode}:${row.ticket.ticketNo}`}
                 columns={ticketColumns}
                 dataSource={ticketList.data?.items ?? []}
-                loading={ticketList.isLoading}
+                loading={ticketList.isFetching}
                 size="small"
                 scroll={{ x: 960 }}
                 pagination={{

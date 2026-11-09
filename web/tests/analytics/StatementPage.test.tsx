@@ -31,7 +31,7 @@ const totals = {
 };
 
 describe('客户对账页面', () => {
-  it('展示销售客户汇总并保留两个方向切换', async () => {
+  it('默认展示采购供应商汇总并保留两个方向切换', async () => {
     weighing.sites.mockResolvedValue([]);
     weighing.materials.mockResolvedValue([]);
     analytics.statementParties.mockResolvedValue({
@@ -83,7 +83,7 @@ describe('客户对账页面', () => {
     });
     await screen.findByRole('heading', { level: 2, name: /客户甲.*C-P-0001/ });
     expect(screen.getAllByText('高粱 / 散装').length).toBeGreaterThan(0);
-    expect(screen.getByLabelText('每日净重趋势图')).toBeInTheDocument();
+    expect(screen.getByLabelText('净重趋势图')).toBeInTheDocument();
     expect(screen.getByText('F001-20261101-0001')).toBeInTheDocument();
   });
 });

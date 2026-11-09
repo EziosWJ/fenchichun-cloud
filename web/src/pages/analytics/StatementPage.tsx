@@ -122,7 +122,7 @@ export default function StatementPage() {
 
   const defaultFrom = dayjs().startOf('month').format('YYYY-MM-DD');
   const defaultTo = dayjs().endOf('month').format('YYYY-MM-DD');
-  const direction = state.filters.direction === 'inbound' ? 'inbound' : 'outbound';
+  const direction = state.filters.direction === 'outbound' ? 'outbound' : 'inbound';
   const from = state.filters.from || defaultFrom;
   const to = state.filters.to || defaultTo;
 
@@ -130,7 +130,7 @@ export default function StatementPage() {
     if (initialized.current) return;
     initialized.current = true;
     const next: Record<string, string> = {};
-    if (!state.filters.direction) next.direction = 'outbound';
+    if (!state.filters.direction) next.direction = 'inbound';
     if (!state.filters.from) next.from = defaultFrom;
     if (!state.filters.to) next.to = defaultTo;
     if (Object.keys(next).length) actions.setFilters(next);
