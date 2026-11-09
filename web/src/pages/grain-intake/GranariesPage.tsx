@@ -8,6 +8,7 @@ import { useListUrlState } from '../../hooks/useListUrlState';
 import { sites } from '../../features/weighbridge/api';
 import { deleteGranary, granaries, saveGranary, type Granary, type GranaryInput } from '../../features/granary/api';
 import { getApiErrorMessage } from '../../lib/api/errors';
+import { usePermissions } from '../../hooks/usePermissions';
 
 const config = { filters: {}, sortKeys: [], pageSizeOptions: [10, 20, 50], defaultPageSize: 10 } as const;
 const blank: GranaryInput = { siteCode: '', name: '', enabled: true, remark: '' };
@@ -19,6 +20,8 @@ export default function GranariesPage() {
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Granary | null>(null);
   const [form] = Form.useForm<GranaryInput>();
+  const { has } = usePermissions();
+  const canManage = has('grain-intake:granaries:manage');
   const list = useQuery({ queryKey: ['granaries'], queryFn: () => granaries() });
   const siteQuery = useQuery({ queryKey: ['weighbridge', 'sites'], queryFn: sites });
   const refresh = () => void client.invalidateQueries({ queryKey: ['granaries'] });
@@ -54,7 +57,7 @@ export default function GranariesPage() {
   return <>
     <PageHeader title="粮仓维护" />
     <Space orientation="vertical" size="middle" style={{ width: '100%' }}>
-      <Button type="primary" onClick={() => { setEditing(null); form.resetFields(); form.setFieldsValue(blank); setOpen(true); }}>新增粮仓</Button>
+      {canManage && <Button type="primary" onClick={() => { setEditing(null); form.resetFields(); form.setFieldsValue(blank); setOpen(true); }}>新增粮仓</Button>}
       {list.isError && <Alert type="error" title={getApiErrorMessage(list.error)} action={<Button onClick={() => void list.refetch()}>重试</Button>} />}
       <DataTable
         tableKey="grain-granaries"

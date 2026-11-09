@@ -16,7 +16,7 @@ var (
 	ErrConflict  = errors.New("粮仓名称已存在")
 )
 
-const ManagePermission = "grain-intake:granaries"
+const ManagePermission = "grain-intake:granaries:manage"
 const UsePermission = "grain-intake:trips"
 
 type Input struct {

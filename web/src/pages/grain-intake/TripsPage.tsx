@@ -8,6 +8,7 @@ import { DataTable } from '../../components/DataTable';
 import { PageHeader } from '../../components/PageHeader';
 import { FilterField } from '../../components/SearchFilterBar';
 import { useListUrlState } from '../../hooks/useListUrlState';
+import { usePermissions } from '../../hooks/usePermissions';
 import { getApiErrorMessage } from '../../lib/api/errors';
 import { formatDateTime } from '../../utils/format';
 import TripEditor from './TripEditor';
@@ -17,6 +18,8 @@ export default function TripsPage() {
   const [keyword, setKeyword] = useState(state.keyword);
   const [creating, setCreating] = useState(false);
   const navigate = useNavigate();
+  const { has } = usePermissions();
+  const canEdit = has('grain-intake:trip-edit');
   const params = { page: state.page, pageSize: state.pageSize, keyword: state.keyword, ...state.filters };
   const list = useQuery({ queryKey: ['grain-intake', 'trips', params], queryFn: () => trips(params) });
   const columns: ColumnsType<Trip> = [
@@ -30,7 +33,7 @@ export default function TripsPage() {
   return <>
     <PageHeader title="流转单" />
     <Space orientation="vertical" size="middle" style={{ width: '100%' }}>
-      <Space wrap align="end"><FilterField label="单号、车牌或供应商" wide><Input.Search aria-label="单号、车牌或供应商" value={keyword} onChange={(e) => setKeyword(e.target.value)} onSearch={(v) => actions.setKeyword(v)} allowClear /></FilterField><FilterField label="办理阶段"><Select aria-label="办理阶段" style={{ width: 160 }} allowClear options={tripStages} value={state.filters.stage} onChange={(v) => actions.setFilter('stage', v)} /></FilterField><Button type="primary" onClick={() => setCreating(true)}>登记流转单</Button></Space>
+      <Space wrap align="end"><FilterField label="单号、车牌或供应商" wide><Input.Search aria-label="单号、车牌或供应商" value={keyword} onChange={(e) => setKeyword(e.target.value)} onSearch={(v) => actions.setKeyword(v)} allowClear /></FilterField><FilterField label="办理阶段"><Select aria-label="办理阶段" style={{ width: 160 }} allowClear options={tripStages} value={state.filters.stage} onChange={(v) => actions.setFilter('stage', v)} /></FilterField>{canEdit && <Button type="primary" onClick={() => setCreating(true)}>登记流转单</Button>}</Space>
       {list.isError && <Alert type="error" title={getApiErrorMessage(list.error)} action={<Button onClick={() => void list.refetch()}>重试</Button>} />}
       <DataTable tableKey="grain-trips" columns={columns} rowKey="id" dataSource={list.data?.items ?? []} total={list.data?.total ?? 0} page={state.page} pageSize={state.pageSize} onPageChange={actions.setPage} loading={list.isLoading} onRefresh={() => void list.refetch()} />
     </Space>

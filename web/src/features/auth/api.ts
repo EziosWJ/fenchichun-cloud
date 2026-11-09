@@ -13,6 +13,10 @@ export function getCurrentUserMenus(): Promise<CurrentUserMenu[]> {
   return get<CurrentUserMenu[]>('/auth/menus');
 }
 
+export function getCurrentUserPermissions(): Promise<string[]> {
+  return get<string[]>('/auth/permissions');
+}
+
 export function logout(): Promise<void> {
   return post<void>('/auth/logout');
 }

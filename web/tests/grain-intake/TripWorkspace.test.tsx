@@ -31,7 +31,7 @@ function menu(path: string): CurrentUserMenu {
 }
 beforeEach(() => {
   vi.clearAllMocks();
-  useAuthStore.setState({ menus: [menu('/grain-intake/permits')] });
+  useAuthStore.setState({ menus: [menu('/grain-intake/permits')], permissions: ['grain-intake:release','grain-intake:approve-permit','grain-intake:issue-permit','grain-intake:trip-edit','grain-intake:unload','grain-intake:ticket','grain-intake:visual','laboratory:inspect'] });
   api.tripDetail.mockResolvedValue(evidence());
   api.tripAction.mockResolvedValue(evidence());
 });

@@ -148,4 +148,5 @@ type Store interface {
 	RevokeSessionsByUserID(context.Context, int64, time.Time) error
 	FindCurrentUser(context.Context, int64) (*CurrentUser, error)
 	FindVisibleMenusByUserID(context.Context, int64) ([]CurrentUserMenu, error)
+	FindPermissionsByUserID(context.Context, int64) ([]string, error)
 }

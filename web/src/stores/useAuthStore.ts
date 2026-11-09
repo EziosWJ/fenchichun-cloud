@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { getCurrentUser, getCurrentUserMenus, login as loginRequest, logout as logoutRequest } from '../features/auth/api';
+import { getCurrentUser, getCurrentUserMenus, getCurrentUserPermissions, login as loginRequest, logout as logoutRequest } from '../features/auth/api';
 import { setAuthTokenProvider, setUnauthorizedHandler } from '../lib/api/client';
 import { queryClient } from '../lib/queryClient';
 import { useTabsStore } from './useTabsStore';
@@ -11,6 +11,7 @@ interface AuthState {
   token: string | null;
   user: CurrentUser | null;
   menus: CurrentUserMenu[];
+  permissions: string[];
   status: AuthStatus;
   login: (username: string, password: string) => Promise<CurrentUser>;
   bootstrap: () => Promise<void>;
@@ -54,6 +55,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   token: readToken(),
   user: null,
   menus: [],
+  permissions: [],
   status: 'idle',
 
   login: async (username, password) => {
@@ -62,8 +64,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     writeToken(token);
     set({ token, status: 'loading', user: null, menus: [] });
     try {
-      const [user, menus] = await Promise.all([getCurrentUser(), getCurrentUserMenus()]);
-      set({ user, menus, status: 'authenticated' });
+      const [user, menus, permissions] = await Promise.all([getCurrentUser(), getCurrentUserMenus(), getCurrentUserPermissions()]);
+      set({ user, menus, permissions, status: 'authenticated' });
       return user;
     } catch (error) {
       get().clearSession();
@@ -83,8 +85,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     set({ status: 'loading' });
     bootstrapPromise = (async () => {
       try {
-        const [user, menus] = await Promise.all([getCurrentUser(), getCurrentUserMenus()]);
-        set({ user, menus, status: 'authenticated' });
+        const [user, menus, permissions] = await Promise.all([getCurrentUser(), getCurrentUserMenus(), getCurrentUserPermissions()]);
+        set({ user, menus, permissions, status: 'authenticated' });
       } catch {
         get().clearSession();
       } finally {
@@ -101,8 +103,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   },
 
   reloadMenus: async () => {
-    const menus = await getCurrentUserMenus();
-    set({ menus });
+    const [menus, permissions] = await Promise.all([getCurrentUserMenus(), getCurrentUserPermissions()]);
+    set({ menus, permissions });
     return menus;
   },
 
@@ -119,7 +121,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   clearSession: () => {
     writeToken(null);
     clearClientCaches();
-    set({ token: null, user: null, menus: [], status: 'anonymous' });
+    set({ token: null, user: null, menus: [], permissions: [], status: 'anonymous' });
   },
 }));
 

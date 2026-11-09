@@ -48,6 +48,11 @@ func (s *handlerServiceStub) CurrentUserMenus(_ context.Context, principal Princ
 	return s.menus, s.menusErr
 }
 
+func (s *handlerServiceStub) CurrentUserPermissions(_ context.Context, principal Principal) ([]string, error) {
+	s.principal = principal
+	return nil, nil
+}
+
 type authenticatorStub struct {
 	principal Principal
 	err       error

@@ -3,6 +3,7 @@ import { screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import InspectionsPage from '../../src/pages/laboratory/InspectionsPage';
 import { renderWithProviders } from '../utils/renderWithProviders';
+import { useAuthStore } from '../../src/stores/useAuthStore';
 import type { Trip } from '../../src/features/grain-intake/api';
 
 const api = vi.hoisted(() => ({ trips: vi.fn(), tripDefaults: vi.fn() }));
@@ -20,6 +21,7 @@ const base: Trip = {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  useAuthStore.setState({ permissions: ['laboratory:inspect'] });
   api.trips.mockResolvedValue({ items: [], total: 0, page: 1, pageSize: 10 });
 });
 

@@ -20,6 +20,7 @@ type HandlerService interface {
 	Logout(context.Context, Principal) error
 	CurrentUser(context.Context, Principal) (*CurrentUser, error)
 	CurrentUserMenus(context.Context, Principal) ([]CurrentUserMenu, error)
+	CurrentUserPermissions(context.Context, Principal) ([]string, error)
 }
 
 // Handler adapts the authentication use cases to the /api/v1/auth HTTP
@@ -51,6 +52,7 @@ func RegisterRoutes(router gin.IRouter, handler *Handler) {
 	protected.POST("/logout", handler.Logout)
 	protected.GET("/me", handler.CurrentUser)
 	protected.GET("/menus", handler.CurrentUserMenus)
+	protected.GET("/permissions", handler.CurrentUserPermissions)
 }
 
 type loginRequest struct {
@@ -173,6 +175,20 @@ func (h *Handler) CurrentUserMenus(c *gin.Context) {
 		return
 	}
 	platformhttp.OK(c, toCurrentUserMenuResponses(menus))
+}
+
+func (h *Handler) CurrentUserPermissions(c *gin.Context) {
+	principal, ok := PrincipalFromContext(c.Request.Context())
+	if !ok {
+		writeUnauthenticated(c)
+		return
+	}
+	permissions, err := h.service.CurrentUserPermissions(c.Request.Context(), principal)
+	if err != nil {
+		handleProtectedError(c, err)
+		return
+	}
+	platformhttp.OK(c, permissions)
 }
 
 func loginFieldErrors(request loginRequest) map[string]string {

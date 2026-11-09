@@ -93,6 +93,10 @@ func (s *memoryStore) FindCurrentUser(_ context.Context, userID int64) (*Current
 	return nil, ErrUserNotFound
 }
 
+func (s *memoryStore) FindPermissionsByUserID(_ context.Context, _ int64) ([]string, error) {
+	return nil, nil
+}
+
 func (s *memoryStore) FindVisibleMenusByUserID(_ context.Context, _ int64) ([]CurrentUserMenu, error) {
 	return append([]CurrentUserMenu(nil), s.menus...), nil
 }

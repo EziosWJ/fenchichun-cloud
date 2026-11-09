@@ -149,7 +149,7 @@ func references(tx *gorm.DB, in Input) (string, string, error) {
 func (r *Repository) Create(ctx context.Context, in Input, e audit.Event) (Inspection, error) {
 	var v Inspection
 	err := r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-		if err := requireAccess(tx, e.Metadata.ActorID); err != nil {
+		if err := requireMenu(tx, e.Metadata.ActorID, "laboratory:inspect"); err != nil {
 			return err
 		}
 		if in.TripID == nil || *in.TripID <= 0 {

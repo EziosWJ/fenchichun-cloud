@@ -32,7 +32,7 @@ func requireAny(tx *gorm.DB, actor int64, permissions ...string) error {
 func (r *Repository) List(ctx context.Context, actor int64, siteCode string, onlyEnabled bool) ([]Granary, error) {
 	records := []Granary{}
 	err := r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-		if err := requireAny(tx, actor, ManagePermission, UsePermission); err != nil {
+		if err := requireAny(tx, actor, ManagePermission, UsePermission, "grain-intake:granaries"); err != nil {
 			return err
 		}
 		query := tx.Model(&Granary{})

@@ -286,6 +286,10 @@ func (s *authMemoryStore) RevokeSessionsByUserID(context.Context, int64, time.Ti
 func (s *authMemoryStore) FindCurrentUser(context.Context, int64) (*auth.CurrentUser, error) {
 	return nil, auth.ErrUserNotFound
 }
+func (s *authMemoryStore) FindPermissionsByUserID(context.Context, int64) ([]string, error) {
+	return nil, nil
+}
+
 func (s *authMemoryStore) FindVisibleMenusByUserID(context.Context, int64) ([]auth.CurrentUserMenu, error) {
 	return nil, nil
 }

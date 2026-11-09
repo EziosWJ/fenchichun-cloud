@@ -217,7 +217,7 @@ func references(tx *gorm.DB, in Input) (string, string, string, error) {
 func (r *Repository) Save(ctx context.Context, id, version int64, in Input, e audit.Event) (Detail, error) {
 	var value Detail
 	err := r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-		if err := access(tx, e.Metadata.ActorID, TripPermission); err != nil {
+		if err := access(tx, e.Metadata.ActorID, "grain-intake:trip-edit"); err != nil {
 			return err
 		}
 		material, party, method, err := references(tx, in)
@@ -328,17 +328,19 @@ func ready(tx *gorm.DB, t Trip) (laboratory.Inspection, error) {
 func (r *Repository) Command(ctx context.Context, id int64, action string, in Command, e audit.Event) (Detail, error) {
 	var value Detail
 	err := r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-		permission := TripPermission
-		if action == "approve-permit" || action == "confirm-exit" {
-			permission = PermitPermission
+		permission := map[string]string{
+			"record-visual":     "grain-intake:visual",
+			"confirm-unloading": "grain-intake:unload",
+			"link-ticket":       "grain-intake:ticket",
+			"issue-permit":      "grain-intake:issue-permit",
+			"approve-permit":    "grain-intake:approve-permit",
+			"confirm-exit":      "grain-intake:release",
+		}[action]
+		if permission == "" {
+			permission = TripPermission
 		}
 		if err := access(tx, e.Metadata.ActorID, permission); err != nil {
 			return err
-		}
-		if action == "approve-permit" {
-			if err := access(tx, e.Metadata.ActorID, TripPermission); err != nil {
-				return err
-			}
 		}
 		t, err := lockedTrip(tx, id)
 		if err != nil {

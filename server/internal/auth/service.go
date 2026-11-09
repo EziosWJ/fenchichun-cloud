@@ -174,6 +174,15 @@ func (s *Service) CurrentUserMenus(ctx context.Context, principal Principal) ([]
 	return result, nil
 }
 
+// CurrentUserPermissions returns every permission code granted to the user,
+// including hidden operation permissions used to gate individual actions.
+func (s *Service) CurrentUserPermissions(ctx context.Context, principal Principal) ([]string, error) {
+	if principal.UserID <= 0 {
+		return nil, ErrUnauthenticated
+	}
+	return s.store.FindPermissionsByUserID(ctx, principal.UserID)
+}
+
 func withoutServerMonitoring(menus []CurrentUserMenu) []CurrentUserMenu {
 	result := make([]CurrentUserMenu, 0, len(menus))
 	for _, menu := range menus {

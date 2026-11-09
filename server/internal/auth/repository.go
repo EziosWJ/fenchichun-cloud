@@ -164,3 +164,22 @@ func (r *Repository) FindVisibleMenusByUserID(ctx context.Context, userID int64)
 	}
 	return menus, nil
 }
+
+// FindPermissionsByUserID returns all permission codes granted to the user,
+// including hidden operation permissions (visible=0).
+func (r *Repository) FindPermissionsByUserID(ctx context.Context, userID int64) ([]string, error) {
+	permissions := []string{}
+	err := r.db.WithContext(ctx).
+		Table("sys_menu AS m").
+		Select("DISTINCT m.permission_code").
+		Joins("JOIN sys_role_menu AS rm ON rm.menu_id = m.id").
+		Joins("JOIN sys_user_role AS ur ON ur.role_id = rm.role_id").
+		Joins("JOIN sys_role AS r ON r.id = ur.role_id").
+		Where("ur.user_id = ? AND r.status = ? AND r.deleted = ? AND m.status = ? AND m.deleted = ? AND m.permission_code IS NOT NULL AND m.permission_code <> ''", userID, UserStatusEnabled, 0, UserStatusEnabled, 0).
+		Order("m.permission_code ASC").
+		Scan(&permissions).Error
+	if err != nil {
+		return nil, err
+	}
+	return permissions, nil
+}

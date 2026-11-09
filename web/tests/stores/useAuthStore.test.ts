@@ -9,6 +9,7 @@ vi.mock('../../src/features/auth/api', () => ({
     roles: [{ id: 1, roleName: '超级管理员', roleCode: 'ADMIN' }],
   })),
   getCurrentUserMenus: vi.fn(async () => []),
+  getCurrentUserPermissions: vi.fn(async () => []),
   logout: vi.fn(async () => undefined),
 }));
 
@@ -17,7 +18,7 @@ import { useAuthStore } from '../../src/stores/useAuthStore';
 describe('auth store', () => {
   beforeEach(() => {
     window.localStorage.clear();
-    useAuthStore.setState({ token: null, user: null, menus: [], status: 'idle' });
+    useAuthStore.setState({ token: null, user: null, menus: [], permissions: [], status: 'idle' });
   });
 
   it('stores the token and loads the current user and menus after login', async () => {

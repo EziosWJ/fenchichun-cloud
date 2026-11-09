@@ -8,6 +8,7 @@ import { trips, type Trip } from '../../features/grain-intake/api';
 import { inspection as fetchInspection } from '../../features/laboratory/api';
 import { getApiErrorMessage } from '../../lib/api/errors';
 import { formatDateTime } from '../../utils/format';
+import { usePermissions } from '../../hooks/usePermissions';
 import InspectionFormModal from './InspectionFormModal';
 import styles from './InspectionModal.module.css';
 
@@ -24,6 +25,8 @@ export default function InspectionsPage() {
   const [search, setSearch] = useState('');
   const [selected, setSelected] = useState<Trip>();
   const [viewId, setViewId] = useState<number>();
+  const { has } = usePermissions();
+  const canInspect = has('laboratory:inspect');
   const params = { page, pageSize, keyword: search || undefined, order: 'inspection_first', method: 'lab' };
   const list = useQuery({ queryKey: ['laboratory', 'trips', params], queryFn: () => trips(params) });
   const detail = useQuery({
@@ -50,7 +53,9 @@ export default function InspectionsPage() {
           <Tooltip title="该流转单已化验"><Button disabled>化验</Button></Tooltip>
           <Button onClick={() => setViewId(row.inspectionId!)}>查看</Button>
         </Space>
-        : <Button type="primary" onClick={() => setSelected(row)}>化验</Button>,
+        : canInspect
+          ? <Button type="primary" onClick={() => setSelected(row)}>化验</Button>
+          : <Tooltip title="无化验权限"><Button disabled>化验</Button></Tooltip>,
     },
   ];
   const value = detail.data;
