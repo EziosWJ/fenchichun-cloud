@@ -1,4 +1,5 @@
 import {
+  applyAsync,
   cards,
   errorMessage,
   matches,
@@ -17,17 +18,21 @@ Page({
       if (!requireLogin('warehouse')) {
         return
       }
-      this.setData({
-        trips: cards(
-          demo.listTrips().filter(trip => matches(trip, this.data.query)),
-        ),
-      })
+      applyAsync(
+        demo.listTrips(),
+        (all) => {
+          this.setData({
+            trips: cards(all.filter(trip => matches(trip, this.data.query))),
+          })
+          this.setData({ loading: false })
+        },
+        (error) => {
+          this.setData({ error: errorMessage(error), loading: false })
+        },
+      )
     }
     catch (error) {
-      this.setData({ error: errorMessage(error) })
-    }
-    finally {
-      this.setData({ loading: false })
+      this.setData({ error: errorMessage(error), loading: false })
     }
   },
   search(event: WechatMiniprogram.Input) {
