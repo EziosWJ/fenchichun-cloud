@@ -111,7 +111,7 @@ func exerciseGrainIntake(t *testing.T, db *gorm.DB) {
 		return v, change
 	}
 	// Multiple inspections: explicit selection changes the one effective pointer, not historical results.
-	multiple := createTrip("晋A复检")
+	multiple := createTrip("晋A10001")
 	initial := createInspection(multiple, "accept")
 	multiple = selectInspection(multiple, initial)
 	retest, err := lab.Retest(ctx, initial.ID, initial.Version, e)
@@ -147,7 +147,7 @@ func exerciseGrainIntake(t *testing.T, db *gorm.DB) {
 	independent, err = lab.Transition(ctx, independent.ID, independent.Version, "confirm", "", e)
 	check(err)
 	multiple = command(multiple, "link-inspection", grainintake.Command{InspectionID: independent.ID, InspectionVersion: independent.Version})
-	other := createTrip("晋B不同车")
+	other := createTrip("晋B20002")
 	_, err = flow.Command(ctx, other.Trip.ID, "link-inspection", grainintake.Command{Version: other.Trip.Version, InspectionID: independent.ID, InspectionVersion: independent.Version}, e)
 	if !errors.Is(err, grainintake.ErrConflict) {
 		t.Fatalf("cross-trip association: %v", err)
@@ -165,7 +165,7 @@ func exerciseGrainIntake(t *testing.T, db *gorm.DB) {
 		t.Fatalf("cross-site inspection: %v", err)
 	}
 	// A void before the permit is issued detaches the ticket so the trip can be linked again.
-	detached, detachedChange := makeReady("晋A作废恢复")
+	detached, detachedChange := makeReady("晋A60006")
 	beforeVoid := read(detached.Trip.ID)
 	_, err = wb.ApplyChange(ctx, weighbridge.Change{SchemaVersion: 2, ChangeID: detachedChange.ChangeID + "-void", SiteCode: detachedChange.SiteCode, TicketNo: detachedChange.TicketNo, Type: "void", Void: &weighbridge.VoidInfo{Reason: "选错磅单", Actor: "库管", At: time.Now().UTC()}})
 	check(err)
@@ -187,7 +187,7 @@ func exerciseGrainIntake(t *testing.T, db *gorm.DB) {
 		t.Fatalf("relink after void: stage=%s", detached.Trip.Stage)
 	}
 	// Complete normal exit, preserving the distinction between approval and actual departure.
-	normal, _ := makeReady("晋A正常")
+	normal, _ := makeReady("晋A70007")
 	normal = command(normal, "issue-permit", grainintake.Command{})
 	if normal.Permit == nil || normal.Trip.ExitedAt != nil {
 		t.Fatal("issue permit state")
@@ -213,7 +213,7 @@ func exerciseGrainIntake(t *testing.T, db *gorm.DB) {
 		t.Fatal("repeated exit changed history")
 	}
 	// A void received after approval blocks the gate; no new ticket or override is fabricated.
-	blocked, change := makeReady("晋A阻断")
+	blocked, change := makeReady("晋A80008")
 	blocked = command(blocked, "issue-permit", grainintake.Command{})
 	blocked = command(blocked, "approve-permit", grainintake.Command{PermitID: blocked.Permit.ID})
 	_, err = wb.ApplyChange(ctx, weighbridge.Change{SchemaVersion: 2, ChangeID: change.ChangeID + "-void", SiteCode: change.SiteCode, TicketNo: change.TicketNo, Type: "void", Void: &weighbridge.VoidInfo{Reason: "验证作废", Actor: "库管", At: time.Now().UTC()}})
@@ -259,7 +259,7 @@ func exerciseGrainIntake(t *testing.T, db *gorm.DB) {
 		check(err)
 		return v
 	}
-	wood := createWood("晋A木拒")
+	wood := createWood("晋A40004")
 	if wood.Trip.InspectionMethod != "visual" || wood.Trip.Stage != "pending_inspection" {
 		t.Fatalf("visual registration: %+v", wood.Trip)
 	}
@@ -286,7 +286,7 @@ func exerciseGrainIntake(t *testing.T, db *gorm.DB) {
 		t.Fatal("visual rejection evidence")
 	}
 
-	wood = createWood("晋A木收")
+	wood = createWood("晋A50005")
 	wood = command(wood, "record-visual", grainintake.Command{Conclusion: "accept"})
 	firstWood := wood.Trip.VisualInspectedAt.Add(time.Microsecond)
 	wood = command(wood, "confirm-unloading", grainintake.Command{Location: "木片场"})

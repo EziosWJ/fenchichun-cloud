@@ -6,6 +6,7 @@ import (
 	"fenchichun.local/server/internal/laboratory"
 	"fenchichun.local/server/internal/weighbridge"
 	"fmt"
+	"regexp"
 	"strings"
 	"time"
 	"unicode/utf8"
@@ -17,6 +18,10 @@ var (
 	ErrNotFound  = errors.New("记录不存在")
 	ErrForbidden = errors.New("没有对应业务操作权限")
 )
+
+// platePattern covers mainland civilian plates, including new-energy plates
+// and the common 挂/学/警/港/澳/领 suffixes.
+var platePattern = regexp.MustCompile(`^[京津沪渝冀豫云辽黑湘皖鲁新苏浙赣鄂桂甘晋蒙陕吉闽贵粤青藏川宁琼使领][A-HJ-NP-Z]([A-HJ-NP-Z0-9]{4}[A-HJ-NP-Z0-9挂学警港澳领]|[0-9]{5}[DF]|[DF][A-HJ-NP-Z0-9][0-9]{4})$`)
 
 const TripPermission = "grain-intake:trips"
 const PermitPermission = "grain-intake:permits"
@@ -50,6 +55,9 @@ func (in Input) validate() error {
 		if utf8.RuneCountInString(f.s) > f.n {
 			return ErrInvalid
 		}
+	}
+	if !platePattern.MatchString(in.Plate) {
+		return fmt.Errorf("%w：车牌号格式不正确", ErrInvalid)
 	}
 	return nil
 }

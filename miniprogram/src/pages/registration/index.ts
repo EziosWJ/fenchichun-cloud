@@ -7,6 +7,7 @@ import {
   sameDictionary,
 } from '@/features/grain/dictionary-service'
 import { applyAsync, errorMessage, requireLogin } from '@/features/grain/page'
+import { isValidPlate, normalizePlate } from '@/features/grain/plate'
 import { canEdit } from '@/features/grain/presentation'
 import { demo } from '@/features/grain/service'
 
@@ -128,8 +129,12 @@ Page({
     })
   },
   input(event: WechatMiniprogram.Input) {
+    const field = event.currentTarget.dataset.field
+    const value = field === 'plate'
+      ? event.detail.value.toUpperCase()
+      : event.detail.value
     this.setData({
-      [`form.${event.currentTarget.dataset.field}`]: event.detail.value,
+      [`form.${field}`]: value,
       formError: '',
     })
   },
@@ -166,12 +171,19 @@ Page({
     }
     this.setData({ submitting: true, formError: '' })
     try {
-      if (!env.mock && !this.data.form.supplier) {
+      const form = {
+        ...this.data.form,
+        plate: normalizePlate(this.data.form.plate),
+      }
+      if (!isValidPlate(form.plate)) {
+        throw new Error('请输入正确的车牌号，例如 晋A12345')
+      }
+      if (!env.mock && !form.supplier) {
         throw new Error('请选择供应商')
       }
       const result = this.data.edit
-        ? demo.updateTrip(this.data.id, this.data.version, this.data.form)
-        : demo.createTrip(this.data.form)
+        ? demo.updateTrip(this.data.id, this.data.version, form)
+        : demo.createTrip(form)
       applyAsync(
         result,
         (trip) => {

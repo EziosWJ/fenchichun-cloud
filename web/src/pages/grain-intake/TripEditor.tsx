@@ -4,6 +4,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { materials, parties, sites } from '../../features/weighbridge/api';
 import { saveTrip, trips, type Trip, type TripDetail, type TripInput } from '../../features/grain-intake/api';
 import { getApiErrorMessage } from '../../lib/api/errors';
+import { isValidPlate, normalizePlate } from '../../utils/plate';
 const blank: TripInput = { siteCode: '', plate: '', materialCode: '', partyCode: '', driver: '', driverPhone: '', contractNo: '', remark: '' };
 
 function Section({ children }: { children: string }) {
@@ -52,7 +53,7 @@ export default function TripEditor({ original, onClose, onSaved }: { original?: 
           <Form.Item name="siteCode" label="厂区" rules={[{ required: true, message: '请选择厂区' }]}><Select placeholder="请选择厂区" loading={siteQuery.isLoading} options={(siteQuery.data ?? []).filter((v) => v.enabled || v.code === original?.siteCode).map((v) => ({ value: v.code, label: v.name, disabled: !v.enabled }))} /></Form.Item>
         </Col>
         <Col xs={24} sm={12}>
-          <Form.Item name="plate" label="车牌号" rules={[{ required: true, whitespace: true, message: '请输入车牌号' }]}><AutoComplete allowClear placeholder="输入车牌，联想最近送粮记录" options={plateOptions} onSearch={setPlateKeyword} onSelect={applyPlate} notFoundContent={recentTrips.isFetching ? '正在查询…' : undefined} /></Form.Item>
+          <Form.Item name="plate" label="车牌号" normalize={(value?: string) => normalizePlate(value ?? '')} rules={[{ required: true, whitespace: true, message: '请输入车牌号' }, { validator: (_, value?: string) => !value || isValidPlate(value) ? Promise.resolve() : Promise.reject(new Error('请输入正确的车牌号，例如 晋A12345')) }]}><AutoComplete allowClear maxLength={8} placeholder="例如 晋A12345" options={plateOptions} onSearch={setPlateKeyword} onSelect={applyPlate} notFoundContent={recentTrips.isFetching ? '正在查询…' : undefined} /></Form.Item>
         </Col>
         <Col xs={24} sm={12}>
           <Form.Item name="materialCode" label="货品（物料）" rules={[{ required: true, message: '请选择货品' }]} extra={materialCode ? `检验方式：${original?.materialCode === materialCode ? (original.inspectionMethod === 'visual' ? '目测' : '化验') : (materialQuery.data?.find((v) => v.code === materialCode)?.inspectionMethod === 'visual' ? '目测' : '化验')}` : undefined}><Select showSearch optionFilterProp="label" placeholder="请选择货品" loading={materialQuery.isLoading} options={(materialQuery.data ?? []).filter((v) => v.enabled || v.code === original?.materialCode).map((v) => ({ value: v.code, label: v.name, disabled: !v.enabled }))} /></Form.Item>

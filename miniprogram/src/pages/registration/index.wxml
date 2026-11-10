@@ -5,7 +5,7 @@
     <view class="screen-title">{{edit ? '更正登记' : '登记流转单'}}</view>
     <view class="subtle">记录本趟车辆和货品，带 * 的项目必填</view>
     <view class="field"><view class="field-label">厂区 *</view><picker range="{{sites}}" value="{{siteIndex}}" bindchange="chooseSite"><view class="field-control {{siteIndex ? '' : 'field-placeholder'}}">{{sites[siteIndex]}}　›</view></picker></view>
-    <view class="field"><view class="field-label">车牌 *</view><input class="field-control" value="{{form.plate}}" data-field="plate" bindinput="input" placeholder="请输入车牌" placeholder-class="field-placeholder" maxlength="12" /></view>
+    <view class="field"><view class="field-label">车牌 *</view><input class="field-control" value="{{form.plate}}" data-field="plate" bindinput="input" placeholder="例如 晋A12345" placeholder-class="field-placeholder" maxlength="8" /></view>
     <view class="field"><view class="field-label">货品 *</view><picker range="{{materials}}" value="{{materialIndex}}" bindchange="chooseMaterial"><view class="field-control {{materialIndex ? '' : 'field-placeholder'}}">{{materials[materialIndex]}}　›</view></picker><view wx:if="{{materialIndex}}" class="subtle">检验方式：{{methods[materialIndex]}}</view></view>
     <view class="field"><view class="field-label">供应商</view><picker range="{{suppliers}}" value="{{supplierIndex}}" bindchange="chooseSupplier"><view class="field-control">{{suppliers[supplierIndex]}}　›</view></picker><view class="subtle">可暂时待核实，检验确认前请补充</view></view>
     <view class="field"><view class="heading-row" bindtap="toggleExtra"><text class="field-label">其他信息（选填）</text><text class="subtle">{{extraOpen ? '收起' : '展开'}}　›</text></view>

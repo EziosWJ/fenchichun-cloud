@@ -65,7 +65,15 @@ export function createClient(baseURL: string, session: Session, transport: Trans
         session.clear()
         expired()
       }
-      throw new ApiError('http', response.statusCode === 401 ? '登录已过期' : `请求失败（${response.statusCode}）`, response.statusCode)
+      const body = response.data
+      const serverMessage = body && typeof body === 'object' && 'message' in body && typeof body.message === 'string'
+        ? body.message
+        : ''
+      throw new ApiError(
+        'http',
+        response.statusCode === 401 ? '登录已过期' : serverMessage || `请求失败（${response.statusCode}）`,
+        response.statusCode,
+      )
     }
     const body = response.data
     if (!body || typeof body !== 'object' || !('code' in body) || typeof body.code !== 'number' || !('message' in body) || typeof body.message !== 'string' || !('data' in body)) {

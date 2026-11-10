@@ -12,6 +12,7 @@ import type {
   User,
 } from './types.ts'
 import { demoDictionary } from './dictionary.ts'
+import { isValidPlate } from './plate.ts'
 import { canEdit, exitEligible } from './presentation.ts'
 
 const users: Array<User & { password: string }> = [
@@ -299,6 +300,9 @@ export function createDemoService(
     }
     if (!result.plate) {
       throw new Error('请填写车牌')
+    }
+    if (!isValidPlate(result.plate)) {
+      throw new Error('请输入正确的车牌号，例如 晋A12345')
     }
     if (!options.materials.some(item => item.name === result.material)) {
       throw new Error('请选择货品')

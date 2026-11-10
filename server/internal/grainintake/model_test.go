@@ -25,6 +25,10 @@ func TestRegistrationAllowsUnverifiedSupplier(t *testing.T) {
 	if in.validate() == nil {
 		t.Fatal("missing plate accepted")
 	}
+	in.Plate = "001"
+	if in.validate() == nil {
+		t.Fatal("invalid plate accepted")
+	}
 }
 func TestQueryRejectsUnknownStage(t *testing.T) {
 	if _, err := normalizeQuery(Query{Stage: "any-status"}); err == nil {
