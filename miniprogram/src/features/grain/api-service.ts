@@ -52,6 +52,7 @@ interface ServerTrip {
   unloadedAt: string | null
   ticketId: number | null
   createdAt: string
+  updatedAt: string
   exitedAt: string | null
   stage: string
   effectiveConclusion: string
@@ -261,6 +262,7 @@ function adaptTrip(trip: ServerTrip, detail?: ServerDetail): Trip {
     stage: trip.stage,
     version: trip.version,
     createdAt: formatTime(trip.createdAt),
+    updatedAt: formatTime(trip.updatedAt),
     site: siteName(trip.siteCode),
     plate: trip.plate,
     material: trip.materialName,

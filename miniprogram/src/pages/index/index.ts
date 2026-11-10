@@ -7,6 +7,7 @@ import {
   errorMessage,
   matches,
   requireLogin,
+  sortTrips,
 } from '@/features/grain/page'
 import { exitEligible, roleLabels } from '@/features/grain/presentation'
 import { demo } from '@/features/grain/service'
@@ -45,7 +46,7 @@ Page({
           return this.data.gateHistory ? !!trip.exitedAt : exitEligible(trip)
         })
         this.setData({
-          trips: cards(trips),
+          trips: cards(sortTrips(trips, current.role)),
           role: current.role,
           roleName: roleLabels[current.role],
           canSwitch: current.user.roles.length > 1,

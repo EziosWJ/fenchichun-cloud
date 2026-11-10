@@ -60,6 +60,7 @@ export interface Trip extends Registration {
   number?: string
   version: number
   createdAt: string
+  updatedAt?: string
   method: InspectionMethod
   inspection: Inspection | null
   unload: { location: string, at: string } | null

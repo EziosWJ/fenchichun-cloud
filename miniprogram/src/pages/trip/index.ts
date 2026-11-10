@@ -56,6 +56,26 @@ Page({
       }
       const apply = (trip: Trip) => {
         const status = tripStatus(trip)
+        const expanded = {
+          registration: false,
+          inspection: false,
+          unload: false,
+          ticket: false,
+          permit: false,
+          events: false,
+        }
+        if (status.action === 'visual' || trip.stage === 'pending_inspection' || trip.stage === 'rejected') {
+          expanded.inspection = true
+        }
+        else if (status.action === 'unload') {
+          expanded.unload = true
+        }
+        else if (status.action === 'ticket') {
+          expanded.ticket = true
+        }
+        else if (status.action === 'issue' || status.action === 'approve' || trip.stage === 'permit_approved') {
+          expanded.permit = true
+        }
         this.setData({
           trip,
           events: trip.events.map((event, key) => ({ ...event, key })),
@@ -66,6 +86,7 @@ Page({
           actionLabel: actionLabels[status.action] || '',
           editable: env.mock && canEdit(trip),
           inspection: inspectionText(trip),
+          expanded,
         })
         this.setData({ loading: false })
       }

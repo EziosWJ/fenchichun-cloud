@@ -1,14 +1,22 @@
+import type { TimeRange } from '@/features/grain/page'
 import {
   applyAsync,
   cards,
   errorMessage,
   matches,
   requireLogin,
+  withinTimeRange,
 } from '@/features/grain/page'
 import { demo } from '@/features/grain/service'
 
 Page({
-  data: { loading: true, error: '', query: '', trips: cards([]) },
+  data: {
+    loading: true,
+    error: '',
+    query: '',
+    range: 'all' as TimeRange,
+    trips: cards([]),
+  },
   onShow() {
     this.load()
   },
@@ -22,7 +30,9 @@ Page({
         demo.listTrips(),
         (all) => {
           this.setData({
-            trips: cards(all.filter(trip => matches(trip, this.data.query))),
+            trips: cards(all.filter(trip =>
+              withinTimeRange(trip, this.data.range) && matches(trip, this.data.query),
+            )),
           })
           this.setData({ loading: false })
         },
@@ -37,6 +47,10 @@ Page({
   },
   search(event: WechatMiniprogram.Input) {
     this.setData({ query: event.detail.value })
+    this.load()
+  },
+  setRange(event: WechatMiniprogram.BaseEvent) {
+    this.setData({ range: event.currentTarget.dataset.range as TimeRange })
     this.load()
   },
 })

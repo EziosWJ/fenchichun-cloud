@@ -3,6 +3,13 @@
   <view class="subtle">包含进行中和已出厂的每一趟记录</view>
   <view class="spacer"></view>
   <input class="search-input" value="{{query}}" placeholder="搜索车牌或流转单号" placeholder-class="field-placeholder" bindinput="search" />
+  <view class="range-row">
+    <view class="range-chip {{range === 'all' ? 'active' : ''}}" data-range="all" bindtap="setRange">全部</view>
+    <view class="range-chip {{range === 'today' ? 'active' : ''}}" data-range="today" bindtap="setRange">今天</view>
+    <view class="range-chip {{range === '3d' ? 'active' : ''}}" data-range="3d" bindtap="setRange">近3天</view>
+    <view class="range-chip {{range === '7d' ? 'active' : ''}}" data-range="7d" bindtap="setRange">近7天</view>
+    <view class="range-chip {{range === '30d' ? 'active' : ''}}" data-range="30d" bindtap="setRange">近30天</view>
+  </view>
   <loading-state wx:if="{{loading}}" text="正在加载流转单" />
   <error-state wx:elif="{{error}}" text="{{error}}" bind:retry="load" />
   <empty-state wx:elif="{{!trips.length}}" text="{{query ? '没有匹配的流转单' : '暂无流转单'}}" />
