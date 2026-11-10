@@ -73,7 +73,7 @@
         <view class="record-sheet">
           <view class="record-header"><view><view class="record-title">正式过磅单</view><view class="record-caption">{{trip.ticket ? '磅单号 ' + trip.ticket.id : '磅单关联信息'}}</view></view><text class="record-badge">{{trip.ticket ? '已关联' : (trip.inspection && trip.inspection.conclusion === 'reject' ? '无需关联' : (trip.ticketAvailable ? '待关联' : '未关联'))}}</text></view>
           <view wx:if="{{!trip.ticket}}" class="record-empty">{{trip.inspection && trip.inspection.conclusion === 'reject' ? '本趟拒收退厂，无需关联磅单' : (trip.ticketAvailable ? '磅单已同步，请核对并关联' : (trip.unload ? '尚未关联；等待同步不代表现场没有称重' : '尚未关联'))}}</view>
-          <view wx:if="{{!trip.ticket && action === 'ticket' && waiting}}" class="record-action"><text class="text-link" bindtap="act">查看磅单候选 ›</text></view>
+          <view wx:if="{{!trip.ticket && action === 'ticket'}}" class="record-action"><text class="text-link" bindtap="act">查看磅单候选 ›</text></view>
           <block wx:if="{{trip.ticket}}">
             <view class="record-row"><text class="record-label">车牌 / 厂区</text><text class="record-value">{{trip.ticket.plate}} / {{trip.ticket.site}}</text></view>
             <view class="record-row"><text class="record-label">货品 / 供应商</text><text class="record-value">{{trip.ticket.material}} / {{trip.ticket.supplier || '未提供'}}</text></view>

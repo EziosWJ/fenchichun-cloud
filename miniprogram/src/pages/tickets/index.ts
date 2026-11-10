@@ -1,6 +1,5 @@
 import type { Ticket, Trip } from '@/features/grain/types'
-import { env } from '@/config/env'
-import { errorMessage, requireLogin } from '@/features/grain/page'
+import { applyAsync, errorMessage, requireLogin } from '@/features/grain/page'
 import { demo } from '@/features/grain/service'
 
 Page({
@@ -24,28 +23,38 @@ Page({
       if (!requireLogin('warehouse')) {
         return
       }
-      if (!env.mock) {
-        throw new Error('请在网页版关联磅单')
+      const applyTrip = (trip: Trip) => {
+        if (!trip.unload || trip.ticket || trip.exitedAt) {
+          throw new Error('本趟状态已变化，请返回详情查看')
+        }
+        applyAsync(
+          demo.candidates(trip.serverId || trip.id),
+          (tickets) => {
+            this.setData({ trip, tickets })
+            this.setData({ loading: false })
+          },
+          (error) => {
+            this.setData({ error: errorMessage(error), loading: false })
+          },
+        )
       }
-      const trip = demo.getTrip(this.data.id)
-      if (!trip.unload || trip.ticket || trip.exitedAt) {
-        throw new Error('本趟状态已变化，请返回详情查看')
-      }
-      this.setData({ trip, tickets: demo.candidates(trip.id) })
+      applyAsync(demo.getTrip(this.data.id), applyTrip, (error) => {
+        this.setData({ error: errorMessage(error), loading: false })
+      })
     }
     catch (error) {
-      this.setData({ error: errorMessage(error) })
-    }
-    finally {
-      this.setData({ loading: false })
+      this.setData({ error: errorMessage(error), loading: false })
     }
   },
   link(event: WechatMiniprogram.BaseEvent) {
-    const trip = this.data.trip
     const ticket = this.data.tickets.find(
       item => item.id === event.currentTarget.dataset.id,
     )
-    if (!trip || !ticket || this.data.confirming) {
+    if (!ticket) {
+      return
+    }
+    const trip = this.data.trip
+    if (!trip || this.data.confirming) {
       return
     }
     this.setData({ confirming: true })
@@ -53,23 +62,48 @@ Page({
       title: '关联正式磅单',
       content: `请核对 ${trip.plate}、${ticket.material}、${ticket.supplier}及磅单 ${ticket.id}，确认关联？`,
       success: ({ confirm }) => {
-        if (!confirm) {
-          return
+        if (confirm) {
+          this.submitLink(ticket.id)
         }
-        try {
-          demo.linkTicket(trip.id, trip.version, ticket.id)
+        else {
+          this.setData({ confirming: false })
+        }
+      },
+    })
+  },
+  submitLink(ticketId: string) {
+    const trip = this.data.trip
+    const ticket = this.data.tickets.find(item => item.id === ticketId)
+    if (!trip || !ticket) {
+      return
+    }
+    this.setData({ confirming: true })
+    try {
+      applyAsync(
+        demo.linkTicket(trip.serverId || trip.id, trip.version, ticket.id),
+        () => {
+          this.setData({ confirming: false })
           wx.navigateBack()
-        }
-        catch (error) {
+        },
+        (error) => {
           wx.showModal({
             title: '关联未完成',
             content: errorMessage(error),
             showCancel: false,
           })
+          this.setData({ confirming: false })
           this.load()
-        }
-      },
-      complete: () => this.setData({ confirming: false }),
-    })
+        },
+      )
+    }
+    catch (error) {
+      wx.showModal({
+        title: '关联未完成',
+        content: errorMessage(error),
+        showCancel: false,
+      })
+      this.setData({ confirming: false })
+      this.load()
+    }
   },
 })

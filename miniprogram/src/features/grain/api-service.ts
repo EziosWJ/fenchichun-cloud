@@ -101,6 +101,22 @@ interface ServerEvent {
   createdAt: string
 }
 
+interface ServerCandidate {
+  siteCode: string
+  ticketNo: string
+  plate: string
+  materialName: string
+  partyName: string
+  finalGross: string
+  finalTare: string
+  finalNetMilliTonne: number
+  firstConfirmedAt: string
+  secondConfirmedAt: string
+  issuedAt: string
+  linkable: boolean
+  reason: string
+}
+
 interface ServerDetail {
   trip: ServerTrip
   inspections: ServerInspection[]
@@ -482,17 +498,51 @@ export const demo = {
     })
     return adaptTrip(detail.trip, detail)
   },
-  candidates() {
-    return []
+  async candidates(id: string) {
+    const list = await request<ServerCandidate[]>({
+      path: `/grain-intake/trips/${id}/ticket-candidates`,
+    })
+    return list
+      .filter(item => item.linkable)
+      .map(item => ({
+        id: item.ticketNo,
+        tripId: '',
+        site: siteName(item.siteCode),
+        plate: item.plate,
+        material: item.materialName,
+        supplier: item.partyName,
+        firstAt: formatTime(item.firstConfirmedAt),
+        secondAt: formatTime(item.secondConfirmedAt),
+        gross: item.finalGross,
+        tare: item.finalTare,
+        net: `${(item.finalNetMilliTonne / 1000).toFixed(3)} 吨`,
+        deducted: `${(item.finalNetMilliTonne / 1000).toFixed(3)} 吨`,
+      }))
+  },
+  async linkTicket(id: string, version: number, ticketNo: string) {
+    const list = await request<ServerCandidate[]>({
+      path: `/grain-intake/trips/${id}/ticket-candidates`,
+    })
+    const candidate = list.find(item => item.ticketNo === ticketNo && item.linkable)
+    if (!candidate) {
+      finish('磅单不可关联，请刷新候选后重新核对')
+    }
+    const detail = await request<ServerDetail>({
+      path: `/grain-intake/trips/${id}/link-ticket`,
+      method: 'POST',
+      data: {
+        version,
+        ticketSiteCode: candidate.siteCode,
+        ticketNo,
+      },
+    })
+    return adaptTrip(detail.trip, detail)
   },
   simulationTasks() {
     return { lab: [], weigh: [] }
   },
   recordVisual() {
     finish('请在网页版录入目测结果')
-  },
-  linkTicket() {
-    finish('请在网页版过磅并关联磅单')
   },
   simulateLab() {
     finish('模拟化验仅在离线演示模式可用')
