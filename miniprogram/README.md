@@ -65,15 +65,17 @@ WSL 中可先尝试让 Windows 微信开发者工具直接导入 WSL 项目路�
 
 ## 环境
 
-提交的 .env.development、.env.test、.env.production 仅含非敏感默认值。APP_API_BASE_URL 暂为 example.invalid 占位，未接入真实服务；APP_MOCK 开发/测试为 true，生产为 false。可用对应 `.env.<mode>.local` 覆盖，进程环境变量优先级最高。
+提交的 .env.development、.env.test、.env.production 仅含非敏感默认值。APP_API_BASE_URL 在提交文件中仍为 example.invalid 占位；本地开发用 `.env.development.local` 指向实际后端。APP_MOCK 开发/测试为 true，生产为 false。可用对应 `.env.<mode>.local` 覆盖，进程环境变量优先级最高。
 
-配置在构建时注入，不在小程序内读取 process.env。生产强制禁止 Mock；不会回退到开发地址。正式对接前必须设置真实 HTTPS BaseURL 并配置微信 request 合法域名，真机不能使用电脑 localhost。编译进小程序的配置不是密钥存储。
+配置在构建时注入，不在小程序内读取 process.env。开发/测试模式允许 `localhost`、`127.0.0.1` 和 `192.168.x.x` 的 HTTP 地址；生产构建仍强制 HTTPS。正式对接前必须设置真实 HTTPS BaseURL 并配置微信 request 合法域名，真机不能使用电脑 localhost。编译进小程序的配置不是密钥存储。
 
-原粮演示通过 `src/features/grain/` 中的本地状态服务和微信本地存储实现，不调用 `wx.request`。构建配置在关闭 Mock 时将演示服务替换为不可用实现；生产构建强制禁止 Mock，不打包演示账号、预置业务数据或模拟状态服务。生产登录页显示待接入，不能以演示账号登录，也不会发出虚构业务请求。无微信登录、手机号登录、刷新 Token 或服务端登录接口假设。
+原粮演示通过 `src/features/grain/` 中的本地状态服务和微信本地存储实现；业务数据不写后端。唯一运行时请求是匿名只读的字典接口 `GET /api/v1/miniprogram/dictionaries`，用于刷新厂区、货品、供应商和粮仓。构建配置在关闭 Mock 时将演示服务替换为不可用实现；生产构建强制禁止 Mock，不打包演示账号、预置业务数据或模拟状态服务。生产登录页显示待接入，不能以演示账号登录，也不会发出虚构业务请求。无微信登录、手机号登录、刷新 Token 或服务端登录接口假设。
 
 ### 字典同步
 
-小程序演示模式不连接后端。登记页的厂区、货品、供应商，以及卸粮页的粮仓，均来自 `src/features/grain/dictionary.ts` 快照；该文件由网页版接口生成，不是运行时实时数据。网页版基础资料变化后，在 `miniprogram` 目录执行：
+小程序启动时匿名请求网页版的 `/api/v1/miniprogram/dictionaries`，成功后写入 `grain.dictionary.v1` 本地缓存并更新下拉选项；请求失败时依次使用上次缓存和构建时快照。
+
+`src/features/grain/dictionary.ts` 是离线兜底快照。网页版基础资料变化后，可重新生成它（接口不可用或首次离线启动时使用）：
 
 ```sh
 WEB_API_BASE_URL=http://<host>:8100/api/v1 \
@@ -84,7 +86,7 @@ npm run lint:fix
 npm run build:development
 ```
 
-生成文件不要手工编辑；命令不会把账号密码写入产物。同步后需在微信开发者工具中重新编译。
+生成文件不要手工编辑；命令不会把账号密码写入产物。运行时字典不需要重新生成快照，但需要网络可访问后端。
 
 ## 页面、组件与样式
 
@@ -96,7 +98,7 @@ npm run build:development
 
 ## 微信开发者工具
 
-project.config.json 使用用户确认的 AppID wx3fb7a0287d4cd3e2、基础库 3.13.2、glass-easel，构建输出 dist。实际基础库和 renderer 仍需 IDE/真机验收。真实 AppID、开发者权限、登录态、CLI 安装路径和服务端口必须本机配置。project.private.config.json 被忽略，不提交个人设置。
+project.config.json 使用用户确认的 AppID wx3fb7a0287d4cd3e2、基础库 3.13.2、glass-easel，构建输出 dist，并关闭了开发者工具的 request 域名校验（`urlCheck: false`）。实际基础库和 renderer 仍需 IDE/真机验收。真实 AppID、开发者权限、登录态、CLI 安装路径和服务端口必须本机配置。project.private.config.json 被忽略，不提交个人设置。真机访问字典接口时仍必须在微信后台配置 HTTPS request 合法域名。
 
 Windows 上建议在 Windows Node 环境安装依赖；不要在同一 node_modules 混用 Windows 与 WSL 原生依赖。WSL 项目导入 Windows IDE 时要验证 UNC 路径、文件监视和自动化通道。缺少 IDE 权限不影响静态检查，但截图/真机验收不能视为通过。
 

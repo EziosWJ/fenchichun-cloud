@@ -27,8 +27,10 @@ export default defineConfig(({
     ...process.env,
   }
   const baseURL = values.APP_API_BASE_URL ?? ''
-  if (!/^https:\/\//.test(baseURL)) {
-    throw new Error('APP_API_BASE_URL 必须为 HTTPS URL')
+  const localDev = mode !== 'production'
+    && /^http:\/\/(?:localhost|127\.0\.0\.1|192\.168\.\d{1,3}\.\d{1,3})(?::\d+)?\//.test(baseURL)
+  if (!/^https:\/\//.test(baseURL) && !localDev) {
+    throw new Error('APP_API_BASE_URL 必须为 HTTPS URL（开发/测试可为本机或局域网 HTTP）')
   }
   const mock = values.APP_MOCK === 'true'
   if (mode === 'production' && mock) {

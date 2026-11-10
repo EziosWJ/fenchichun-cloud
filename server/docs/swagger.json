@@ -258,6 +258,30 @@
                 }
             }
         },
+        "/api/v1/grain-intake/trip-defaults": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "tags": [
+                    "原粮流转"
+                ],
+                "summary": "登记页默认值",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/api/v1/grain-intake/trips": {
             "get": {
                 "security": [
@@ -489,6 +513,76 @@
                 }
             }
         },
+        "/api/v1/granaries": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "tags": [
+                    "粮仓"
+                ],
+                "summary": "查询粮仓",
+                "parameters": [
+                    {
+                        "type": "boolean",
+                        "description": "仅启用",
+                        "name": "enabled",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/granary.Granary"
+                            }
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "tags": [
+                    "粮仓"
+                ],
+                "summary": "新增粮仓",
+                "responses": {}
+            }
+        },
+        "/api/v1/granaries/{id}": {
+            "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "tags": [
+                    "粮仓"
+                ],
+                "summary": "修改粮仓",
+                "responses": {}
+            },
+            "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "tags": [
+                    "粮仓"
+                ],
+                "summary": "删除粮仓",
+                "responses": {}
+            }
+        },
         "/api/v1/laboratory/inspections": {
             "get": {
                 "security": [
@@ -499,7 +593,7 @@
                 "tags": [
                     "化验室"
                 ],
-                "summary": "分页查询独立化验单",
+                "summary": "分页查询化验记录",
                 "parameters": [
                     {
                         "type": "integer",
@@ -521,7 +615,7 @@
                     },
                     {
                         "type": "string",
-                        "description": "draft/confirmed/void",
+                        "description": "confirmed/void",
                         "name": "status",
                         "in": "query"
                     },
@@ -529,12 +623,6 @@
                         "type": "integer",
                         "description": "流转单ID",
                         "name": "tripId",
-                        "in": "query"
-                    },
-                    {
-                        "type": "boolean",
-                        "description": "仅查询未关联流转单的化验单",
-                        "name": "unlinked",
                         "in": "query"
                     }
                 ],
@@ -553,13 +641,14 @@
                         "BearerAuth": []
                     }
                 ],
+                "description": "必须关联流转单；一张流转单只能录入一次；结果只有接收/拒收；拒收必须填写原因。",
                 "tags": [
                     "化验室"
                 ],
-                "summary": "保存化验单草稿",
+                "summary": "为流转单录入化验结果（提交即生效）",
                 "parameters": [
                     {
-                        "description": "化验单草稿（水分%、杂质%、容重g/L；最多6位小数）",
+                        "description": "流转单ID、三项检测值与结论",
                         "name": "request",
                         "in": "body",
                         "required": true,
@@ -588,7 +677,7 @@
                 "tags": [
                     "化验室"
                 ],
-                "summary": "查询独立化验单详情",
+                "summary": "查询化验记录详情",
                 "parameters": [
                     {
                         "type": "integer",
@@ -596,43 +685,6 @@
                         "name": "id",
                         "in": "path",
                         "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/laboratory.Response"
-                        }
-                    }
-                }
-            },
-            "put": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "tags": [
-                    "化验室"
-                ],
-                "summary": "更新化验单草稿（确认后禁止修改）",
-                "parameters": [
-                    {
-                        "type": "integer",
-                        "description": "化验单ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "description": "草稿及当前版本",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/laboratory.SaveRequest"
-                        }
                     }
                 ],
                 "responses": {
@@ -645,54 +697,18 @@
                 }
             }
         },
-        "/api/v1/laboratory/inspections/{id}/{action}": {
-            "post": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "confirm要求信息完整且拒收填写原因；void仅限已确认单且须原因；delete仅限草稿；retest仅限已确认单，新建关联草稿，不改变原单。",
+        "/api/v1/miniprogram/dictionaries": {
+            "get": {
+                "description": "返回启用中的厂区、货品、供应商和粮仓，供微信小程序缓存使用，不需要登录。",
                 "tags": [
-                    "化验室"
+                    "小程序"
                 ],
-                "summary": "确认、作废、删除草稿或建立复检单",
-                "parameters": [
-                    {
-                        "type": "integer",
-                        "description": "化验单ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "enum": [
-                            "confirm",
-                            "void",
-                            "delete",
-                            "retest"
-                        ],
-                        "type": "string",
-                        "description": "动作",
-                        "name": "action",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "description": "当前版本及作废原因",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/laboratory.ActionRequest"
-                        }
-                    }
-                ],
+                "summary": "小程序匿名字典",
                 "responses": {
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/laboratory.Response"
+                            "$ref": "#/definitions/miniprogram.Dictionary"
                         }
                     }
                 }
@@ -6589,6 +6605,12 @@
                 "id": {
                     "type": "integer"
                 },
+                "inspectionConclusion": {
+                    "type": "string"
+                },
+                "inspectionId": {
+                    "type": "integer"
+                },
                 "inspectionMethod": {
                     "type": "string"
                 },
@@ -6685,14 +6707,26 @@
                 }
             }
         },
-        "laboratory.ActionRequest": {
+        "granary.Granary": {
             "type": "object",
             "properties": {
-                "reason": {
+                "createdAt": {
                     "type": "string"
                 },
-                "version": {
+                "enabled": {
+                    "type": "boolean"
+                },
+                "id": {
                     "type": "integer"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "remark": {
+                    "type": "string"
+                },
+                "updatedAt": {
+                    "type": "string"
                 }
             }
         },
@@ -6883,56 +6917,6 @@
                 }
             }
         },
-        "laboratory.SaveRequest": {
-            "type": "object",
-            "properties": {
-                "bulkDensity": {
-                    "type": "string"
-                },
-                "conclusion": {
-                    "type": "string"
-                },
-                "contractNo": {
-                    "type": "string"
-                },
-                "driver": {
-                    "type": "string"
-                },
-                "driverPhone": {
-                    "type": "string"
-                },
-                "impurity": {
-                    "type": "string"
-                },
-                "materialCode": {
-                    "type": "string"
-                },
-                "moisture": {
-                    "type": "string"
-                },
-                "partyCode": {
-                    "type": "string"
-                },
-                "plate": {
-                    "type": "string"
-                },
-                "reason": {
-                    "type": "string"
-                },
-                "remark": {
-                    "type": "string"
-                },
-                "siteCode": {
-                    "type": "string"
-                },
-                "tripId": {
-                    "type": "integer"
-                },
-                "version": {
-                    "type": "integer"
-                }
-            }
-        },
         "logmgmt.ApiEnvelope": {
             "type": "object",
             "properties": {
@@ -6941,6 +6925,85 @@
                 },
                 "data": {},
                 "message": {
+                    "type": "string"
+                }
+            }
+        },
+        "miniprogram.Dictionary": {
+            "type": "object",
+            "properties": {
+                "granaries": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/miniprogram.Granary"
+                    }
+                },
+                "materials": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/miniprogram.Material"
+                    }
+                },
+                "sites": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/miniprogram.Site"
+                    }
+                },
+                "suppliers": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/miniprogram.Supplier"
+                    }
+                },
+                "version": {
+                    "type": "string"
+                }
+            }
+        },
+        "miniprogram.Granary": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "integer"
+                },
+                "name": {
+                    "type": "string"
+                }
+            }
+        },
+        "miniprogram.Material": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "string"
+                },
+                "inspectionMethod": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                }
+            }
+        },
+        "miniprogram.Site": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                }
+            }
+        },
+        "miniprogram.Supplier": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "string"
+                },
+                "name": {
                     "type": "string"
                 }
             }

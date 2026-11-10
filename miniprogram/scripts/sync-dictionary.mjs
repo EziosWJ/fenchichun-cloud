@@ -60,7 +60,7 @@ async function main() {
       .map(item => ({
         code: item.code,
         name: item.name,
-        method: item.inspectionMethod === 'visual' ? 'visual' : 'lab',
+        inspectionMethod: item.inspectionMethod === 'visual' ? 'visual' : 'lab',
       })),
     suppliers: parties
       .filter(item => item.isSupplier && item.enabled)
@@ -73,7 +73,7 @@ async function main() {
 export interface DemoDictionaryMaterial {
   code: string
   name: string
-  method: 'lab' | 'visual'
+  inspectionMethod: 'lab' | 'visual'
 }
 
 export interface DemoDictionaryParty {

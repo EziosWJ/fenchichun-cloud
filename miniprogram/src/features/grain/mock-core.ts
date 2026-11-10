@@ -2,6 +2,7 @@ import type {
   Conclusion,
   DemoState,
   DemoStorage,
+  DictionaryPayload,
   Inspection,
   InspectionMethod,
   Registration,
@@ -38,7 +39,7 @@ const options: {
   sites: demoDictionary.sites.map(item => item.name),
   materials: demoDictionary.materials.map(item => ({
     name: item.name,
-    method: item.method,
+    method: item.inspectionMethod,
   })),
   suppliers: demoDictionary.suppliers.map(item => item.name),
   granaries: demoDictionary.granaries.map(item => item.name),
@@ -317,6 +318,15 @@ export function createDemoService(
   }
   return {
     options: () => copy(options),
+    setDictionary(dictionary: DictionaryPayload) {
+      options.sites = dictionary.sites.map(item => item.name)
+      options.materials = dictionary.materials.map(item => ({
+        name: item.name,
+        method: item.inspectionMethod,
+      }))
+      options.suppliers = dictionary.suppliers.map(item => item.name)
+      options.granaries = dictionary.granaries.map(item => item.name)
+    },
     current() {
       const state = read()
       if (

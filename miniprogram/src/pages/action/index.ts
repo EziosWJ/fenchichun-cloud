@@ -1,4 +1,9 @@
 import type { Conclusion, Trip } from '@/features/grain/types'
+import {
+  currentDictionary,
+  refreshDictionary,
+  sameDictionary,
+} from '@/features/grain/dictionary-service'
 import { errorMessage, requireLogin } from '@/features/grain/page'
 import { tripStatus } from '@/features/grain/presentation'
 import { demo } from '@/features/grain/service'
@@ -25,12 +30,13 @@ Page({
     })
     this.load()
   },
-  load() {
+  load(refresh: unknown = true) {
     this.setData({ loading: true, error: '' })
     try {
       if (!requireLogin('warehouse')) {
         return
       }
+      const dictionary = currentDictionary()
       const trip = demo.getTrip(this.data.id)
       if (
         tripStatus(trip).action !== this.data.action
@@ -40,7 +46,7 @@ Page({
       }
       this.setData({
         trip,
-        granaries: ['请选择卸粮地点', ...demo.options().granaries],
+        granaries: ['请选择卸粮地点', ...dictionary.granaries.map(item => item.name)],
       })
     }
     catch (error) {
@@ -49,6 +55,17 @@ Page({
     finally {
       this.setData({ loading: false })
     }
+    if (refresh !== false) {
+      this.refresh()
+    }
+  },
+  refresh() {
+    const before = currentDictionary()
+    void refreshDictionary().then((after) => {
+      if (after && !sameDictionary(before, after)) {
+        this.load(false)
+      }
+    })
   },
   selectConclusion(event: WechatMiniprogram.BaseEvent) {
     this.setData({

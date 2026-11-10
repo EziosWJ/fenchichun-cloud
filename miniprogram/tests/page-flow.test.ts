@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict'
-import { readFileSync } from 'node:fs'
+import { existsSync, readFileSync } from 'node:fs'
 import { dirname, resolve } from 'node:path'
 import test from 'node:test'
 import { fileURLToPath } from 'node:url'
@@ -65,7 +65,8 @@ function runtime() {
     },
   })
   function load(path: string, cache = true): unknown {
-    const file = path.endsWith('.ts') ? path : `${path}.ts`
+    const candidate = path.endsWith('.ts') ? path : `${path}.ts`
+    const file = existsSync(candidate) ? candidate : resolve(path, 'index.ts')
     if (cache && modules.has(file)) {
       return modules.get(file)!.exports
     }

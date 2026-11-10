@@ -76,3 +76,32 @@ export interface DemoStorage {
   get: () => unknown
   set: (state: DemoState) => void
 }
+
+export interface DictionarySite {
+  code: string
+  name: string
+}
+
+export interface DictionaryMaterial {
+  code: string
+  name: string
+  inspectionMethod: InspectionMethod
+}
+
+export interface DictionaryParty {
+  code: string
+  name: string
+}
+
+export interface DictionaryGranary {
+  id: number
+  name: string
+}
+
+export interface DictionaryPayload {
+  version: string
+  sites: DictionarySite[]
+  materials: DictionaryMaterial[]
+  suppliers: DictionaryParty[]
+  granaries: DictionaryGranary[]
+}

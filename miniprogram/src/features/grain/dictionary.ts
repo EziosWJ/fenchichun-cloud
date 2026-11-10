@@ -1,9 +1,9 @@
 // 由 scripts/sync-dictionary.mjs 从网页版接口生成，请勿手工编辑。
-// syncedAt: 2026-11-10T02:08:53.944Z
+// syncedAt: 2026-11-10T02:22:53.204Z
 export interface DemoDictionaryMaterial {
   code: string
   name: string
-  method: 'lab' | 'visual'
+  inspectionMethod: 'lab' | 'visual'
 }
 
 export interface DemoDictionaryParty {
@@ -12,7 +12,7 @@ export interface DemoDictionaryParty {
 }
 
 export const demoDictionary = {
-  syncedAt: '2026-11-10T02:08:53.944Z',
+  syncedAt: '2026-11-10T02:22:53.204Z',
   sites: [
     {
       code: 'F001',
@@ -23,52 +23,52 @@ export const demoDictionary = {
     {
       code: 'C-M-0001',
       name: '豌豆',
-      method: 'lab',
+      inspectionMethod: 'lab',
     },
     {
       code: 'C-M-0002',
       name: '酒曲',
-      method: 'lab',
+      inspectionMethod: 'lab',
     },
     {
       code: 'C-M-0003',
       name: '稻壳',
-      method: 'lab',
+      inspectionMethod: 'lab',
     },
     {
       code: 'C-M-0004',
       name: '基酒',
-      method: 'lab',
+      inspectionMethod: 'lab',
     },
     {
       code: 'C-M-0005',
       name: '成品白酒',
-      method: 'lab',
+      inspectionMethod: 'lab',
     },
     {
       code: 'C-M-0006',
       name: '酒糟',
-      method: 'lab',
+      inspectionMethod: 'lab',
     },
     {
       code: 'C-M-0007',
       name: '大麦',
-      method: 'lab',
+      inspectionMethod: 'lab',
     },
     {
       code: 'C-M-0008',
       name: '木片',
-      method: 'visual',
+      inspectionMethod: 'visual',
     },
     {
       code: 'C-M-0009',
       name: '谷糠',
-      method: 'lab',
+      inspectionMethod: 'lab',
     },
     {
       code: 'C-M-0010',
       name: '高粱',
-      method: 'lab',
+      inspectionMethod: 'lab',
     },
   ],
   suppliers: [

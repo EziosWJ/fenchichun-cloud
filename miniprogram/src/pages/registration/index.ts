@@ -1,5 +1,10 @@
 import type { Registration } from '@/features/grain/types'
 import { routes } from '@/config/routes'
+import {
+  currentDictionary,
+  refreshDictionary,
+  sameDictionary,
+} from '@/features/grain/dictionary-service'
 import { errorMessage, requireLogin } from '@/features/grain/page'
 import { canEdit } from '@/features/grain/presentation'
 import { demo } from '@/features/grain/service'
@@ -41,12 +46,13 @@ Page({
     this.setData({ id: query.id || '', edit: !!query.id })
     this.load()
   },
-  load() {
+  load(refresh: unknown = true) {
     this.setData({ loading: true, error: '' })
     try {
       if (!requireLogin('warehouse')) {
         return
       }
+      currentDictionary()
       const options = demo.options()
       const sites = ['请选择厂区', ...options.sites]
       const materialNames = ['', ...options.materials.map(item => item.name)]
@@ -103,6 +109,17 @@ Page({
     finally {
       this.setData({ loading: false })
     }
+    if (refresh !== false) {
+      this.refresh()
+    }
+  },
+  refresh() {
+    const before = currentDictionary()
+    void refreshDictionary().then((after) => {
+      if (after && !sameDictionary(before, after)) {
+        this.load(false)
+      }
+    })
   },
   input(event: WechatMiniprogram.Input) {
     this.setData({

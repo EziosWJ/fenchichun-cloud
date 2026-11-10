@@ -22,6 +22,7 @@ import (
 	"fenchichun.local/server/internal/granary"
 	"fenchichun.local/server/internal/laboratory"
 	"fenchichun.local/server/internal/logmgmt"
+	"fenchichun.local/server/internal/miniprogram"
 	"fenchichun.local/server/internal/monitoring"
 	"fenchichun.local/server/internal/notification"
 	platformdatabase "fenchichun.local/server/internal/platform/database"
@@ -134,6 +135,7 @@ func main() {
 		GrainIntake:  grainintake.NewHandler(grainintake.NewService(grainintake.NewRepository(database.GORM))),
 		Granary:      granary.NewHandler(granary.NewService(granary.NewRepository(database.GORM))),
 		Laboratory:   laboratory.NewHandler(laboratory.NewService(laboratory.NewRepository(database.GORM))),
+		MiniProgram:  miniprogram.NewHandler(miniprogram.NewService(miniprogram.NewRepository(database.GORM))),
 		Weighbridge:  weighbridge.NewHandler(weighbridge.NewService(weighbridge.NewRepository(database.GORM))),
 	})
 	if err != nil {

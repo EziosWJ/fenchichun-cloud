@@ -446,6 +446,10 @@ definitions:
         type: integer
       id:
         type: integer
+      inspectionConclusion:
+        type: string
+      inspectionId:
+        type: integer
       inspectionMethod:
         type: string
       materialCode:
@@ -509,12 +513,20 @@ definitions:
       message:
         type: string
     type: object
-  laboratory.ActionRequest:
+  granary.Granary:
     properties:
-      reason:
+      createdAt:
         type: string
-      version:
+      enabled:
+        type: boolean
+      id:
         type: integer
+      name:
+        type: string
+      remark:
+        type: string
+      updatedAt:
+        type: string
     type: object
   laboratory.Input:
     properties:
@@ -639,45 +651,63 @@ definitions:
       message:
         type: string
     type: object
-  laboratory.SaveRequest:
-    properties:
-      bulkDensity:
-        type: string
-      conclusion:
-        type: string
-      contractNo:
-        type: string
-      driver:
-        type: string
-      driverPhone:
-        type: string
-      impurity:
-        type: string
-      materialCode:
-        type: string
-      moisture:
-        type: string
-      partyCode:
-        type: string
-      plate:
-        type: string
-      reason:
-        type: string
-      remark:
-        type: string
-      siteCode:
-        type: string
-      tripId:
-        type: integer
-      version:
-        type: integer
-    type: object
   logmgmt.ApiEnvelope:
     properties:
       code:
         type: integer
       data: {}
       message:
+        type: string
+    type: object
+  miniprogram.Dictionary:
+    properties:
+      granaries:
+        items:
+          $ref: '#/definitions/miniprogram.Granary'
+        type: array
+      materials:
+        items:
+          $ref: '#/definitions/miniprogram.Material'
+        type: array
+      sites:
+        items:
+          $ref: '#/definitions/miniprogram.Site'
+        type: array
+      suppliers:
+        items:
+          $ref: '#/definitions/miniprogram.Supplier'
+        type: array
+      version:
+        type: string
+    type: object
+  miniprogram.Granary:
+    properties:
+      id:
+        type: integer
+      name:
+        type: string
+    type: object
+  miniprogram.Material:
+    properties:
+      code:
+        type: string
+      inspectionMethod:
+        type: string
+      name:
+        type: string
+    type: object
+  miniprogram.Site:
+    properties:
+      code:
+        type: string
+      name:
+        type: string
+    type: object
+  miniprogram.Supplier:
+    properties:
+      code:
+        type: string
+      name:
         type: string
     type: object
   monitoring.CPU:
@@ -1875,6 +1905,20 @@ paths:
       summary: 门卫查询待核验拒收车辆
       tags:
       - 出门证
+  /api/v1/grain-intake/trip-defaults:
+    get:
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: 登记页默认值
+      tags:
+      - 原粮流转
   /api/v1/grain-intake/trips:
     get:
       parameters:
@@ -2020,6 +2064,47 @@ paths:
       summary: 查询本趟可关联的正式磅单
       tags:
       - 原粮流转
+  /api/v1/granaries:
+    get:
+      parameters:
+      - description: 仅启用
+        in: query
+        name: enabled
+        type: boolean
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/granary.Granary'
+            type: array
+      security:
+      - BearerAuth: []
+      summary: 查询粮仓
+      tags:
+      - 粮仓
+    post:
+      responses: {}
+      security:
+      - BearerAuth: []
+      summary: 新增粮仓
+      tags:
+      - 粮仓
+  /api/v1/granaries/{id}:
+    delete:
+      responses: {}
+      security:
+      - BearerAuth: []
+      summary: 删除粮仓
+      tags:
+      - 粮仓
+    put:
+      responses: {}
+      security:
+      - BearerAuth: []
+      summary: 修改粮仓
+      tags:
+      - 粮仓
   /api/v1/laboratory/inspections:
     get:
       parameters:
@@ -2035,7 +2120,7 @@ paths:
         in: query
         name: keyword
         type: string
-      - description: draft/confirmed/void
+      - description: confirmed/void
         in: query
         name: status
         type: string
@@ -2043,10 +2128,6 @@ paths:
         in: query
         name: tripId
         type: integer
-      - description: 仅查询未关联流转单的化验单
-        in: query
-        name: unlinked
-        type: boolean
       responses:
         "200":
           description: OK
@@ -2054,12 +2135,13 @@ paths:
             $ref: '#/definitions/laboratory.PageResponse'
       security:
       - BearerAuth: []
-      summary: 分页查询独立化验单
+      summary: 分页查询化验记录
       tags:
       - 化验室
     post:
+      description: 必须关联流转单；一张流转单只能录入一次；结果只有接收/拒收；拒收必须填写原因。
       parameters:
-      - description: 化验单草稿（水分%、杂质%、容重g/L；最多6位小数）
+      - description: 流转单ID、三项检测值与结论
         in: body
         name: request
         required: true
@@ -2072,7 +2154,7 @@ paths:
             $ref: '#/definitions/laboratory.Response'
       security:
       - BearerAuth: []
-      summary: 保存化验单草稿
+      summary: 为流转单录入化验结果（提交即生效）
       tags:
       - 化验室
   /api/v1/laboratory/inspections/{id}:
@@ -2090,67 +2172,20 @@ paths:
             $ref: '#/definitions/laboratory.Response'
       security:
       - BearerAuth: []
-      summary: 查询独立化验单详情
+      summary: 查询化验记录详情
       tags:
       - 化验室
-    put:
-      parameters:
-      - description: 化验单ID
-        in: path
-        name: id
-        required: true
-        type: integer
-      - description: 草稿及当前版本
-        in: body
-        name: request
-        required: true
-        schema:
-          $ref: '#/definitions/laboratory.SaveRequest'
+  /api/v1/miniprogram/dictionaries:
+    get:
+      description: 返回启用中的厂区、货品、供应商和粮仓，供微信小程序缓存使用，不需要登录。
       responses:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/laboratory.Response'
-      security:
-      - BearerAuth: []
-      summary: 更新化验单草稿（确认后禁止修改）
+            $ref: '#/definitions/miniprogram.Dictionary'
+      summary: 小程序匿名字典
       tags:
-      - 化验室
-  /api/v1/laboratory/inspections/{id}/{action}:
-    post:
-      description: confirm要求信息完整且拒收填写原因；void仅限已确认单且须原因；delete仅限草稿；retest仅限已确认单，新建关联草稿，不改变原单。
-      parameters:
-      - description: 化验单ID
-        in: path
-        name: id
-        required: true
-        type: integer
-      - description: 动作
-        enum:
-        - confirm
-        - void
-        - delete
-        - retest
-        in: path
-        name: action
-        required: true
-        type: string
-      - description: 当前版本及作废原因
-        in: body
-        name: request
-        required: true
-        schema:
-          $ref: '#/definitions/laboratory.ActionRequest'
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/laboratory.Response'
-      security:
-      - BearerAuth: []
-      summary: 确认、作废、删除草稿或建立复检单
-      tags:
-      - 化验室
+      - 小程序
   /api/v1/monitoring/history:
     get:
       parameters:

@@ -7,6 +7,7 @@ function unavailable(): never {
 // Production builds resolve the service import here and never bundle the demo implementation.
 export const demo: DemoService = {
   options: unavailable,
+  setDictionary: () => {},
   current: () => null,
   login: unavailable,
   logout: unavailable,

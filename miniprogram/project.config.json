@@ -23,6 +23,7 @@
     "compileHotReLoad": false,
     "skylineRenderEnable": false,
     "packNpmManually": true,
+    "urlCheck": false,
     "es6": true,
     "minifyWXML": true
   },

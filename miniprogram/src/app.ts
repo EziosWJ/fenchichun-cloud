@@ -1,10 +1,14 @@
 import {
+  refreshDictionary,
+} from '@/features/grain/dictionary-service'
+import {
   session,
 } from '@/utils/api'
 
 App({
   onLaunch() {
     session.restore()
+    void refreshDictionary()
   },
   onError() {
     wx.showToast({
