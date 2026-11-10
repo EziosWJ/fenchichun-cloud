@@ -1,6 +1,5 @@
 import type { DictionaryPayload } from './types'
 import { demoDictionary } from '@/features/grain/dictionary-snapshot'
-import { demo } from '@/features/grain/service'
 import { request } from '@/utils/api'
 
 const CACHE_KEY = 'grain.dictionary.v1'
@@ -49,7 +48,6 @@ export function currentDictionary(): DictionaryPayload {
   if (!cached) {
     cached = readCache() ?? snapshot()
   }
-  demo.setDictionary(cached)
   return cached
 }
 
@@ -69,7 +67,6 @@ export function refreshDictionary(): Promise<DictionaryPayload | null> {
         return null
       }
       cached = value
-      demo.setDictionary(value)
       try {
         wx.setStorageSync(CACHE_KEY, value)
       }

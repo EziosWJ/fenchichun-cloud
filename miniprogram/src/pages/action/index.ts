@@ -1,4 +1,5 @@
 import type { Conclusion, Trip } from '@/features/grain/types'
+import { env } from '@/config/env'
 import {
   currentDictionary,
   refreshDictionary,
@@ -35,6 +36,9 @@ Page({
     try {
       if (!requireLogin('warehouse')) {
         return
+      }
+      if (!env.mock) {
+        throw new Error('请在网页版办理现场作业')
       }
       const dictionary = currentDictionary()
       const trip = demo.getTrip(this.data.id)

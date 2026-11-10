@@ -2177,13 +2177,15 @@ paths:
       - 化验室
   /api/v1/miniprogram/dictionaries:
     get:
-      description: 返回启用中的厂区、货品、供应商和粮仓，供微信小程序缓存使用，不需要登录。
+      description: 返回启用中的厂区、货品、供应商和粮仓，供微信小程序缓存使用。
       responses:
         "200":
           description: OK
           schema:
             $ref: '#/definitions/miniprogram.Dictionary'
-      summary: 小程序匿名字典
+      security:
+      - BearerAuth: []
+      summary: 小程序字典
       tags:
       - 小程序
   /api/v1/monitoring/history:

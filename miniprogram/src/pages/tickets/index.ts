@@ -1,4 +1,5 @@
 import type { Ticket, Trip } from '@/features/grain/types'
+import { env } from '@/config/env'
 import { errorMessage, requireLogin } from '@/features/grain/page'
 import { demo } from '@/features/grain/service'
 
@@ -22,6 +23,9 @@ Page({
     try {
       if (!requireLogin('warehouse')) {
         return
+      }
+      if (!env.mock) {
+        throw new Error('请在网页版关联磅单')
       }
       const trip = demo.getTrip(this.data.id)
       if (!trip.unload || trip.ticket || trip.exitedAt) {

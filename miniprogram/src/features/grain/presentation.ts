@@ -5,7 +5,36 @@ export const roleLabels: Record<Role, string> = {
   guard: '门卫',
 }
 
+const stageStatuses: Record<string, {
+  label: string
+  next: string
+  action: string
+  waiting: boolean
+}> = {
+  pending_inspection: { label: '待检验', next: '等待网页版完成化验或目测', action: '', waiting: true },
+  pending_unload: { label: '待卸粮', next: '等待网页版确认卸粮', action: '', waiting: true },
+  pending_ticket: { label: '待磅单', next: '等待网页版关联正式磅单', action: '', waiting: true },
+  ready: { label: '待开证', next: '等待网页版开具出门证', action: '', waiting: true },
+  permit_pending: { label: '待审批', next: '等待网页版审批出门证', action: '', waiting: true },
+  permit_approved: { label: '等待出厂', next: '出门证已审批，等待门卫放行', action: '', waiting: true },
+  rejected: { label: '等待退厂', next: '拒收退厂，等待门卫核验', action: '', waiting: true },
+  exited: { label: '已出厂', next: '本趟已完成', action: '', waiting: true },
+  blocked: { label: '需核查', next: '依据失效或冲突，请在网页版核查', action: '', waiting: true },
+}
+
 export function tripStatus(trip: Trip) {
+  if (trip.stage) {
+    const status = stageStatuses[trip.stage]
+    if (status) {
+      if (trip.stage === 'pending_inspection') {
+        return {
+          ...status,
+          label: trip.method === 'lab' ? '待化验' : '待目测',
+        }
+      }
+      return status
+    }
+  }
   if (trip.exitedAt) {
     return {
       label: '已出厂',
@@ -95,10 +124,17 @@ export function tripStatus(trip: Trip) {
 }
 
 export function exitType(trip: Trip) {
+  if (trip.stage === 'rejected') {
+    return '拒收退厂'
+  }
   return trip.inspection?.conclusion === 'reject' ? '拒收退厂' : '正常出厂'
 }
 
 export function exitEligible(trip: Trip) {
+  if (trip.stage) {
+    return !trip.exitedAt
+      && (trip.stage === 'permit_approved' || trip.stage === 'rejected')
+  }
   return (
     !trip.exitedAt
     && (trip.inspection?.conclusion === 'reject' || !!trip.permit?.approvedAt)
@@ -106,6 +142,9 @@ export function exitEligible(trip: Trip) {
 }
 
 export function inspectionText(trip: Trip) {
+  if (trip.stage === 'pending_inspection') {
+    return trip.method === 'lab' ? '等待化验' : '等待目测'
+  }
   if (!trip.inspection) {
     return trip.method === 'lab' ? '等待化验' : '待目测'
   }
@@ -113,6 +152,13 @@ export function inspectionText(trip: Trip) {
 }
 
 export function canEdit(trip: Trip) {
+  if (trip.stage) {
+    return trip.stage === 'pending_inspection'
+      && !trip.inspection
+      && !trip.unload
+      && !trip.ticket
+      && !trip.permit
+  }
   return (
     !trip.inspection
     && !trip.unload

@@ -1,6 +1,8 @@
-import type { Role } from '@/features/grain/types'
+import type { Role, Trip } from '@/features/grain/types'
+import { env } from '@/config/env'
 import { routes } from '@/config/routes'
 import {
+  applyAsync,
   cards,
   errorMessage,
   matches,
@@ -13,6 +15,7 @@ Page({
   data: {
     loading: true,
     error: '',
+    mock: env.mock,
     role: 'warehouse' as Role,
     roleName: '',
     canSwitch: false,
@@ -30,28 +33,31 @@ Page({
       if (!current) {
         return
       }
-      const query = this.data.query
-      const trips = demo.listTrips().filter((trip) => {
-        if (!matches(trip, query)) {
-          return false
-        }
-        if (current.role === 'warehouse') {
-          return !trip.exitedAt
-        }
-        return this.data.gateHistory ? !!trip.exitedAt : exitEligible(trip)
-      })
-      this.setData({
-        trips: cards(trips),
-        role: current.role,
-        roleName: roleLabels[current.role],
-        canSwitch: current.user.roles.length > 1,
+      const apply = (all: Trip[]) => {
+        const query = this.data.query
+        const trips = all.filter((trip) => {
+          if (!matches(trip, query)) {
+            return false
+          }
+          if (current.role === 'warehouse') {
+            return !trip.exitedAt
+          }
+          return this.data.gateHistory ? !!trip.exitedAt : exitEligible(trip)
+        })
+        this.setData({
+          trips: cards(trips),
+          role: current.role,
+          roleName: roleLabels[current.role],
+          canSwitch: current.user.roles.length > 1,
+        })
+        this.setData({ loading: false })
+      }
+      applyAsync(demo.listTrips(), apply, (error) => {
+        this.setData({ error: errorMessage(error), loading: false })
       })
     }
     catch (error) {
-      this.setData({ error: errorMessage(error) })
-    }
-    finally {
-      this.setData({ loading: false })
+      this.setData({ error: errorMessage(error), loading: false })
     }
   },
   search(event: WechatMiniprogram.Input) {

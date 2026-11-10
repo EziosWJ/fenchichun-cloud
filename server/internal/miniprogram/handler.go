@@ -15,9 +15,10 @@ func (h *Handler) Register(api gin.IRouter) {
 }
 
 // dictionaries godoc
-// @Summary 小程序匿名字典
-// @Description 返回启用中的厂区、货品、供应商和粮仓，供微信小程序缓存使用，不需要登录。
+// @Summary 小程序字典
+// @Description 返回启用中的厂区、货品、供应商和粮仓，供微信小程序缓存使用。
 // @Tags 小程序
+// @Security BearerAuth
 // @Success 200 {object} Dictionary
 // @Router /api/v1/miniprogram/dictionaries [get]
 func (h *Handler) dictionaries(c *gin.Context) {

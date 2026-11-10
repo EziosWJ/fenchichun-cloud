@@ -1,6 +1,7 @@
 import type { EventRecord, Trip } from '@/features/grain/types'
+import { env } from '@/config/env'
 import { routes } from '@/config/routes'
-import { errorMessage, requireLogin } from '@/features/grain/page'
+import { applyAsync, errorMessage, requireLogin } from '@/features/grain/page'
 import {
   canEdit,
   inspectionText,
@@ -53,25 +54,27 @@ Page({
       if (!requireLogin('warehouse')) {
         return
       }
-      const trip = demo.getTrip(this.data.id)
-      const status = tripStatus(trip)
-      this.setData({
-        trip,
-        events: trip.events.map((event, key) => ({ ...event, key })),
-        status: status.label,
-        next: status.next,
-        waiting: status.waiting,
-        action: status.action,
-        actionLabel: actionLabels[status.action] || '',
-        editable: canEdit(trip),
-        inspection: inspectionText(trip),
+      const apply = (trip: Trip) => {
+        const status = tripStatus(trip)
+        this.setData({
+          trip,
+          events: trip.events.map((event, key) => ({ ...event, key })),
+          status: status.label,
+          next: status.next,
+          waiting: status.waiting,
+          action: status.action,
+          actionLabel: actionLabels[status.action] || '',
+          editable: env.mock && canEdit(trip),
+          inspection: inspectionText(trip),
+        })
+        this.setData({ loading: false })
+      }
+      applyAsync(demo.getTrip(this.data.id), apply, (error) => {
+        this.setData({ error: errorMessage(error), loading: false })
       })
     }
     catch (error) {
-      this.setData({ error: errorMessage(error) })
-    }
-    finally {
-      this.setData({ loading: false })
+      this.setData({ error: errorMessage(error), loading: false })
     }
   },
   edit() {

@@ -707,11 +707,16 @@ const docTemplate = `{
         },
         "/api/v1/miniprogram/dictionaries": {
             "get": {
-                "description": "返回启用中的厂区、货品、供应商和粮仓，供微信小程序缓存使用，不需要登录。",
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "返回启用中的厂区、货品、供应商和粮仓，供微信小程序缓存使用。",
                 "tags": [
                     "小程序"
                 ],
-                "summary": "小程序匿名字典",
+                "summary": "小程序字典",
                 "responses": {
                     "200": {
                         "description": "OK",

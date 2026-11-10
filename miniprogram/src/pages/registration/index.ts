@@ -1,11 +1,12 @@
 import type { Registration } from '@/features/grain/types'
+import { env } from '@/config/env'
 import { routes } from '@/config/routes'
 import {
   currentDictionary,
   refreshDictionary,
   sameDictionary,
 } from '@/features/grain/dictionary-service'
-import { errorMessage, requireLogin } from '@/features/grain/page'
+import { applyAsync, errorMessage, requireLogin } from '@/features/grain/page'
 import { canEdit } from '@/features/grain/presentation'
 import { demo } from '@/features/grain/service'
 
@@ -52,7 +53,11 @@ Page({
       if (!requireLogin('warehouse')) {
         return
       }
-      currentDictionary()
+      if (this.data.edit && !env.mock) {
+        throw new Error('请在网页版更正登记')
+      }
+      const dictionary = currentDictionary()
+      demo.setDictionary(dictionary)
       const options = demo.options()
       const sites = ['请选择厂区', ...options.sites]
       const materialNames = ['', ...options.materials.map(item => item.name)]
@@ -117,6 +122,7 @@ Page({
     const before = currentDictionary()
     void refreshDictionary().then((after) => {
       if (after && !sameDictionary(before, after)) {
+        demo.setDictionary(after)
         this.load(false)
       }
     })
@@ -160,22 +166,32 @@ Page({
     }
     this.setData({ submitting: true, formError: '' })
     try {
-      if (this.data.edit) {
-        demo.updateTrip(this.data.id, this.data.version, this.data.form)
-        wx.navigateBack()
+      if (!env.mock && !this.data.form.supplier) {
+        throw new Error('请选择供应商')
       }
-      else {
-        const trip = demo.createTrip(this.data.form)
-        wx.redirectTo({
-          url: `${routes.trip}?id=${encodeURIComponent(trip.id)}`,
-        })
-      }
+      const result = this.data.edit
+        ? demo.updateTrip(this.data.id, this.data.version, this.data.form)
+        : demo.createTrip(this.data.form)
+      applyAsync(
+        result,
+        (trip) => {
+          this.setData({ submitting: false })
+          if (this.data.edit) {
+            wx.navigateBack()
+          }
+          else {
+            wx.redirectTo({
+              url: `${routes.trip}?id=${encodeURIComponent(trip.serverId || trip.id)}`,
+            })
+          }
+        },
+        (error) => {
+          this.setData({ formError: errorMessage(error), submitting: false })
+        },
+      )
     }
     catch (error) {
-      this.setData({ formError: errorMessage(error) })
-    }
-    finally {
-      this.setData({ submitting: false })
+      this.setData({ formError: errorMessage(error), submitting: false })
     }
   },
 })

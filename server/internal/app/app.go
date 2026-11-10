@@ -97,12 +97,11 @@ func New(cfg config.Config, readiness platformhttp.ReadinessChecker, deps Depend
 	if deps.Weighbridge != nil {
 		weighbridge.RegisterRoutes(api, deps.Weighbridge)
 	}
-	if deps.MiniProgram != nil {
-		deps.MiniProgram.Register(api)
-	}
-
 	authenticated := api.Group("")
 	authenticated.Use(auth.BearerMiddleware(deps.Auth))
+	if deps.MiniProgram != nil {
+		deps.MiniProgram.Register(authenticated)
+	}
 	if deps.Weighbridge != nil {
 		weighbridge.RegisterManagementRoutes(authenticated, deps.Weighbridge)
 	}

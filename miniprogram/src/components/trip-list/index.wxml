@@ -1,5 +1,5 @@
 <view class="trip-list">
-  <view wx:for="{{trips}}" wx:key="id" class="trip-item" data-id="{{item.id}}" bindtap="open" hover-class="trip-hover" aria-role="button" aria-label="{{item.plate}}，{{item.statusLabel}}，查看详情">
+  <view wx:for="{{trips}}" wx:key="id" class="trip-item" data-id="{{item.serverId || item.id}}" bindtap="open" hover-class="trip-hover" aria-role="button" aria-label="{{item.plate}}，{{item.statusLabel}}，查看详情">
     <view class="trip-top">
       <text class="trip-plate">{{item.plate}}</text>
       <text class="trip-status {{item.waiting ? 'waiting' : ''}}">{{kind === 'guard' ? item.exitType : item.statusLabel}}</text>

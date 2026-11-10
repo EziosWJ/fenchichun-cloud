@@ -39,7 +39,9 @@ export function createClient(baseURL: string, session: Session, transport: Trans
       ...options.headers,
     }
     if (!options.anonymous && snapshot.token) {
-      header.Authorization = `Bearer ${snapshot.token}`
+      header.Authorization = /^Bearer\s/i.test(snapshot.token)
+        ? snapshot.token
+        : `Bearer ${snapshot.token}`
     }
     let response
     try {

@@ -1,5 +1,6 @@
+import { env } from '@/config/env'
 import { routes } from '@/config/routes'
-import { errorMessage, requireLogin } from '@/features/grain/page'
+import { applyAsync, errorMessage, requireLogin } from '@/features/grain/page'
 import { roleLabels } from '@/features/grain/presentation'
 import { demo } from '@/features/grain/service'
 
@@ -7,6 +8,7 @@ Page({
   data: {
     loading: true,
     error: '',
+    mock: env.mock,
     name: '',
     account: '',
     roles: '',
@@ -68,8 +70,11 @@ Page({
           return
         }
         try {
-          demo.logout()
-          wx.reLaunch({ url: routes.login })
+          applyAsync(
+            demo.logout(),
+            () => wx.reLaunch({ url: routes.login }),
+            error => wx.showToast({ title: errorMessage(error), icon: 'none' }),
+          )
         }
         catch (error) {
           wx.showToast({ title: errorMessage(error), icon: 'none' })

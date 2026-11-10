@@ -3,21 +3,21 @@
   <view class="login-title">员工登录</view>
   <view class="login-subtitle">使用员工账号和密码进入工作台</view>
   <view wx:if="{{mock}}" class="demo-note login-note">演示模式 · 数据仅保存在本机</view>
-  <view wx:else class="notice login-note">登录与业务功能尚未接入，暂不可使用。</view>
+  <view wx:else class="notice login-note">请使用员工账号登录</view>
   <view class="login-form">
     <view class="field">
       <view class="field-label">员工账号</view>
-      <input class="login-input" placeholder="请输入员工账号" placeholder-class="field-placeholder" value="{{account}}" bindinput="accountInput" disabled="{{!mock}}" />
+      <input class="login-input" placeholder="请输入员工账号" placeholder-class="field-placeholder" value="{{account}}" bindinput="accountInput" />
     </view>
     <view class="field">
       <view class="field-label">登录密码</view>
       <view class="password-row">
-        <input class="login-input password-input" placeholder="请输入登录密码" placeholder-class="field-placeholder" password="{{!showPassword}}" value="{{password}}" bindinput="passwordInput" confirm-type="done" bindconfirm="login" disabled="{{!mock}}" />
+        <input class="login-input password-input" placeholder="请输入登录密码" placeholder-class="field-placeholder" password="{{!showPassword}}" value="{{password}}" bindinput="passwordInput" confirm-type="done" bindconfirm="login" />
         <view class="password-toggle" bindtap="togglePassword" aria-role="button">{{showPassword ? '隐藏' : '显示'}}</view>
       </view>
     </view>
     <view wx:if="{{error}}" class="error-text">{{error}}</view>
-    <view class="login-button"><t-button theme="primary" block size="large" loading="{{submitting}}" disabled="{{!mock || submitting}}" bindtap="login">登 录</t-button></view>
-    <view class="login-hint">{{mock ? '演示账号与使用方式见项目 README' : '开放后请使用员工账号登录'}}</view>
+    <view class="login-button"><t-button theme="primary" block size="large" loading="{{submitting}}" disabled="{{submitting}}" bindtap="login">登 录</t-button></view>
+    <view class="login-hint">{{mock ? '演示账号与使用方式见项目 README' : '库管、门卫和管理员可使用小程序'}}</view>
   </view>
 </view>

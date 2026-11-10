@@ -1,6 +1,6 @@
 import { env } from '@/config/env'
 import { routes } from '@/config/routes'
-import { errorMessage } from '@/features/grain/page'
+import { applyAsync, errorMessage } from '@/features/grain/page'
 import { demo } from '@/features/grain/service'
 
 Page({
@@ -13,9 +13,6 @@ Page({
     submitting: false,
   },
   onShow() {
-    if (!env.mock) {
-      return
-    }
     try {
       if (demo.current()) {
         wx.reLaunch({ url: routes.workbench })
@@ -35,7 +32,7 @@ Page({
     this.setData({ showPassword: !this.data.showPassword })
   },
   login() {
-    if (!env.mock || this.data.submitting) {
+    if (this.data.submitting) {
       return
     }
     this.setData({ submitting: true, error: '' })
@@ -43,15 +40,19 @@ Page({
       if (!this.data.account.trim() || !this.data.password) {
         throw new Error('请输入员工账号和密码')
       }
-      demo.login(this.data.account, this.data.password)
-      this.setData({ password: '' })
-      wx.reLaunch({ url: routes.workbench })
+      applyAsync(
+        demo.login(this.data.account, this.data.password),
+        () => {
+          this.setData({ password: '', submitting: false })
+          wx.reLaunch({ url: routes.workbench })
+        },
+        (error) => {
+          this.setData({ error: errorMessage(error), submitting: false })
+        },
+      )
     }
     catch (error) {
-      this.setData({ error: errorMessage(error) })
-    }
-    finally {
-      this.setData({ submitting: false })
+      this.setData({ error: errorMessage(error), submitting: false })
     }
   },
 })

@@ -1,4 +1,5 @@
 import type { Conclusion, Trip } from '@/features/grain/types'
+import { env } from '@/config/env'
 import { errorMessage, requireLogin } from '@/features/grain/page'
 import { demo } from '@/features/grain/service'
 
@@ -18,6 +19,9 @@ Page({
     try {
       if (!requireLogin()) {
         return
+      }
+      if (!env.mock) {
+        throw new Error('演示控制台仅在离线演示模式可用')
       }
       const tasks = demo.simulationTasks()
       this.setData({ labs: tasks.lab, weights: tasks.weigh })

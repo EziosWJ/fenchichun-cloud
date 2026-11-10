@@ -26,6 +26,8 @@ export interface Inspection {
   at: string
   operator: string
   values: string
+  id?: number
+  version?: number
 }
 
 export interface Ticket {
@@ -51,6 +53,11 @@ export interface EventRecord {
 
 export interface Trip extends Registration {
   id: string
+  /** 服务端数字主键；Mock 模式为空。 */
+  serverId?: string
+  /** 服务端办理阶段；Mock 模式为空。 */
+  stage?: string
+  number?: string
   version: number
   createdAt: string
   method: InspectionMethod
@@ -58,7 +65,7 @@ export interface Trip extends Registration {
   unload: { location: string, at: string } | null
   ticket: Ticket | null
   ticketAvailable: boolean
-  permit: { id: string, issuedAt: string, approvedAt: string } | null
+  permit: { id: string, numericId?: number, issuedAt: string, approvedAt: string } | null
   exitedAt: string
   events: EventRecord[]
 }
