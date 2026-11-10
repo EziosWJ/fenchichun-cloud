@@ -100,12 +100,12 @@ Page({
     }
     if (action === 'visual' || action === 'unload') {
       return wx.navigateTo({
-        url: `${routes.action}?id=${encodeURIComponent(trip.id)}&action=${action}`,
+        url: `${routes.action}?id=${encodeURIComponent(trip.serverId || trip.id)}&action=${action}`,
       })
     }
     if (action === 'ticket') {
       return wx.navigateTo({
-        url: `${routes.tickets}?id=${encodeURIComponent(trip.id)}`,
+        url: `${routes.tickets}?id=${encodeURIComponent(trip.serverId || trip.id)}`,
       })
     }
     if (action !== 'issue' && action !== 'approve') {
@@ -122,32 +122,55 @@ Page({
       content,
       confirmText: '确认',
       success: ({ confirm }) => {
-        if (!confirm) {
-          return
+        if (confirm) {
+          this.submitPermit()
         }
-        try {
-          if (action === 'issue') {
-            demo.issuePermit(trip.id, trip.version)
-          }
-          else {
-            demo.approvePermit(trip.id, trip.version)
-          }
+        else {
+          this.setData({ confirming: false })
+        }
+      },
+    })
+  },
+  submitPermit() {
+    const trip = this.data.trip
+    const action = this.data.action
+    if (!trip || (action !== 'issue' && action !== 'approve')) {
+      return
+    }
+    this.setData({ confirming: true })
+    try {
+      const result = action === 'issue'
+        ? demo.issuePermit(trip.serverId || trip.id, trip.version)
+        : demo.approvePermit(trip.serverId || trip.id, trip.version)
+      applyAsync(
+        result,
+        () => {
           wx.showToast({
             title: action === 'issue' ? '出门证已开具' : '出门证已审批',
             icon: 'success',
           })
+          this.setData({ confirming: false })
           this.load()
-        }
-        catch (error) {
+        },
+        (error) => {
           wx.showModal({
             title: '操作未完成',
             content: errorMessage(error),
             showCancel: false,
           })
+          this.setData({ confirming: false })
           this.load()
-        }
-      },
-      complete: () => this.setData({ confirming: false }),
-    })
+        },
+      )
+    }
+    catch (error) {
+      wx.showModal({
+        title: '操作未完成',
+        content: errorMessage(error),
+        showCancel: false,
+      })
+      this.setData({ confirming: false })
+      this.load()
+    }
   },
 })

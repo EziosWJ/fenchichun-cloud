@@ -5,7 +5,7 @@ import {
   refreshDictionary,
   sameDictionary,
 } from '@/features/grain/dictionary-service'
-import { errorMessage, requireLogin } from '@/features/grain/page'
+import { applyAsync, errorMessage, requireLogin } from '@/features/grain/page'
 import { tripStatus } from '@/features/grain/presentation'
 import { demo } from '@/features/grain/service'
 
@@ -37,27 +37,29 @@ Page({
       if (!requireLogin('warehouse')) {
         return
       }
-      if (!env.mock) {
-        throw new Error('请在网页版办理现场作业')
+      if (!env.mock && this.data.action === 'visual') {
+        throw new Error('请在网页版录入目测结果')
       }
       const dictionary = currentDictionary()
-      const trip = demo.getTrip(this.data.id)
-      if (
-        tripStatus(trip).action !== this.data.action
-        || !['visual', 'unload'].includes(this.data.action)
-      ) {
-        throw new Error('当前状态已变化，请返回详情重新核对')
+      const apply = (trip: Trip) => {
+        if (
+          tripStatus(trip).action !== this.data.action
+          || !['visual', 'unload'].includes(this.data.action)
+        ) {
+          throw new Error('当前状态已变化，请返回详情重新核对')
+        }
+        this.setData({
+          trip,
+          granaries: ['请选择卸粮地点', ...dictionary.granaries.map(item => item.name)],
+        })
+        this.setData({ loading: false })
       }
-      this.setData({
-        trip,
-        granaries: ['请选择卸粮地点', ...dictionary.granaries.map(item => item.name)],
+      applyAsync(demo.getTrip(this.data.id), apply, (error) => {
+        this.setData({ error: errorMessage(error), loading: false })
       })
     }
     catch (error) {
-      this.setData({ error: errorMessage(error) })
-    }
-    finally {
-      this.setData({ loading: false })
+      this.setData({ error: errorMessage(error), loading: false })
     }
     if (refresh !== false) {
       this.refresh()
@@ -114,27 +116,45 @@ Page({
       confirmText: '确认',
       success: ({ confirm }) => {
         if (!confirm) {
+          this.setData({ confirming: false })
           return
         }
-        try {
-          if (action === 'visual') {
-            demo.recordVisual(
-              trip.id,
-              trip.version,
-              conclusion as Conclusion,
-              reason,
-            )
-          }
-          else {
-            demo.confirmUnload(trip.id, trip.version, location)
-          }
-          wx.navigateBack()
-        }
-        catch (error) {
-          this.setData({ formError: errorMessage(error) })
-        }
+        this.submitAction()
       },
-      complete: () => this.setData({ confirming: false }),
     })
+  },
+  submitAction() {
+    const trip = this.data.trip
+    const { action, conclusion, reason, location } = this.data
+    if (!trip) {
+      return
+    }
+    this.setData({ confirming: true })
+    try {
+      if (action === 'visual') {
+        demo.recordVisual(
+          trip.id,
+          trip.version,
+          conclusion as Conclusion,
+          reason,
+        )
+        this.setData({ confirming: false })
+        wx.navigateBack()
+        return
+      }
+      applyAsync(
+        demo.confirmUnload(trip.serverId || trip.id, trip.version, location),
+        () => {
+          this.setData({ confirming: false })
+          wx.navigateBack()
+        },
+        (error) => {
+          this.setData({ formError: errorMessage(error), confirming: false })
+        },
+      )
+    }
+    catch (error) {
+      this.setData({ formError: errorMessage(error), confirming: false })
+    }
   },
 })

@@ -454,6 +454,34 @@ export const demo = {
     })
     return adaptTrip(result.trip, result)
   },
+  async confirmUnload(id: string, version: number, location: string) {
+    const detail = await request<ServerDetail>({
+      path: `/grain-intake/trips/${id}/confirm-unloading`,
+      method: 'POST',
+      data: { version, location },
+    })
+    return adaptTrip(detail.trip, detail)
+  },
+  async issuePermit(id: string, version: number) {
+    const detail = await request<ServerDetail>({
+      path: `/grain-intake/trips/${id}/issue-permit`,
+      method: 'POST',
+      data: { version },
+    })
+    return adaptTrip(detail.trip, detail)
+  },
+  async approvePermit(id: string, version: number) {
+    const current = await request<ServerDetail>({ path: `/grain-intake/trips/${id}` })
+    if (!current.permit) {
+      finish('未找到待审批的出门证')
+    }
+    const detail = await request<ServerDetail>({
+      path: `/grain-intake/trips/${id}/approve-permit`,
+      method: 'POST',
+      data: { version, permitId: current.permit.id },
+    })
+    return adaptTrip(detail.trip, detail)
+  },
   candidates() {
     return []
   },
@@ -463,17 +491,8 @@ export const demo = {
   recordVisual() {
     finish('请在网页版录入目测结果')
   },
-  confirmUnload() {
-    finish('请在网页版确认卸粮')
-  },
   linkTicket() {
-    finish('请在网页版关联磅单')
-  },
-  issuePermit() {
-    finish('请在网页版开具出门证')
-  },
-  approvePermit() {
-    finish('请在网页版审批出门证')
+    finish('请在网页版过磅并关联磅单')
   },
   simulateLab() {
     finish('模拟化验仅在离线演示模式可用')

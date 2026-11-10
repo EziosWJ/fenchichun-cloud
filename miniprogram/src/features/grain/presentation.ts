@@ -12,10 +12,10 @@ const stageStatuses: Record<string, {
   waiting: boolean
 }> = {
   pending_inspection: { label: '待检验', next: '等待网页版完成化验或目测', action: '', waiting: true },
-  pending_unload: { label: '待卸粮', next: '等待网页版确认卸粮', action: '', waiting: true },
-  pending_ticket: { label: '待磅单', next: '等待网页版关联正式磅单', action: '', waiting: true },
-  ready: { label: '待开证', next: '等待网页版开具出门证', action: '', waiting: true },
-  permit_pending: { label: '待审批', next: '等待网页版审批出门证', action: '', waiting: true },
+  pending_unload: { label: '待卸粮', next: '现场首磅和卸粮完成后确认', action: 'unload', waiting: false },
+  pending_ticket: { label: '待磅单', next: '等待网页版完成过磅并关联磅单', action: '', waiting: true },
+  ready: { label: '待开证', next: '核对磅单并开具出门证', action: 'issue', waiting: false },
+  permit_pending: { label: '待审批', next: '核对出门证并审批', action: 'approve', waiting: false },
   permit_approved: { label: '等待出厂', next: '出门证已审批，等待门卫放行', action: '', waiting: true },
   rejected: { label: '等待退厂', next: '拒收退厂，等待门卫核验', action: '', waiting: true },
   exited: { label: '已出厂', next: '本趟已完成', action: '', waiting: true },
