@@ -60,7 +60,6 @@ export function refreshDictionary(): Promise<DictionaryPayload | null> {
     try {
       const value = await request<DictionaryPayload>({
         path: '/miniprogram/dictionaries',
-        anonymous: true,
         timeout: 5000,
       })
       if (!valid(value)) {
