@@ -1,7 +1,7 @@
 import type { DictionaryPayload } from './types'
+import { demoDictionary } from '@/features/grain/dictionary-snapshot'
+import { demo } from '@/features/grain/service'
 import { request } from '@/utils/api'
-import { demoDictionary } from './dictionary'
-import { demo } from './service'
 
 const CACHE_KEY = 'grain.dictionary.v1'
 

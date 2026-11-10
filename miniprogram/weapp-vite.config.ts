@@ -46,6 +46,7 @@ export default defineConfig(({
     },
     resolve: {
       alias: {
+        '@/features/grain/dictionary-snapshot': fileURLToPath(new URL(mock ? './src/features/grain/dictionary.ts' : './src/features/grain/dictionary-empty.ts', import.meta.url)),
         '@/features/grain/service': fileURLToPath(new URL(mock ? './src/features/grain/service.ts' : './src/features/grain/unavailable.ts', import.meta.url)),
         '@': fileURLToPath(new URL('./src', import.meta.url)),
       },
