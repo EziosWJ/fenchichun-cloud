@@ -10,6 +10,7 @@ import type {
   Trip,
   User,
 } from './types.ts'
+import { demoDictionary } from './dictionary.ts'
 import { canEdit, exitEligible } from './presentation.ts'
 
 const users: Array<User & { password: string }> = [
@@ -27,15 +28,23 @@ const users: Array<User & { password: string }> = [
     roles: ['warehouse', 'guard'],
   },
 ]
-const options = {
-  sites: ['示例一厂区', '示例二厂区'],
-  materials: [
-    { name: '高粱', method: 'lab' as const },
-    { name: '小麦', method: 'lab' as const },
-    { name: '木片', method: 'visual' as const },
-  ],
-  suppliers: ['示例供应商甲', '示例供应商乙'],
+// 下拉选项与网页版基础资料保持一致，由 scripts/sync-dictionary.mjs 生成快照。
+const options: {
+  sites: string[]
+  materials: Array<{ name: string, method: InspectionMethod }>
+  suppliers: string[]
+  granaries: string[]
+} = {
+  sites: demoDictionary.sites.map(item => item.name),
+  materials: demoDictionary.materials.map(item => ({
+    name: item.name,
+    method: item.method,
+  })),
+  suppliers: demoDictionary.suppliers.map(item => item.name),
+  granaries: demoDictionary.granaries.map(item => item.name),
 }
+const seedSite = options.sites[0] ?? ''
+const seedSupplier = options.suppliers[0] ?? ''
 
 function copy<T>(value: T): T {
   return JSON.parse(JSON.stringify(value)) as T
@@ -52,9 +61,9 @@ function seed(): DemoState {
   const registration = (
     plate: string,
     material: string,
-    supplier = '示例供应商甲',
+    supplier = seedSupplier,
   ): Registration => ({
-    site: '示例一厂区',
+    site: seedSite,
     plate,
     material,
     supplier,
@@ -110,17 +119,17 @@ function seed(): DemoState {
   })
   const accepted = trip('LZD20261108001', '晋A12345', '高粱', 'lab')
   accepted.inspection = inspection('lab', 'accept')
-  const waiting = trip('LZD20261108002', '晋B67890', '小麦', 'lab')
+  const waiting = trip('LZD20261108002', '晋B67890', '大麦', 'lab')
   const visual = trip('LZD20261108003', '晋C21867', '木片', 'visual')
   visual.inspection = inspection('visual', 'accept')
-  visual.unload = { location: '2 号卸料点', at: '2026-11-08 09:40' }
+  visual.unload = { location: '2号仓', at: '2026-11-08 09:40' }
   const visualReject = trip('LZD20261108004', '晋D12876', '木片', 'visual')
   visualReject.inspection = inspection('visual', 'reject', '含有明显异物')
   const labReject = trip('LZD20261108005', '晋E51888', '高粱', 'lab')
   labReject.inspection = inspection('lab', 'reject', '水分不符合接收要求')
   const ready = trip('LZD20261108006', '晋F66888', '高粱', 'lab')
   ready.inspection = inspection('lab', 'accept')
-  ready.unload = { location: '1 号卸料点', at: '2026-11-08 09:40' }
+  ready.unload = { location: '1号仓', at: '2026-11-08 09:40' }
   ready.ticket = ticket(ready)
   ready.permit = {
     id: 'CMZ006',
@@ -130,7 +139,7 @@ function seed(): DemoState {
   const exited = trip('LZD20261107007', '晋F66888', '高粱', 'lab')
   exited.createdAt = '2026-11-07 09:00'
   exited.inspection = inspection('lab', 'accept')
-  exited.unload = { location: '1 号卸料点', at: '2026-11-08 09:40' }
+  exited.unload = { location: '1号仓', at: '2026-11-08 09:40' }
   exited.ticket = ticket(exited)
   exited.permit = {
     id: 'CMZ007',
@@ -414,7 +423,11 @@ export function createDemoService(
           throw new Error('已有检验或后续记录，不能更正登记')
         }
         const data = cleanRegistration(input)
-        Object.assign(trip, data, { method: method(data.material) })
+        const materialChanged = trip.material !== data.material
+        Object.assign(trip, data)
+        if (materialChanged) {
+          trip.method = method(data.material)
+        }
         event(trip, user.name, '更正登记信息')
       })
     },

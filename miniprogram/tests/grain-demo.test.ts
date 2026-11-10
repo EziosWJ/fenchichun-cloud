@@ -23,11 +23,11 @@ function fixture() {
 }
 
 function registration(
-  material = '木片',
-  supplier = '示例供应商甲',
+  material = '高粱',
+  supplier = '上海福里希尔食品有限公司',
 ): Registration {
   return {
-    site: '示例一厂区',
+    site: '一号厂区',
     plate: '晋A12345',
     material,
     supplier,
@@ -38,13 +38,23 @@ function registration(
   }
 }
 
+function seededVisual(warehouse: ReturnType<typeof createDemoService>) {
+  const trip = warehouse
+    .listTrips()
+    .find(item => item.method === 'visual' && !item.inspection && !item.exitedAt)
+  if (!trip) {
+    throw new Error('预置目测流转单缺失')
+  }
+  return trip
+}
+
 test('登记至正常实际出厂，两个页面读取同一份状态', () => {
   const { warehouse, otherPage } = fixture()
   let trip = warehouse.createTrip(registration())
-  assert.equal(tripStatus(trip).label, '待目测')
-  trip = warehouse.recordVisual(trip.id, trip.version, 'accept', '')
+  assert.equal(tripStatus(trip).label, '等待化验')
+  trip = otherPage.simulateLab(trip.id, trip.version, 'accept', '')
   assert.equal(tripStatus(otherPage.getTrip(trip.id)).label, '待卸粮')
-  trip = warehouse.confirmUnload(trip.id, trip.version, '3 号卸料点')
+  trip = warehouse.confirmUnload(trip.id, trip.version, '1号仓')
   assert.equal(tripStatus(trip).label, '等待磅单同步')
   assert.deepEqual(warehouse.candidates(trip.id), [])
   trip = otherPage.simulateTicket(trip.id, trip.version)
@@ -78,7 +88,12 @@ test('化验拒收和目测拒收可直接退厂，拒收原因不可缺失', ()
     /原因/,
   )
   lab = otherPage.simulateLab(lab.id, lab.version, 'reject', '水分超标')
-  let visual = warehouse.createTrip(registration())
+  const seed = seededVisual(warehouse)
+  let visual = warehouse.updateTrip(
+    seed.id,
+    seed.version,
+    registration('木片'),
+  )
   assert.throws(
     () => warehouse.recordVisual(visual.id, visual.version, 'reject', ''),
     /原因/,
@@ -102,12 +117,17 @@ test('化验拒收和目测拒收可直接退厂，拒收原因不可缺失', ()
 
 test('供应商、前置条件、版本和岗位限制在状态层生效', () => {
   const { warehouse, otherPage } = fixture()
-  let trip = warehouse.createTrip(registration('木片', ''))
+  const seed = seededVisual(warehouse)
+  let trip = warehouse.updateTrip(
+    seed.id,
+    seed.version,
+    registration('木片', ''),
+  )
   assert.throws(
     () => warehouse.recordVisual(trip.id, trip.version, 'accept', ''),
     /供应商/,
   )
-  trip = warehouse.updateTrip(trip.id, trip.version, registration())
+  trip = warehouse.updateTrip(trip.id, trip.version, registration('木片'))
   const oldVersion = trip.version
   trip = warehouse.recordVisual(trip.id, trip.version, 'accept', '')
   assert.throws(

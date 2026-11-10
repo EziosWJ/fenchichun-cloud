@@ -10,7 +10,7 @@
       <view wx:if="{{conclusion === 'reject'}}" class="field"><view class="field-label">拒收原因 *</view><textarea class="field-control reason" value="{{reason}}" bindinput="inputReason" placeholder="请填写拒收原因" maxlength="200" auto-height /></view>
       <view class="subtle choice-title">请核对货品和供应商；目测确认后不可覆盖。</view>
     </block>
-    <block wx:else><view class="field"><view class="field-label">实际卸粮地点 *</view><input class="field-control" value="{{location}}" bindinput="inputLocation" placeholder="请输入地点编号或名称" maxlength="60" /></view><view class="notice choice-title">请在现场首磅和卸粮完成后确认，无需等待首磅上传。</view></block>
+    <block wx:else><view class="field"><view class="field-label">实际卸粮地点 *</view><picker range="{{granaries}}" value="{{granaryIndex}}" bindchange="chooseGranary"><view class="field-control {{granaryIndex ? '' : 'field-placeholder'}}">{{granaries[granaryIndex] || '请选择卸粮地点'}}　›</view></picker></view><view class="notice choice-title">请在现场首磅和卸粮完成后确认，无需等待首磅上传。</view></block>
     <view wx:if="{{formError}}" class="error-text">{{formError}}</view>
     <view class="form-footer"><t-button block size="large" theme="primary" disabled="{{confirming}}" bindtap="submit">{{action === 'visual' ? '确认目测' : '确认卸粮'}}</t-button></view>
   </block>

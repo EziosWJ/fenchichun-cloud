@@ -180,7 +180,7 @@ test('页面控制器从登录、登记到跨岗位确认实际出厂', () => {
 
   const action = app.page('action')
   call(action, 'onLoad', { id, action: 'unload' })
-  call(action, 'inputLocation', input('演示卸粮点'))
+  call(action, 'chooseGranary', { detail: { value: '1' } })
   call(action, 'submit')
   call(detail, 'onShow')
   assert.equal(detail.data.status, '等待磅单同步')

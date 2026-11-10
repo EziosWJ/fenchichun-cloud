@@ -14,6 +14,8 @@ Page({
     conclusion: '' as Conclusion | '',
     reason: '',
     location: '',
+    granaries: [] as string[],
+    granaryIndex: 0,
     confirming: false,
   },
   onLoad(query: Record<string, string | undefined>) {
@@ -36,7 +38,10 @@ Page({
       ) {
         throw new Error('当前状态已变化，请返回详情重新核对')
       }
-      this.setData({ trip })
+      this.setData({
+        trip,
+        granaries: ['请选择卸粮地点', ...demo.options().granaries],
+      })
     }
     catch (error) {
       this.setData({ error: errorMessage(error) })
@@ -54,8 +59,13 @@ Page({
   inputReason(event: WechatMiniprogram.Input) {
     this.setData({ reason: event.detail.value, formError: '' })
   },
-  inputLocation(event: WechatMiniprogram.Input) {
-    this.setData({ location: event.detail.value, formError: '' })
+  chooseGranary(event: WechatMiniprogram.PickerChange) {
+    const index = Number(event.detail.value)
+    this.setData({
+      granaryIndex: index,
+      location: index ? this.data.granaries[index] : '',
+      formError: '',
+    })
   },
   submit() {
     const trip = this.data.trip
@@ -70,7 +80,7 @@ Page({
       return this.setData({ formError: '请填写拒收原因' })
     }
     if (action === 'unload' && !location.trim()) {
-      return this.setData({ formError: '请填写实际卸粮地点' })
+      return this.setData({ formError: '请选择实际卸粮地点' })
     }
     const content
       = action === 'visual'
