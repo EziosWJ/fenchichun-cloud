@@ -84,7 +84,7 @@ function seed(): DemoState {
     reason,
     at,
     operator: method === 'lab' ? '模拟化验员' : '演示库管',
-    values: method === 'lab' ? '水分 12.5% / 杂质 1.0% / 容重 720 g/L' : '',
+    values: method === 'lab' ? '水分 12.5% / 杂质 1.0%' : '',
   })
   const trip = (
     id: string,
@@ -605,7 +605,7 @@ export function createDemoService(
           reason: reason.trim(),
           at: now(),
           operator: '模拟化验员',
-          values: '水分 12.5% / 杂质 1.0% / 容重 720 g/L（模拟）',
+          values: '水分 12.5% / 杂质 1.0%',
         }
         event(
           trip,

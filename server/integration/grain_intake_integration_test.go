@@ -65,7 +65,7 @@ func exerciseGrainIntake(t *testing.T, db *gorm.DB) {
 		return v
 	}
 	createInspection := func(v grainintake.Detail, conclusion string) laboratory.Inspection {
-		in := laboratory.Input{TripID: &v.Trip.ID, Moisture: "14.1", Impurity: "0", BulkDensity: "750", Conclusion: conclusion, Reason: "人工判定"}
+		in := laboratory.Input{TripID: &v.Trip.ID, Moisture: "14.1", Impurity: "0", Conclusion: conclusion, Reason: "人工判定"}
 		i, err := lab.Save(ctx, 0, 0, in, e)
 		check(err)
 		if i.SiteCode != v.Trip.SiteCode || i.Plate != v.Trip.Plate || i.PartyCode != v.Trip.PartyCode {
@@ -121,7 +121,6 @@ func exerciseGrainIntake(t *testing.T, db *gorm.DB) {
 	}
 	retest.Moisture = "13.5"
 	retest.Impurity = "0"
-	retest.BulkDensity = "760"
 	retest.Conclusion = "accept"
 	retest, err = lab.Save(ctx, retest.ID, retest.Version, retest.Input, e)
 	check(err)
@@ -142,7 +141,7 @@ func exerciseGrainIntake(t *testing.T, db *gorm.DB) {
 		t.Fatal("void did not clear effective result")
 	}
 	// Independent confirmed inspection can be linked; a mismatch and cross-trip reuse are rejected.
-	independent, err := lab.Save(ctx, 0, 0, laboratory.Input{SiteCode: multiple.Trip.SiteCode, Plate: multiple.Trip.Plate, MaterialCode: multiple.Trip.MaterialCode, PartyCode: multiple.Trip.PartyCode, Moisture: "12", Impurity: "0", BulkDensity: "750", Conclusion: "accept"}, e)
+	independent, err := lab.Save(ctx, 0, 0, laboratory.Input{SiteCode: multiple.Trip.SiteCode, Plate: multiple.Trip.Plate, MaterialCode: multiple.Trip.MaterialCode, PartyCode: multiple.Trip.PartyCode, Moisture: "12", Impurity: "0", Conclusion: "accept"}, e)
 	check(err)
 	independent, err = lab.Transition(ctx, independent.ID, independent.Version, "confirm", "", e)
 	check(err)
@@ -156,7 +155,7 @@ func exerciseGrainIntake(t *testing.T, db *gorm.DB) {
 	if _, err := wb.CreateSite(ctx, weighbridge.SiteInput{Code: "GRAIN-OTHER", Name: "其他厂"}, e); err != nil {
 		t.Fatal(err)
 	}
-	foreign, err := lab.Save(ctx, 0, 0, laboratory.Input{SiteCode: "GRAIN-OTHER", Plate: multiple.Trip.Plate, MaterialCode: multiple.Trip.MaterialCode, PartyCode: multiple.Trip.PartyCode, Moisture: "12", Impurity: "0", BulkDensity: "750", Conclusion: "accept"}, e)
+	foreign, err := lab.Save(ctx, 0, 0, laboratory.Input{SiteCode: "GRAIN-OTHER", Plate: multiple.Trip.Plate, MaterialCode: multiple.Trip.MaterialCode, PartyCode: multiple.Trip.PartyCode, Moisture: "12", Impurity: "0", Conclusion: "accept"}, e)
 	check(err)
 	foreign, err = lab.Transition(ctx, foreign.ID, foreign.Version, "confirm", "", e)
 	check(err)

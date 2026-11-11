@@ -59,6 +59,11 @@ tasks:
     cmds:
       - go run ./cmd/migrate up --kind seed
 
+  db:seed:local-flow:
+    desc: 写入本地联调厂区、粮仓和扣减规则测试数据
+    cmds:
+      - docker exec -i postgres psql -U postgres -d base_go_api < server/scripts/local-flow-seed.sql
+
   api:
     summary: Start the Go API
     dir: server

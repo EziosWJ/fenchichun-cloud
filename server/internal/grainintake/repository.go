@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fenchichun.local/server/internal/audit"
+	"fenchichun.local/server/internal/deduction"
 	"fenchichun.local/server/internal/laboratory"
 	"fenchichun.local/server/internal/weighbridge"
 	"fmt"
@@ -119,6 +120,26 @@ func detail(tx *gorm.DB, id int64) (Detail, error) {
 	}
 	if err := tx.Where("trip_id=?", id).Order("id DESC").Find(&result.Inspections).Error; err != nil {
 		return result, err
+	}
+	result.Deductions = []deduction.Evaluation{}
+	if result.Trip.InspectionMethod == "lab" && result.Trip.EffectiveInspectionID != nil {
+		for _, item := range result.Inspections {
+			if item.ID != *result.Trip.EffectiveInspectionID || item.Conclusion != "accept" {
+				continue
+			}
+			ctx := tx.Statement.Context
+			if ctx == nil {
+				ctx = context.Background()
+			}
+			values, err := deduction.NewRepository(tx).Evaluate(ctx, item.MaterialCode, item.Moisture, item.Impurity)
+			if err != nil {
+				return result, err
+			}
+			if values != nil {
+				result.Deductions = values
+			}
+			break
+		}
 	}
 	var permit Permit
 	err = tx.Where("trip_id=?", id).Take(&permit).Error
@@ -325,6 +346,52 @@ func ready(tx *gorm.DB, t Trip) (laboratory.Inspection, error) {
 	}
 	return i, nil
 }
+
+// linkTicket applies the same checks to the authenticated link-ticket command
+// and to the site's automatic link after the weighing ticket has synced.
+func linkTicket(tx *gorm.DB, t *Trip, ticketSiteCode, ticketNo string) (string, error) {
+	i, err := effective(tx, *t)
+	if err != nil {
+		return "", err
+	}
+	if i.Conclusion != "accept" || t.UnloadedAt == nil {
+		return "", fmt.Errorf("%w：请先确认接收与卸粮", ErrConflict)
+	}
+	var ticket struct {
+		ID                                                                    int64
+		SiteCode, Status, Direction, Plate, MaterialCode, PartyCode, Snapshot string
+	}
+	err = tx.Table("wb_cloud_ticket").Clauses(clause.Locking{Strength: "UPDATE"}).Where("issued_site_code=? AND ticket_no=?", ticketSiteCode, ticketNo).Take(&ticket).Error
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return "", fmt.Errorf("%w：磅单尚未同步到云端", ErrConflict)
+	}
+	if err != nil {
+		return "", err
+	}
+	if ticket.SiteCode != t.SiteCode || ticket.Status != "valid" || ticket.Direction != "inbound" || ticket.Plate != t.Plate || ticket.MaterialCode != t.MaterialCode || ticket.PartyCode != t.PartyCode {
+		return "", fmt.Errorf("%w：磅单厂区、方向、车牌、粮种或供应商不一致", ErrConflict)
+	}
+	if t.TicketID != nil && *t.TicketID != ticket.ID {
+		return "", fmt.Errorf("%w：本趟已关联其他磅单", ErrConflict)
+	}
+	var n int64
+	if err := tx.Model(&Trip{}).Where("ticket_id=? AND id<>?", ticket.ID, t.ID).Count(&n).Error; err != nil {
+		return "", err
+	}
+	if n > 0 {
+		return "", fmt.Errorf("%w：磅单已关联其他流转单", ErrConflict)
+	}
+	var snap weighbridge.TicketSnapshot
+	if err := json.Unmarshal([]byte(ticket.Snapshot), &snap); err != nil {
+		return "", err
+	}
+	if ticketLinkReason(*t, i.ConfirmedAt, snap) != "" {
+		return "", fmt.Errorf("%w：化验生效、首磅、卸粮和回磅时间顺序不一致，需核查离线期间记录", ErrConflict)
+	}
+	t.TicketID = &ticket.ID
+	return "关联磅单 " + ticketSiteCode + " / " + ticketNo, nil
+}
+
 func (r *Repository) Command(ctx context.Context, id int64, action string, in Command, e audit.Event) (Detail, error) {
 	var value Detail
 	err := r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
@@ -402,48 +469,12 @@ func (r *Repository) Command(ctx context.Context, id int64, action string, in Co
 			t.UnloadedBy = &actor
 			description = "确认卸粮，实际地点：" + in.Location
 		case "link-ticket":
-			i, err := effective(tx, t)
+			description, err = linkTicket(tx, &t, in.TicketSiteCode, in.TicketNo)
 			if err != nil {
 				return err
 			}
-			if i.Conclusion != "accept" || t.UnloadedAt == nil {
-				return fmt.Errorf("%w：请先确认接收与卸粮", ErrConflict)
-			}
-			var ticket struct {
-				ID                                                                    int64
-				SiteCode, Status, Direction, Plate, MaterialCode, PartyCode, Snapshot string
-			}
-			err = tx.Table("wb_cloud_ticket").Clauses(clause.Locking{Strength: "UPDATE"}).Where("issued_site_code=? AND ticket_no=?", in.TicketSiteCode, in.TicketNo).Take(&ticket).Error
-			if errors.Is(err, gorm.ErrRecordNotFound) {
-				return fmt.Errorf("%w：磅单尚未同步到云端", ErrConflict)
-			}
-			if err != nil {
-				return err
-			}
-			if ticket.SiteCode != t.SiteCode || ticket.Status != "valid" || ticket.Direction != "inbound" || ticket.Plate != t.Plate || ticket.MaterialCode != t.MaterialCode || ticket.PartyCode != t.PartyCode {
-				return fmt.Errorf("%w：磅单厂区、方向、车牌、粮种或供应商不一致", ErrConflict)
-			}
-			if t.TicketID != nil && *t.TicketID != ticket.ID {
-				return fmt.Errorf("%w：本趟已关联其他磅单", ErrConflict)
-			}
-			var n int64
-			if err := tx.Model(&Trip{}).Where("ticket_id=? AND id<>?", ticket.ID, id).Count(&n).Error; err != nil {
-				return err
-			}
-			if n > 0 {
-				return fmt.Errorf("%w：磅单已关联其他流转单", ErrConflict)
-			}
-			var snap weighbridge.TicketSnapshot
-			if err := json.Unmarshal([]byte(ticket.Snapshot), &snap); err != nil {
-				return err
-			}
-			if ticketLinkReason(t, i.ConfirmedAt, snap) != "" {
-				return fmt.Errorf("%w：化验生效、首磅、卸粮和回磅时间顺序不一致，需核查离线期间记录", ErrConflict)
-			}
-			t.TicketID = &ticket.ID
 			t.TicketConfirmedAt = &now
 			t.TicketConfirmedBy = &actor
-			description = "关联磅单 " + in.TicketSiteCode + " / " + in.TicketNo
 		case "confirm-ticket":
 			if t.TicketID == nil {
 				return fmt.Errorf("%w：尚未关联过磅单", ErrConflict)

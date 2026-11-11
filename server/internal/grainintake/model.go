@@ -3,6 +3,7 @@ package grainintake
 
 import (
 	"errors"
+	"fenchichun.local/server/internal/deduction"
 	"fenchichun.local/server/internal/laboratory"
 	"fenchichun.local/server/internal/weighbridge"
 	"fmt"
@@ -137,6 +138,7 @@ type Detail struct {
 	Permit      *Permit                   `json:"permit"`
 	Ticket      *weighbridge.TicketResult `json:"ticket"`
 	Events      []Event                   `json:"events"`
+	Deductions  []deduction.Evaluation    `json:"deductions"`
 }
 
 // TicketCandidate is a cloud ticket that matches this trip's site, plate,

@@ -131,6 +131,124 @@ definitions:
       message:
         type: string
     type: object
+  deduction.Category:
+    properties:
+      code:
+        type: string
+      enabled:
+        type: boolean
+      name:
+        type: string
+      sortOrder:
+        type: integer
+    type: object
+  deduction.Evaluation:
+    properties:
+      amountMilliTonne:
+        type: integer
+      basisField:
+        type: string
+      basisValue:
+        type: string
+      categoryCode:
+        type: string
+      categoryName:
+        type: string
+      explanation:
+        type: string
+      mode:
+        type: string
+      rateBp:
+        type: integer
+      ruleCode:
+        type: string
+      ruleId:
+        type: integer
+      ruleVersion:
+        type: integer
+    type: object
+  deduction.Input:
+    properties:
+      amountMilliTonne:
+        type: integer
+      basisField:
+        type: string
+      categoryCode:
+        type: string
+      code:
+        type: string
+      effectiveFrom:
+        type: string
+      enabled:
+        type: boolean
+      materialCode:
+        type: string
+      mode:
+        type: string
+      ranges:
+        items:
+          $ref: '#/definitions/deduction.RangeInput'
+        type: array
+      remark:
+        type: string
+    type: object
+  deduction.Range:
+    properties:
+      maxValue:
+        type: string
+      minValue:
+        type: string
+      rateBp:
+        type: integer
+      sortOrder:
+        type: integer
+    type: object
+  deduction.RangeInput:
+    properties:
+      maxValue:
+        type: string
+      minValue:
+        type: string
+      rateBp:
+        type: integer
+    type: object
+  deduction.Rule:
+    properties:
+      amountMilliTonne:
+        type: integer
+      basisField:
+        type: string
+      categoryCode:
+        type: string
+      categoryName:
+        type: string
+      code:
+        type: string
+      createdAt:
+        type: string
+      effectiveFrom:
+        type: string
+      enabled:
+        type: boolean
+      id:
+        type: integer
+      materialCode:
+        type: string
+      materialName:
+        type: string
+      mode:
+        type: string
+      ranges:
+        items:
+          $ref: '#/definitions/deduction.Range'
+        type: array
+      remark:
+        type: string
+      updatedAt:
+        type: string
+      version:
+        type: integer
+    type: object
   dept.ApiEnvelope:
     properties:
       code:
@@ -278,6 +396,10 @@ definitions:
     type: object
   grainintake.Detail:
     properties:
+      deductions:
+        items:
+          $ref: '#/definitions/deduction.Evaluation'
+        type: array
       events:
         items:
           $ref: '#/definitions/grainintake.Event'
@@ -416,6 +538,74 @@ definitions:
       version:
         type: integer
     type: object
+  grainintake.SyncInspection:
+    properties:
+      conclusion:
+        type: string
+      confirmedAt:
+        type: string
+      id:
+        type: integer
+      impurity:
+        type: string
+      moisture:
+        type: string
+      reason:
+        type: string
+      status:
+        type: string
+      version:
+        type: integer
+    type: object
+  grainintake.SyncTrip:
+    properties:
+      blockers:
+        items:
+          type: string
+        type: array
+      contractNo:
+        type: string
+      deductions:
+        items:
+          $ref: '#/definitions/deduction.Evaluation'
+        type: array
+      driver:
+        type: string
+      driverPhone:
+        type: string
+      effectiveConclusion:
+        type: string
+      inspection:
+        $ref: '#/definitions/grainintake.SyncInspection'
+      inspectionMethod:
+        type: string
+      linkable:
+        type: boolean
+      materialCode:
+        type: string
+      materialName:
+        type: string
+      partyCode:
+        type: string
+      partyName:
+        type: string
+      plate:
+        type: string
+      registeredAt:
+        type: string
+      stage:
+        type: string
+      ticketNo:
+        type: string
+      tripId:
+        type: integer
+      tripNo:
+        type: string
+      unloadedAt:
+        type: string
+      version:
+        type: integer
+    type: object
   grainintake.Trip:
     properties:
       contractNo:
@@ -517,6 +707,13 @@ definitions:
       message:
         type: string
     type: object
+  grainintake.syncLinkInput:
+    properties:
+      siteCode:
+        type: string
+      ticketNo:
+        type: string
+    type: object
   granary.Granary:
     properties:
       createdAt:
@@ -534,8 +731,6 @@ definitions:
     type: object
   laboratory.Input:
     properties:
-      bulkDensity:
-        type: string
       conclusion:
         type: string
       contractNo:
@@ -565,8 +760,6 @@ definitions:
     type: object
   laboratory.Inspection:
     properties:
-      bulkDensity:
-        type: string
       conclusion:
         type: string
       confirmedAt:
@@ -1848,6 +2041,81 @@ paths:
       summary: 当前用户可见菜单
       tags:
       - 认证
+  /api/v1/grain-intake/deduction-categories:
+    get:
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/deduction.Category'
+            type: array
+      security:
+      - BearerAuth: []
+      summary: 查询扣减类别字典
+      tags:
+      - 原粮流转
+  /api/v1/grain-intake/deduction-rules:
+    get:
+      parameters:
+      - description: 物料编码
+        in: query
+        name: materialCode
+        type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/deduction.Rule'
+            type: array
+      security:
+      - BearerAuth: []
+      summary: 查询扣减规则
+      tags:
+      - 原粮流转
+    post:
+      parameters:
+      - description: 扣减规则
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/deduction.Input'
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/deduction.Rule'
+      security:
+      - BearerAuth: []
+      summary: 新增扣减规则
+      tags:
+      - 原粮流转
+  /api/v1/grain-intake/deduction-rules/{id}:
+    put:
+      parameters:
+      - description: 规则 ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: 扣减规则
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/deduction.Input'
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/deduction.Rule'
+      security:
+      - BearerAuth: []
+      summary: 修改扣减规则
+      tags:
+      - 原粮流转
   /api/v1/grain-intake/exit-basis/{id}:
     get:
       parameters:
@@ -5206,6 +5474,102 @@ paths:
       security:
       - BearerAuth: []
       summary: 按单据查看云端已保存变化
+      tags:
+      - 厂云同步
+  /api/v1/weighbridge/sync/trips:
+    get:
+      description: 以启用的厂区编码查询该车牌最近的流转单，并返回生效化验及建议扣减项。多个候选由厂端人工选择，云端不自动匹配。
+      parameters:
+      - description: 厂区编码
+        in: query
+        name: siteCode
+        required: true
+        type: string
+      - description: 车牌
+        in: query
+        name: plate
+        required: true
+        type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/grainintake.SyncTrip'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/grainintake.ApiEnvelope'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/grainintake.ApiEnvelope'
+      summary: 厂端按车牌查询流转单
+      tags:
+      - 厂云同步
+  /api/v1/weighbridge/sync/trips/{tripNo}:
+    get:
+      parameters:
+      - description: 流转单号
+        in: path
+        name: tripNo
+        required: true
+        type: string
+      - description: 厂区编码
+        in: query
+        name: siteCode
+        required: true
+        type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/grainintake.SyncTrip'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/grainintake.ApiEnvelope'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/grainintake.ApiEnvelope'
+      summary: 厂端查询单张流转单
+      tags:
+      - 厂云同步
+  /api/v1/weighbridge/sync/trips/{tripNo}/link:
+    post:
+      description: 使用首磅时选定的流转单号关联已同步的正式磅单；相同流转单与磅单重复调用返回成功，不重复累计。
+      parameters:
+      - description: 流转单号
+        in: path
+        name: tripNo
+        required: true
+        type: string
+      - description: 厂区编码与磅单号
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/grainintake.syncLinkInput'
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/grainintake.ApiEnvelope'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/grainintake.ApiEnvelope'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/grainintake.ApiEnvelope'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/grainintake.ApiEnvelope'
+      summary: 厂端在磅单同步后关联流转单
       tags:
       - 厂云同步
   /api/v1/weighbridge/sync/v4/changes:

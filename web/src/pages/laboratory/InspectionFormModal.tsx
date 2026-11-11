@@ -8,12 +8,12 @@ import styles from './InspectionModal.module.css';
 
 interface Values {
   moisture: string;
-  bulkDensity: string;
+  impurity: string;
   reason: string;
   remark: string;
 }
 
-const blank: Values = { moisture: '', bulkDensity: '', reason: '', remark: '' };
+const blank: Values = { moisture: '', impurity: '', reason: '', remark: '' };
 
 /**
  * 化验结果录入：身份信息来自流转单，只读展示；拒收原因默认隐藏。
@@ -47,8 +47,7 @@ export default function InspectionFormModal({ trip, open, onClose, onSaved }: {
     save.mutate({
       tripId: trip.id,
       moisture: values.moisture,
-      impurity: '',
-      bulkDensity: values.bulkDensity,
+      impurity: values.impurity,
       conclusion,
       reason: conclusion === 'reject' ? values.reason.trim() : '',
       remark: values.remark ?? '',
@@ -88,7 +87,7 @@ export default function InspectionFormModal({ trip, open, onClose, onSaved }: {
           <h3>检测结果</h3>
           <Space wrap align="start">
             <Form.Item name="moisture" label="水分（%）" rules={[{ required: true, message: '请填写水分' }]}><InputNumber stringMode min="0" max="100" precision={6} style={{ width: 160 }} /></Form.Item>
-            <Form.Item name="bulkDensity" label="容重（g/L）" rules={[{ required: true, message: '请填写容重' }]}><InputNumber stringMode min="0.000001" max="999999.999999" precision={6} style={{ width: 180 }} /></Form.Item>
+            <Form.Item name="impurity" label="杂质（%）" rules={[{ required: true, message: '请填写杂质' }]}><InputNumber stringMode min="0" max="100" precision={6} style={{ width: 160 }} /></Form.Item>
           </Space>
           {rejecting && <Form.Item name="reason" label="拒收原因"><Input.TextArea maxLength={2000} rows={2} placeholder="请填写拒收原因" /></Form.Item>}
         </section>

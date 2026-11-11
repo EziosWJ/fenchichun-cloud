@@ -1,6 +1,7 @@
 import { get, getPage, post, put } from '../../lib/api/client';
 import type { Inspection } from '../laboratory/api';
 import type { TicketRecord } from '../weighbridge/api';
+import type { DeductionEvaluation } from '../deduction/api';
 export interface TripInput {
   siteCode: string; plate: string; materialCode: string; partyCode: string;
   driver: string; driverPhone: string; contractNo: string; remark: string;
@@ -22,7 +23,7 @@ export interface Permit {
   tripNumber: string; plate: string; siteCode: string; exitedAt: string | null; stage: string;
 }
 export interface TripEvent { id: number; tripId: number; action: string; description: string; actorId: number | null; actorName: string; createdAt: string }
-export interface TripDetail { trip: Trip; inspections: Inspection[]; permit: Permit | null; ticket: TicketRecord | null; events: TripEvent[] }
+export interface TripDetail { trip: Trip; inspections: Inspection[]; permit: Permit | null; ticket: TicketRecord | null; events: TripEvent[]; deductions: DeductionEvaluation[] }
 export interface TicketCandidate {
   siteCode: string; ticketNo: string; plate: string; materialCode: string; materialName: string;
   partyCode: string; partyName: string; finalGross: string; finalTare: string; finalNetMilliTonne: number;

@@ -15,6 +15,7 @@ import (
 	"fenchichun.local/server/internal/app"
 	"fenchichun.local/server/internal/auth"
 	"fenchichun.local/server/internal/config"
+	"fenchichun.local/server/internal/deduction"
 	"fenchichun.local/server/internal/dept"
 	"fenchichun.local/server/internal/dictionary"
 	"fenchichun.local/server/internal/filemgmt"
@@ -120,6 +121,8 @@ func main() {
 		}
 	}
 	monitoringService := monitoring.NewService(monitoring.NewRepository(database.GORM), collector, nil, monitoring.WithTimeout(cfg.Monitoring.Timeout), monitoring.WithEnabled(cfg.Monitoring.Enabled))
+	deductionService := deduction.NewService(deduction.NewRepository(database.GORM))
+	grainRepository := grainintake.NewRepository(database.GORM)
 
 	application, err := app.New(*cfg, database, app.Dependencies{
 		Auth:         authService,
@@ -132,7 +135,9 @@ func main() {
 		Log:          logService,
 		Notification: notificationService,
 		Monitoring:   monitoringService,
-		GrainIntake:  grainintake.NewHandler(grainintake.NewService(grainintake.NewRepository(database.GORM))),
+		GrainIntake:  grainintake.NewHandler(grainintake.NewService(grainRepository)),
+		GrainSync:    grainintake.NewSyncHandler(grainintake.NewSyncService(grainRepository, deductionService)),
+		Deduction:    deduction.NewHandler(deductionService),
 		Granary:      granary.NewHandler(granary.NewService(granary.NewRepository(database.GORM))),
 		Laboratory:   laboratory.NewHandler(laboratory.NewService(laboratory.NewRepository(database.GORM))),
 		MiniProgram:  miniprogram.NewHandler(miniprogram.NewService(miniprogram.NewRepository(database.GORM))),

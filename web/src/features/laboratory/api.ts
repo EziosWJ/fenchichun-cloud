@@ -11,7 +11,6 @@ export interface InspectionInput {
   contractNo: string;
   moisture: string;
   impurity: string;
-  bulkDensity: string;
   conclusion: '' | 'accept' | 'reject';
   reason: string;
   remark: string;
@@ -35,7 +34,7 @@ export interface Inspection extends InspectionInput {
 }
 const base = '/laboratory/inspections';
 export const inspections = (params: Record<string, unknown>) => getPage<Inspection>(base, params);
-export type CreateInspectionInput = Pick<InspectionInput, 'tripId' | 'moisture' | 'impurity' | 'bulkDensity' | 'conclusion' | 'reason' | 'remark'>;
+export type CreateInspectionInput = Pick<InspectionInput, 'tripId' | 'moisture' | 'impurity' | 'conclusion' | 'reason' | 'remark'>;
 export const createInspection = (input: CreateInspectionInput) => post<Inspection>(base, input);
 export const inspection = (id: number) => get<Inspection>(`${base}/${id}`);
 export const saveInspection = (input: InspectionInput, original?: Inspection) => original

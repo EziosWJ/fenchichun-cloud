@@ -90,7 +90,6 @@ export default function TripWorkspace({ gate = false }: { gate?: boolean }) {
       { key: 'confirmed', label: '化验时间', children: formatDateTime(inspection.confirmedAt ?? inspection.createdAt) },
       { key: 'moisture', label: '水分（%）', children: inspection.moisture || '—' },
       { key: 'impurity', label: '杂质（%）', children: inspection.impurity || '—' },
-      { key: 'density', label: '容重（g/L）', children: inspection.bulkDensity || '—' },
       { key: 'reason', label: '拒收原因', children: inspection.reason || '—' },
     ]} /> : <span style={{ color: 'var(--ant-color-text-secondary)' }}>尚未录入化验结果</span>}
     {!gate && canInspect && !locked && !inspection && <Button type="primary" onClick={() => navigate(`/laboratory/inspections?keyword=${encodeURIComponent(trip.number)}`)}>去录入化验结果</Button>}
@@ -104,7 +103,7 @@ export default function TripWorkspace({ gate = false }: { gate?: boolean }) {
     <div className="pageStack" style={{ marginTop: 20, gap: 12 }}>
       {trip.stage === 'blocked' && <Alert type="error" title="当前依据已失效或存在冲突，暂停开证和放行，请核查磅单与化验记录。" />}
       {trip.exitedAt && <Alert type="success" title={`已于 ${formatDateTime(trip.exitedAt)} 确认出厂，本趟凭据不能再次使用。`} />}
-      {nextStep && <Alert type="info" showIcon title={nextStep.title} description={nextStep.description} action={nextStep.tab ? <Button size="small" onClick={() => { if (nextStep.tab) setTab(nextStep.tab); }}>去办理</Button> : undefined} />}
+      {nextStep && <Alert type={trip.stage === 'pending_unload' || trip.stage === 'pending_ticket' ? 'warning' : 'info'} showIcon title={nextStep.title} description={nextStep.description} action={nextStep.tab ? <Button size="small" onClick={() => { if (nextStep.tab) setTab(nextStep.tab); }}>去办理</Button> : undefined} />}
       <Card title="本趟摘要" extra={!gate && canEditTrip && !permit && !trip.exitedAt ? <Button onClick={() => setEditing(true)}>更正登记</Button> : undefined}>
         <Descriptions size="small" column={{ xs: 1, sm: 2, lg: 3 }} items={[
           { key: 'site', label: '厂区', children: trip.siteCode || '—' }, { key: 'plate', label: '车牌', children: trip.plate }, { key: 'grain', label: '货品', children: trip.materialName },
@@ -121,13 +120,21 @@ export default function TripWorkspace({ gate = false }: { gate?: boolean }) {
           <Input aria-label="目测说明" placeholder={visualConclusion === 'reject' ? '请输入拒收原因' : '目测说明（选填）'} maxLength={2000} value={visualReason} onChange={(e) => setVisualReason(e.target.value)} style={{ minWidth: 320 }} />
           <Button type="primary" disabled={action.isPending || !trip.partyCode || (visualConclusion === 'reject' && !visualReason.trim())} onClick={() => ask('确认记录目测结果？', 'record-visual', { conclusion: visualConclusion, reason: visualReason }, '确认后不能修改，请核对货品与检查结论。')}>确认目测</Button>
           {!trip.partyCode && <span>请先核实供应商</span>}
-        </Space> : <Empty description="尚未记录目测结果" />) : (effective ? <Descriptions size="small" column={{ xs: 1, sm: 2, lg: 3 }} items={[
+        </Space> : <Empty description="尚未记录目测结果" />) : (effective ? <><Descriptions size="small" column={{ xs: 1, sm: 2, lg: 3 }} items={[
           { key: 'number', label: '生效化验单', children: effective.number },
           { key: 'conclusion', label: '化验结论', children: <Tag color={effective.conclusion === 'accept' ? 'green' : effective.conclusion === 'reject' ? 'red' : 'default'}>{conclusionText}</Tag> },
           { key: 'selected', label: '生效时间', children: formatDateTime(trip.effectiveSelectedAt) },
-          { key: 'moisture', label: '水分（%）', children: effective.moisture || '—' }, { key: 'impurity', label: '杂质（%）', children: effective.impurity || '—' }, { key: 'density', label: '容重（g/L）', children: effective.bulkDensity || '—' },
+          { key: 'moisture', label: '水分（%）', children: effective.moisture || '—' }, { key: 'impurity', label: '杂质（%）', children: effective.impurity || '—' },
           { key: 'reason', label: '原因', children: effective.reason || '—' },
-        ]} /> : <span style={{ color: 'var(--ant-color-text-secondary)' }}>尚未录入化验结果</span>)}
+        ]} />
+          {query.data.deductions.length > 0 && <div style={{ marginTop: 8 }}>
+            <Tag color="blue">云端建议扣减</Tag>
+            {query.data.deductions.map((item) => <Tag key={`${item.ruleCode}-${item.ruleVersion}`}>
+              {item.categoryName}：{item.mode === 'amount' ? `${(item.amountMilliTonne / 1000).toFixed(3)} 吨` : `${((item.rateBp ?? 0) / 100).toFixed(2)}%`}
+              {item.basisValue ? `（${item.basisValue}）` : ''}
+            </Tag>)}
+          </div>}
+        </> : <span style={{ color: 'var(--ant-color-text-secondary)' }}>尚未录入化验结果</span>)}
       </Card>
       <Tabs activeKey={activeTab} onChange={setTab} items={[
         ...(visual ? [] : [{ key: 'inspections', label: '化验结果', children: <Space orientation="vertical" size="small" style={{ width: '100%' }}>

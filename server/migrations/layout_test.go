@@ -63,6 +63,11 @@ func TestSchemaAndSeedResponsibilitiesStaySeparate(t *testing.T) {
 			if filepath.Base(name) == "00017_grain_intake_optimizations.sql" {
 				continue
 			}
+			// This schema evolution separates duplicate inspections before the
+			// unique trip index is created; the DML is structural backfill.
+			if filepath.Base(name) == "00020_inspection_single_per_trip.sql" {
+				continue
+			}
 			if schemaDML.Match(contents) {
 				t.Errorf("schema migration %s contains seed-data DML", name)
 			}

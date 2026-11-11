@@ -21,9 +21,9 @@ const trip: Trip = {
 function evidence(): TripDetail {
   return {
     trip: { ...trip },
-    inspections: [{ id: 11, number: 'HY-000001', tripId: 1, siteCode: trip.siteCode, status: 'confirmed', version: 2, originalId: null, plate: trip.plate, materialCode: 'M1', materialName: '高粱', partyCode: 'P1', partyName: '供货方', moisture: '14.1', impurity: '0', bulkDensity: '750', conclusion: 'accept', reason: '', remark: '', driver: '', driverPhone: '', contractNo: '', createdBy: 1, createdAt: trip.createdAt, updatedAt: trip.updatedAt, confirmedBy: 1, confirmedAt: trip.createdAt, voidedBy: null, voidedAt: null, voidReason: '' }],
+    inspections: [{ id: 11, number: 'HY-000001', tripId: 1, siteCode: trip.siteCode, status: 'confirmed', version: 2, originalId: null, plate: trip.plate, materialCode: 'M1', materialName: '高粱', partyCode: 'P1', partyName: '供货方', moisture: '14.1', impurity: '0', conclusion: 'accept', reason: '', remark: '', driver: '', driverPhone: '', contractNo: '', createdBy: 1, createdAt: trip.createdAt, updatedAt: trip.updatedAt, confirmedBy: 1, confirmedAt: trip.createdAt, voidedBy: null, voidedAt: null, voidReason: '' }],
     permit: { id: 31, number: 'CM-000001', tripId: 1, version: 2, status: 'approved', inspectionId: 11, ticketId: 21, createdBy: 1, createdAt: trip.createdAt, approvedBy: 1, approvedAt: trip.updatedAt, tripNumber: trip.number, plate: trip.plate, siteCode: trip.siteCode, exitedAt: null, stage: 'permit_approved' },
-    ticket: null, events: [],
+    ticket: null, events: [], deductions: [],
   };
 }
 function menu(path: string): CurrentUserMenu {

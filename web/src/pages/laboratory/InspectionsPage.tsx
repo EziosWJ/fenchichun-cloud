@@ -149,7 +149,6 @@ export default function InspectionsPage() {
           <Descriptions size="small" layout="vertical" column={{ xs: 1, sm: 2 }} items={[
             { key: 'moisture', label: '水分（%）', children: value.moisture || '—' },
             ...(value.impurity ? [{ key: 'impurity', label: '杂质（%）', children: value.impurity }] : []),
-            { key: 'density', label: '容重（g/L）', children: value.bulkDensity || '—' },
             { key: 'reason', label: '拒收原因', children: value.reason || '—' },
           ]} />
         </section>

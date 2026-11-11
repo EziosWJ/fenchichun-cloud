@@ -208,7 +208,7 @@ func (r *Repository) Create(ctx context.Context, in Input, e audit.Event) (Inspe
 			return err
 		}
 		conclusion := map[string]string{"accept": "接收", "reject": "拒收"}[in.Conclusion]
-		description := fmt.Sprintf("化验单 %s：%s（水分 %s%%，杂质 %s%%，容重 %s g/L）", v.Number, conclusion, in.Moisture, in.Impurity, in.BulkDensity)
+		description := fmt.Sprintf("化验单 %s：%s（水分 %s%%，杂质 %s%%）", v.Number, conclusion, in.Moisture, in.Impurity)
 		if err := tx.Exec("INSERT INTO grain_trip_event(trip_id,action,description,actor_id) VALUES (?,?,?,?)", *in.TripID, "inspection.create", description, actor).Error; err != nil {
 			return err
 		}

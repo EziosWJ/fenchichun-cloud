@@ -10,6 +10,7 @@ import (
 
 	"fenchichun.local/server/internal/auth"
 	"fenchichun.local/server/internal/config"
+	"fenchichun.local/server/internal/deduction"
 	"fenchichun.local/server/internal/dept"
 	"fenchichun.local/server/internal/dictionary"
 	"fenchichun.local/server/internal/filemgmt"
@@ -45,6 +46,8 @@ type Dependencies struct {
 	Weighbridge  *weighbridge.Handler
 	Laboratory   *laboratory.Handler
 	GrainIntake  *grainintake.Handler
+	GrainSync    *grainintake.SyncHandler
+	Deduction    *deduction.Handler
 	Granary      *granary.Handler
 	MiniProgram  *miniprogram.Handler
 }
@@ -112,6 +115,14 @@ func New(cfg config.Config, readiness platformhttp.ReadinessChecker, deps Depend
 
 	if deps.GrainIntake != nil {
 		deps.GrainIntake.Register(authenticated)
+	}
+
+	if deps.GrainSync != nil {
+		grainintake.RegisterSyncRoutes(api, deps.GrainSync)
+	}
+
+	if deps.Deduction != nil {
+		deps.Deduction.Register(authenticated)
 	}
 
 	if deps.Granary != nil {

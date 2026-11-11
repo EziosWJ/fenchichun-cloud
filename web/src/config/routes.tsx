@@ -67,6 +67,11 @@ export const routeDefinitions: AppRouteDefinition[] = [
     component: lazy(() => import('../pages/grain-intake/GranariesPage')),
   },
   {
+    path: '/grain-intake/deduction-rules', label: '扣减规则', title: '扣减规则', icon: Settings2,
+    menuComponent: 'grain-intake/deduction-rules/index', menuPath: '/grain-intake/deduction-rules',
+    component: lazy(() => import('../pages/grain-intake/DeductionRulesPage')),
+  },
+  {
     path: '/laboratory/inspections',
     label: '化验单',
     title: '化验单',
