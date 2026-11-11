@@ -118,7 +118,10 @@ export default function StatementPage() {
   const [customOpen, setCustomOpen] = useState(false);
   const [monthOpen, setMonthOpen] = useState(false);
   const [pickerYear, setPickerYear] = useState(dayjs().year());
+  const ledgerRef = useRef<HTMLElement>(null);
   const detailRef = useRef<HTMLDivElement>(null);
+  const detailSeenRef = useRef(false);
+  const closeTimerRef = useRef<number | null>(null);
 
   const defaultFrom = dayjs().startOf('month').format('YYYY-MM-DD');
   const defaultTo = dayjs().endOf('month').format('YYYY-MM-DD');
@@ -146,6 +149,73 @@ export default function StatementPage() {
       detailRef.current?.scrollIntoView?.({ behavior: 'smooth', block: 'start' });
     });
     return () => window.cancelAnimationFrame(frame);
+  }, [selected]);
+
+  // 滚回台账后自动收起对账单：详情至少展示过一次后，若详情离开视口而台账重新进入视口，
+  // 停留 1.5 秒确认用户确实回到列表再关闭，避免滚动过程中误收。
+  useEffect(() => {
+    detailSeenRef.current = false;
+    if (closeTimerRef.current !== null) {
+      window.clearTimeout(closeTimerRef.current);
+      closeTimerRef.current = null;
+    }
+    if (!selected || typeof IntersectionObserver === 'undefined') return;
+    const detail = detailRef.current;
+    const ledger = ledgerRef.current;
+    if (!detail || !ledger) return;
+
+    let detailVisible = false;
+    let ledgerVisible = false;
+
+    const clearTimer = () => {
+      if (closeTimerRef.current !== null) {
+        window.clearTimeout(closeTimerRef.current);
+        closeTimerRef.current = null;
+      }
+    };
+    const scheduleIfNeeded = () => {
+      clearTimer();
+      if (!detailSeenRef.current || detailVisible || !ledgerVisible) return;
+      closeTimerRef.current = window.setTimeout(() => {
+        closeTimerRef.current = null;
+        setSelected(null);
+      }, 1500);
+    };
+
+    const detailObserver = new IntersectionObserver(
+      (entries) => {
+        detailVisible = entries[0]?.isIntersecting ?? false;
+        if (detailVisible) detailSeenRef.current = true;
+        scheduleIfNeeded();
+      },
+      { threshold: 0.05 },
+    );
+    const ledgerObserver = new IntersectionObserver(
+      (entries) => {
+        ledgerVisible = entries[0]?.isIntersecting ?? false;
+        scheduleIfNeeded();
+      },
+      { threshold: 0.2 },
+    );
+
+    detailObserver.observe(detail);
+    ledgerObserver.observe(ledger);
+
+    return () => {
+      detailObserver.disconnect();
+      ledgerObserver.disconnect();
+      clearTimer();
+    };
+  }, [selected]);
+
+  // ESC 收起当前对账单。
+  useEffect(() => {
+    if (!selected) return;
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setSelected(null);
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
   }, [selected]);
 
   const params = useMemo(
@@ -479,7 +549,7 @@ export default function StatementPage() {
           />
         )}
 
-        <section className={styles.ledger}>
+        <section ref={ledgerRef} className={styles.ledger}>
           <div className={styles.periodSection}>
             <div className={styles.periodRow}>
               <div className={styles.periodStepper} role="group" aria-label="账期选择">
@@ -762,7 +832,10 @@ export default function StatementPage() {
             }}
             loading={list.isLoading}
             refreshing={list.isFetching}
-            onRefresh={() => void list.refetch()}
+            onRefresh={() => {
+              setSelected(null);
+              void list.refetch();
+            }}
             title={
               <span>
                 往来方台账 <span className={styles.unitNote}>单位：吨</span>

@@ -7,7 +7,7 @@ import {
   sameDictionary,
 } from '@/features/grain/dictionary-service'
 import { applyAsync, errorMessage, requireLogin } from '@/features/grain/page'
-import { isValidPlate, normalizePlate, plateProvinces } from '@/features/grain/plate'
+import { isValidPlate, normalizePlate, plateProvinces, correctPlateOcrConfusions } from '@/features/grain/plate'
 import { recognizePlatePhoto } from '@/features/grain/plate-scan'
 import { canEdit } from '@/features/grain/presentation'
 import { demo } from '@/features/grain/service'
@@ -235,8 +235,8 @@ Page({
   async recognizePlate(imagePath: string) {
     try {
       const result = await recognizePlatePhoto(imagePath)
-      const plate = result.candidates[0] || result.suggestions[0]
-      if (!plate) {
+      const raw = result.candidates[0] || result.suggestions[0]
+      if (!raw) {
         wx.showModal({
           title: '未识别到完整车牌',
           content: '请对准车牌重拍，或手动输入。',
@@ -244,9 +244,12 @@ Page({
         })
         return
       }
+      const plate = correctPlateOcrConfusions(raw)
       this.applyScannedPlate(plate)
       wx.showToast({
-        title: result.candidates.length ? '已识别，请核对' : '疑似号码，请核对',
+        title: plate !== raw
+          ? '已按车牌规则校正，请核对'
+          : result.candidates.length ? '已识别，请核对' : '疑似号码，请核对',
         icon: 'none',
       })
     }

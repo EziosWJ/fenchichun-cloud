@@ -14,3 +14,18 @@ export function normalizePlate(value: string) {
 export function isValidPlate(value: string) {
   return platePattern.test(normalizePlate(value))
 }
+
+/**
+ * 车牌不使用 I/O。OCR 结果回填时，将发牌机关字母之后的 O/I 纠正为 0/1；
+ * 第二位发牌机关字母必须保持字母，不能替换成数字，交给人工核对。
+ */
+export function correctPlateOcrConfusions(value: string) {
+  const normalized = normalizePlate(value)
+  if (!normalized) {
+    return normalized
+  }
+  const hasProvince = plateProvinces.includes(normalized[0]) || normalized[0] === '使' || normalized[0] === '领'
+  const head = normalized.slice(0, hasProvince ? 2 : 1)
+  const body = normalized.slice(head.length).replace(/O/g, '0').replace(/I/g, '1')
+  return head + body
+}

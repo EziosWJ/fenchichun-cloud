@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { screen, waitFor } from '@testing-library/react';
+import { fireEvent, screen, waitFor } from '@testing-library/react';
 import StatementPage from '../../src/pages/analytics/StatementPage';
 import StatementDetailPage from '../../src/pages/analytics/StatementDetailPage';
 import { renderWithProviders } from '../utils/renderWithProviders';
@@ -85,5 +85,31 @@ describe('客户对账页面', () => {
     expect(screen.getAllByText('高粱 / 散装').length).toBeGreaterThan(0);
     expect(screen.getByLabelText('净重趋势图')).toBeInTheDocument();
     expect(screen.getByText('F001-20261101-0001')).toBeInTheDocument();
+  });
+
+  it('展开对账单后按 ESC 收起', async () => {
+    weighing.sites.mockResolvedValue([]);
+    weighing.materials.mockResolvedValue([]);
+    analytics.statementParties.mockResolvedValue({
+      records: [{
+        siteCode: 'F001', siteName: '一厂', partyCode: 'C-P-0001', partyName: '客户甲',
+        ...totals, firstIssuedAt: '2026-11-01T02:00:00Z', lastIssuedAt: '2026-11-02T02:00:00Z',
+      }],
+      total: 1, page: 1, pageSize: 10,
+      summary: { ...totals, partyCount: 1 },
+    });
+    analytics.statementDetail.mockResolvedValue({
+      siteCode: 'F001', siteName: '一厂', partyCode: 'C-P-0001', partyName: '客户甲',
+      direction: 'inbound', from: '2026-11-01', to: '2026-11-30',
+      ...totals, materials: [], daily: [],
+    });
+    weighing.tickets.mockResolvedValue({ items: [], total: 0, page: 1, pageSize: 10 });
+
+    renderWithProviders(<StatementPage />, { route: '/analytics/reconciliation' });
+    fireEvent.click(await screen.findByText('客户甲'));
+    await screen.findByLabelText('关闭对账单');
+
+    fireEvent.keyDown(window, { key: 'Escape' });
+    await waitFor(() => expect(screen.queryByLabelText('关闭对账单')).not.toBeInTheDocument());
   });
 });
