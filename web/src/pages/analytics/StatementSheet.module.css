@@ -1,5 +1,6 @@
 .sheet {
-  overflow: hidden;
+  /* overflow: clip 不会创建滚动容器，详情头部才能相对页面吸顶。 */
+  overflow: clip;
   border: 1px solid var(--ant-color-border-secondary);
   border-top: 2px solid var(--ant-color-primary);
   border-radius: var(--app-radius-panel);
@@ -8,13 +9,16 @@
 }
 
 .header {
+  position: sticky;
+  z-index: 5;
+  top: calc(var(--app-header-height) + var(--app-tabbar-height));
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
   gap: 20px;
   padding: 20px 24px;
   border-bottom: 1px solid var(--ant-color-border-secondary);
-  background: linear-gradient(180deg, var(--ant-color-primary-bg), transparent 85%);
+  background: linear-gradient(180deg, var(--ant-color-primary-bg), var(--ant-color-bg-container) 85%);
 }
 
 .identity {
@@ -449,7 +453,17 @@
   }
 }
 
+@media (max-width: 767px) {
+  .header {
+    top: calc(var(--app-header-height-mobile) + var(--app-tabbar-height-mobile));
+  }
+}
+
 @media print {
+  .header {
+    position: static;
+  }
+
   :global(body.statement-printing) * {
     visibility: hidden !important;
   }
