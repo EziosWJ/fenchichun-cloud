@@ -46,7 +46,7 @@ const stageSQL = `CASE
  ELSE 'accepted' END`
 
 func tripQuery(tx *gorm.DB) *gorm.DB {
-	return tx.Table("grain_trip t").Joins("LEFT JOIN grain_inspection i ON i.id=t.effective_inspection_id").Joins("LEFT JOIN grain_inspection ti ON ti.trip_id=t.id").Joins("LEFT JOIN wb_cloud_ticket w ON w.id=t.ticket_id").Joins("LEFT JOIN grain_exit_permit p ON p.trip_id=t.id")
+	return tx.Table("grain_trip t").Joins("LEFT JOIN grain_inspection i ON i.id=t.effective_inspection_id").Joins("LEFT JOIN grain_inspection ti ON ti.trip_id=t.id AND ti.status <> 'void'").Joins("LEFT JOIN wb_cloud_ticket w ON w.id=t.ticket_id").Joins("LEFT JOIN grain_exit_permit p ON p.trip_id=t.id")
 }
 func (r *Repository) Trips(ctx context.Context, actor int64, q Query) (TripPage, error) {
 	result := TripPage{Records: []Trip{}, Page: q.Page, PageSize: q.PageSize}
@@ -332,6 +332,7 @@ func (r *Repository) Command(ctx context.Context, id int64, action string, in Co
 			"record-visual":     "grain-intake:visual",
 			"confirm-unloading": "grain-intake:unload",
 			"link-ticket":       "grain-intake:ticket",
+			"confirm-ticket":    "grain-intake:ticket",
 			"issue-permit":      "grain-intake:issue-permit",
 			"approve-permit":    "grain-intake:approve-permit",
 			"confirm-exit":      "grain-intake:release",
@@ -393,7 +394,7 @@ func (r *Repository) Command(ctx context.Context, id int64, action string, in Co
 			if i.Conclusion != "accept" {
 				return ErrConflict
 			}
-			if t.UnloadedAt != nil || t.TicketID != nil {
+			if t.UnloadedAt != nil {
 				return fmt.Errorf("%w：卸粮已确认，不覆盖现场记录", ErrConflict)
 			}
 			t.UnloadingLocation = in.Location
@@ -440,10 +441,33 @@ func (r *Repository) Command(ctx context.Context, id int64, action string, in Co
 				return fmt.Errorf("%w：化验生效、首磅、卸粮和回磅时间顺序不一致，需核查离线期间记录", ErrConflict)
 			}
 			t.TicketID = &ticket.ID
+			t.TicketConfirmedAt = &now
+			t.TicketConfirmedBy = &actor
 			description = "关联磅单 " + in.TicketSiteCode + " / " + in.TicketNo
+		case "confirm-ticket":
+			if t.TicketID == nil {
+				return fmt.Errorf("%w：尚未关联过磅单", ErrConflict)
+			}
+			if t.TicketConfirmedAt != nil {
+				description = "重复确认过磅单关联"
+				break
+			}
+			var ticket struct{ Status string }
+			if err := tx.Table("wb_cloud_ticket").Clauses(clause.Locking{Strength: "UPDATE"}).Where("id=?", *t.TicketID).Take(&ticket).Error; err != nil {
+				return err
+			}
+			if ticket.Status != "valid" {
+				return fmt.Errorf("%w：关联的过磅单已作废", ErrConflict)
+			}
+			t.TicketConfirmedAt = &now
+			t.TicketConfirmedBy = &actor
+			description = "确认过磅单关联"
 		case "issue-permit":
 			if exists {
 				return fmt.Errorf("%w：本趟已开具出门证", ErrConflict)
+			}
+			if t.TicketConfirmedAt == nil {
+				return fmt.Errorf("%w：请先确认过磅单关联", ErrConflict)
 			}
 			_, err := ready(tx, t)
 			if err != nil {

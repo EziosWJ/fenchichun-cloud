@@ -24,6 +24,11 @@ const stageStatuses: Record<string, {
 
 export function tripStatus(trip: Trip) {
   if (trip.stage) {
+    if (trip.stage === 'ready') {
+      return trip.ticketConfirmedAt
+        ? { label: '待开证', next: '核对磅单并开具出门证', action: 'issue', waiting: false }
+        : { label: '待确认磅单', next: '核对过磅端关联的磅单', action: 'confirm-ticket', waiting: false }
+    }
     const status = stageStatuses[trip.stage]
     if (status) {
       if (trip.stage === 'pending_inspection') {

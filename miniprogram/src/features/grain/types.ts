@@ -66,6 +66,7 @@ export interface Trip extends Registration {
   unload: { location: string, at: string } | null
   ticket: Ticket | null
   ticketAvailable: boolean
+  ticketConfirmedAt?: string
   permit: { id: string, numericId?: number, issuedAt: string, approvedAt: string } | null
   exitedAt: string
   events: EventRecord[]

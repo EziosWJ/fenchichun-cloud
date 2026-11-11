@@ -10,6 +10,7 @@ type Store interface {
 	List(context.Context, int64, Query) (Page, error)
 	Detail(context.Context, int64, int64) (Inspection, error)
 	Create(context.Context, Input, audit.Event) (Inspection, error)
+	Void(context.Context, int64, int64, int64, string, audit.Event) (Inspection, error)
 }
 type Service struct{ store Store }
 
@@ -40,4 +41,9 @@ func (s *Service) Detail(ctx context.Context, actor, id int64) (Inspection, erro
 func (s *Service) Create(ctx context.Context, in Input, e audit.Event) (Inspection, error) {
 	in.normalize()
 	return s.store.Create(ctx, in, e)
+}
+
+// Void 作废尚未生成过磅单的化验单，保留原始检测值并记录原因。
+func (s *Service) Void(ctx context.Context, actor, id, version int64, reason string, e audit.Event) (Inspection, error) {
+	return s.store.Void(ctx, actor, id, version, reason, e)
 }

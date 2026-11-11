@@ -18,6 +18,7 @@ func (h *Handler) Register(api gin.IRouter) {
 	g.GET("", h.list)
 	g.GET("/:id", h.detail)
 	g.POST("", h.create)
+	g.POST("/:id/void", h.void)
 }
 func result(c *gin.Context, value any, err error) {
 	if err == nil {
@@ -132,5 +133,37 @@ func (h *Handler) create(c *gin.Context) {
 		return
 	}
 	value, err := h.service.Create(c.Request.Context(), input, e)
+	result(c, value, err)
+}
+
+type voidRequest struct {
+	Version int64  `json:"version"`
+	Reason  string `json:"reason"`
+}
+
+// void godoc
+// @Summary 作废化验单
+// @Description 仅允许在过磅单生成前作废；保留原始检测值、原因和人员时间，并让流转单回到待化验。
+// @Tags 化验室
+// @Security BearerAuth
+// @Param id path int true "化验单ID"
+// @Param request body voidRequest true "版本与作废原因"
+// @Success 200 {object} Response
+// @Router /api/v1/laboratory/inspections/{id}/void [post]
+func (h *Handler) void(c *gin.Context) {
+	e, ok := event(c, "inspection.void")
+	if !ok {
+		return
+	}
+	key, ok := id(c)
+	if !ok {
+		return
+	}
+	var input voidRequest
+	if err := c.ShouldBindJSON(&input); err != nil {
+		result(c, nil, ErrInvalid)
+		return
+	}
+	value, err := h.service.Void(c.Request.Context(), e.Metadata.ActorID, key, input.Version, input.Reason, e)
 	result(c, value, err)
 }

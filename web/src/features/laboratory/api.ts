@@ -43,3 +43,5 @@ export const saveInspection = (input: InspectionInput, original?: Inspection) =>
   : post<Inspection>(base, input);
 export const inspectionAction = (original: Inspection, action: 'confirm' | 'void' | 'delete' | 'retest', reason = '') =>
   post<Inspection>(`${base}/${original.id}/${action}`, { version: original.version, reason });
+export const voidInspection = (original: Inspection, reason: string) =>
+  post<Inspection>(`${base}/${original.id}/void`, { version: original.version, reason });

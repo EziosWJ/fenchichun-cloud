@@ -56,6 +56,7 @@ type ChangeV4 struct {
 	Digest           string          `json:"digest"`
 	SiteCode         string          `json:"siteCode"`
 	TicketNo         string          `json:"ticketNo"`
+	TripID           *int64          `json:"tripId,omitempty"`
 	Type             string          `json:"type"`
 	PreviousSiteCode string          `json:"previousSiteCode,omitempty"`
 	Ticket           *TicketSnapshot `json:"ticket,omitempty"`
@@ -67,6 +68,9 @@ func (c ChangeV4) Validate() (int64, error) {
 		return 0, ErrInvalid
 	}
 	if (c.Type != "issue" && c.Type != "reopen" && c.Type != "void") || c.Ticket == nil {
+		return 0, ErrInvalid
+	}
+	if c.TripID != nil && *c.TripID <= 0 {
 		return 0, ErrInvalid
 	}
 	t := c.Ticket

@@ -1,12 +1,12 @@
 import { useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Alert, Button, Descriptions, Input, Modal, Space, Tag, Tooltip, Typography } from 'antd';
+import { Alert, App, Button, Descriptions, Input, Modal, Space, Tag, Tooltip, Typography } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { DataTable } from '../../components/DataTable';
 import { PageHeader } from '../../components/PageHeader';
 import { trips, type Trip } from '../../features/grain-intake/api';
-import { inspection as fetchInspection } from '../../features/laboratory/api';
+import { inspection as fetchInspection, voidInspection, type Inspection } from '../../features/laboratory/api';
 import { getApiErrorMessage } from '../../lib/api/errors';
 import { formatDateTime } from '../../utils/format';
 import { usePermissions } from '../../hooks/usePermissions';
@@ -21,13 +21,18 @@ const pageSize = 10;
  */
 export default function InspectionsPage() {
   const client = useQueryClient();
+  const { message } = App.useApp();
   const [page, setPage] = useState(1);
   const [urlParams] = useSearchParams();
   const initialKeyword = urlParams.get('keyword') ?? '';
   const [keyword, setKeyword] = useState(initialKeyword);
   const [search, setSearch] = useState(initialKeyword);
   const [selected, setSelected] = useState<Trip>();
+  const [viewingTrip, setViewingTrip] = useState<Trip>();
   const [viewId, setViewId] = useState<number>();
+  const [voiding, setVoiding] = useState<Inspection>();
+  const [voidReason, setVoidReason] = useState('');
+  const [voidSubmitting, setVoidSubmitting] = useState(false);
   const { has } = usePermissions();
   const canInspect = has('laboratory:inspect');
   const params = { page, pageSize, keyword: search || undefined, order: 'inspection_first', method: 'lab' };
@@ -54,7 +59,7 @@ export default function InspectionsPage() {
       title: '操作', key: 'actions', render: (_, row) => row.inspectionId
         ? <Space>
           <Tooltip title="该流转单已化验"><Button disabled>化验</Button></Tooltip>
-          <Button onClick={() => setViewId(row.inspectionId!)}>查看</Button>
+          <Button onClick={() => { setViewingTrip(row); setViewId(row.inspectionId!); }}>查看</Button>
         </Space>
         : canInspect
           ? <Button type="primary" onClick={() => setSelected(row)}>化验</Button>
@@ -62,6 +67,24 @@ export default function InspectionsPage() {
     },
   ];
   const value = detail.data;
+  const submitVoid = async () => {
+    if (!voiding || !voidReason.trim()) return;
+    setVoidSubmitting(true);
+    try {
+      await voidInspection(voiding, voidReason.trim());
+      message.success('化验单已作废，可以重新录入');
+      void client.invalidateQueries({ queryKey: ['laboratory'] });
+      void client.invalidateQueries({ queryKey: ['grain-intake'] });
+      setVoiding(undefined);
+      setVoidReason('');
+      setViewId(undefined);
+      setViewingTrip(undefined);
+    } catch (error) {
+      message.error(getApiErrorMessage(error));
+    } finally {
+      setVoidSubmitting(false);
+    }
+  };
   return <>
     <PageHeader title="化验单" />
     <Space orientation="vertical" size="middle" style={{ width: '100%', marginTop: 20 }}>
@@ -101,8 +124,11 @@ export default function InspectionsPage() {
     <Modal
       title="化验单详情"
       open={viewId !== undefined}
-      onCancel={() => setViewId(undefined)}
-      footer={<Button onClick={() => setViewId(undefined)}>关闭</Button>}
+      onCancel={() => { setViewId(undefined); setViewingTrip(undefined); }}
+      footer={<Space>
+        <Button onClick={() => { setViewId(undefined); setViewingTrip(undefined); }}>关闭</Button>
+        {canInspect && value?.status === 'confirmed' && viewingTrip && !viewingTrip.ticketId && !viewingTrip.exitedAt && <Button danger onClick={() => { setVoiding(value); setVoidReason(''); }}>作废并重录</Button>}
+      </Space>}
       width={760}
       destroyOnHidden
     >
@@ -146,6 +172,19 @@ export default function InspectionsPage() {
           ]} />
         </section>
       </div>}
+    </Modal>
+    <Modal
+      title="作废并重录化验单"
+      open={voiding !== undefined}
+      onCancel={() => { setVoiding(undefined); setVoidReason(''); }}
+      onOk={() => void submitVoid()}
+      okText="作废并重录"
+      okButtonProps={{ danger: true, disabled: !voidReason.trim() }}
+      confirmLoading={voidSubmitting}
+      destroyOnHidden
+    >
+      <Alert type="warning" title="作废后原检测值会保留为历史，流转单回到待化验，可重新录入。" description="过磅单生成后不能作废化验单，请先确认过磅端尚未生成磅单。" />
+      <Input.TextArea aria-label="作废原因" placeholder="请填写作废原因" maxLength={2000} rows={3} style={{ marginTop: 16 }} value={voidReason} onChange={(event) => setVoidReason(event.target.value)} />
     </Modal>
   </>;
 }

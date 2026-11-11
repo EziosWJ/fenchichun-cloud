@@ -14,6 +14,7 @@ const actionLabels: Record<string, string> = {
   visual: '确认目测',
   unload: '确认卸粮',
   ticket: '查看磅单候选',
+  'confirm-ticket': '确认过磅单关联',
   issue: '开具出门证',
   approve: '审批出门证',
 }
@@ -70,7 +71,7 @@ Page({
         else if (status.action === 'unload') {
           expanded.unload = true
         }
-        else if (status.action === 'ticket') {
+        else if (status.action === 'ticket' || status.action === 'confirm-ticket') {
           expanded.ticket = true
         }
         else if (status.action === 'issue' || status.action === 'approve' || trip.stage === 'permit_approved') {
@@ -129,6 +130,19 @@ Page({
         url: `${routes.tickets}?id=${encodeURIComponent(trip.serverId || trip.id)}`,
       })
     }
+    if (action === 'confirm-ticket') {
+      wx.showModal({
+        title: '确认过磅单关联？',
+        content: `请核对过磅端关联的磅单 ${trip.ticket?.id} 与车辆 ${trip.plate}、${trip.material}是否一致。`,
+        confirmText: '确认关联',
+        success: ({ confirm }) => {
+          if (confirm) {
+            this.submitTicketConfirmation()
+          }
+        },
+      })
+      return
+    }
     if (action !== 'issue' && action !== 'approve') {
       return
     }
@@ -151,6 +165,41 @@ Page({
         }
       },
     })
+  },
+  submitTicketConfirmation() {
+    const trip = this.data.trip
+    if (!trip) {
+      return
+    }
+    this.setData({ confirming: true })
+    try {
+      applyAsync(
+        demo.confirmTicket(trip.serverId || trip.id, trip.version),
+        () => {
+          wx.showToast({ title: '已确认过磅单关联', icon: 'success' })
+          this.setData({ confirming: false })
+          this.load()
+        },
+        (error) => {
+          wx.showModal({
+            title: '确认未完成',
+            content: errorMessage(error),
+            showCancel: false,
+          })
+          this.setData({ confirming: false })
+          this.load()
+        },
+      )
+    }
+    catch (error) {
+      wx.showModal({
+        title: '确认未完成',
+        content: errorMessage(error),
+        showCancel: false,
+      })
+      this.setData({ confirming: false })
+      this.load()
+    }
   },
   submitPermit() {
     const trip = this.data.trip

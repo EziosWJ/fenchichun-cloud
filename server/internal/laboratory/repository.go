@@ -7,7 +7,9 @@ import (
 	"fmt"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
+	"strings"
 	"time"
+	"unicode/utf8"
 )
 
 type Repository struct{ db *gorm.DB }
@@ -66,8 +68,8 @@ func inspectionTrip(tx *gorm.DB, id int64) (tripReference, error) {
 	if err := tx.Table("grain_exit_permit").Where("trip_id=?", id).Count(&n).Error; err != nil {
 		return t, err
 	}
-	if t.ExitedAt != nil || t.UnloadedAt != nil || t.TicketID != nil || n > 0 {
-		return t, fmt.Errorf("%w：流转单已卸粮、关联磅单、开证或出厂，不能录入化验结果", ErrConflict)
+	if t.ExitedAt != nil || t.TicketID != nil || n > 0 {
+		return t, fmt.Errorf("%w：流转单已关联磅单、开证或出厂，不能录入化验结果", ErrConflict)
 	}
 	return t, nil
 }
@@ -160,7 +162,7 @@ func (r *Repository) Create(ctx context.Context, in Input, e audit.Event) (Inspe
 			return err
 		}
 		var n int64
-		if err := tx.Model(&Inspection{}).Where("trip_id=?", *in.TripID).Count(&n).Error; err != nil {
+		if err := tx.Model(&Inspection{}).Where("trip_id=? AND status <> 'void'", *in.TripID).Count(&n).Error; err != nil {
 			return err
 		}
 		if n > 0 {
@@ -210,6 +212,97 @@ func (r *Repository) Create(ctx context.Context, in Input, e audit.Event) (Inspe
 		if err := tx.Exec("INSERT INTO grain_trip_event(trip_id,action,description,actor_id) VALUES (?,?,?,?)", *in.TripID, "inspection.create", description, actor).Error; err != nil {
 			return err
 		}
+		e.Resource = "laboratory-inspection"
+		e.ResourceID = v.ID
+		return audit.RecordOn(ctx, tx, e)
+	})
+	return v, err
+}
+
+// Void 作废已确认且尚未生成过磅单的化验单，并让流转单回到待化验。
+func (r *Repository) Void(ctx context.Context, actor, id, version int64, reason string, e audit.Event) (Inspection, error) {
+	var v Inspection
+	err := r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		if err := requireMenu(tx, actor, "laboratory:inspect"); err != nil {
+			return err
+		}
+		reason = strings.TrimSpace(reason)
+		if reason == "" || utf8.RuneCountInString(reason) > 2000 {
+			return fmt.Errorf("%w：请填写作废原因", ErrInvalid)
+		}
+		var err error
+		v, err = find(tx, id, true)
+		if err != nil {
+			return err
+		}
+		if v.Status != "confirmed" {
+			return fmt.Errorf("%w：只能作废已确认的化验单", ErrConflict)
+		}
+		if v.Version != version {
+			return ErrConflict
+		}
+		if v.TripID == nil {
+			return fmt.Errorf("%w：化验单未关联流转单", ErrConflict)
+		}
+		var trip struct {
+			ID                    int64
+			SiteCode              string
+			Plate                 string
+			MaterialCode          string
+			PartyCode             string
+			TicketID              *int64
+			ExitedAt              *time.Time
+			EffectiveInspectionID *int64
+		}
+		if err := tx.Table("grain_trip").Clauses(clause.Locking{Strength: "UPDATE"}).Where("id=?", *v.TripID).Take(&trip).Error; err != nil {
+			return err
+		}
+		var permits int64
+		if err := tx.Table("grain_exit_permit").Where("trip_id=?", trip.ID).Count(&permits).Error; err != nil {
+			return err
+		}
+		var generatedTickets int64
+		if err := tx.Table("wb_cloud_ticket").
+			Where("status='valid' AND direction='inbound' AND site_code=? AND plate=? AND material_code=? AND party_code=? AND first_confirmed_at >= ?",
+				trip.SiteCode, trip.Plate, trip.MaterialCode, trip.PartyCode, v.ConfirmedAt).
+			Count(&generatedTickets).Error; err != nil {
+			return err
+		}
+		if trip.TicketID != nil || trip.ExitedAt != nil || permits > 0 || generatedTickets > 0 {
+			return fmt.Errorf("%w：过磅单已生成，不能作废化验单", ErrConflict)
+		}
+		now := time.Now().UTC()
+		if err := tx.Model(&Inspection{}).Where("id=?", id).Updates(map[string]any{
+			"status":      "void",
+			"voided_by":   actor,
+			"voided_at":   now,
+			"void_reason": reason,
+			"version":     gorm.Expr("version+1"),
+			"updated_at":  now,
+		}).Error; err != nil {
+			return err
+		}
+		if trip.EffectiveInspectionID != nil && *trip.EffectiveInspectionID == id {
+			if err := tx.Table("grain_trip").Where("id=?", trip.ID).Updates(map[string]any{
+				"effective_inspection_id": nil,
+				"effective_selected_at":   nil,
+				"effective_selected_by":   nil,
+				"version":                 gorm.Expr("version+1"),
+				"updated_at":              now,
+			}).Error; err != nil {
+				return err
+			}
+		}
+		description := fmt.Sprintf("作废化验单 %s：%s", v.Number, reason)
+		if err := tx.Exec("INSERT INTO grain_trip_event(trip_id,action,description,actor_id) VALUES (?,?,?,?)", trip.ID, "inspection.void", description, actor).Error; err != nil {
+			return err
+		}
+		v.Status = "void"
+		v.VoidedBy = &actor
+		v.VoidedAt = &now
+		v.VoidReason = reason
+		v.Version++
+		v.UpdatedAt = now
 		e.Resource = "laboratory-inspection"
 		e.ResourceID = v.ID
 		return audit.RecordOn(ctx, tx, e)

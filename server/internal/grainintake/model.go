@@ -81,6 +81,8 @@ type Trip struct {
 	UnloadedAt            *time.Time `json:"unloadedAt"`
 	UnloadedBy            *int64     `json:"unloadedBy"`
 	TicketID              *int64     `json:"ticketId"`
+	TicketConfirmedAt     *time.Time `json:"ticketConfirmedAt"`
+	TicketConfirmedBy     *int64     `json:"ticketConfirmedBy"`
 	CreatedBy             int64      `json:"createdBy"`
 	CreatedAt             time.Time  `json:"createdAt"`
 	UpdatedAt             time.Time  `json:"updatedAt"`

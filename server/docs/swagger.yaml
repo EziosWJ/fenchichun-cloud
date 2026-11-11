@@ -470,6 +470,10 @@ definitions:
         type: string
       stage:
         type: string
+      ticketConfirmedAt:
+        type: string
+      ticketConfirmedBy:
+        type: integer
       ticketId:
         type: integer
       unloadedAt:
@@ -650,6 +654,13 @@ definitions:
         $ref: '#/definitions/laboratory.Inspection'
       message:
         type: string
+    type: object
+  laboratory.voidRequest:
+    properties:
+      reason:
+        type: string
+      version:
+        type: integer
     type: object
   logmgmt.ApiEnvelope:
     properties:
@@ -1419,6 +1430,8 @@ definitions:
         $ref: '#/definitions/weighbridge.TicketSnapshot'
       ticketNo:
         type: string
+      tripId:
+        type: integer
       type:
         type: string
       void:
@@ -1449,6 +1462,8 @@ definitions:
         $ref: '#/definitions/weighbridge.TicketSnapshot'
       ticketNo:
         type: string
+      tripId:
+        type: integer
       type:
         type: string
       void:
@@ -2173,6 +2188,31 @@ paths:
       security:
       - BearerAuth: []
       summary: 查询化验记录详情
+      tags:
+      - 化验室
+  /api/v1/laboratory/inspections/{id}/void:
+    post:
+      description: 仅允许在过磅单生成前作废；保留原始检测值、原因和人员时间，并让流转单回到待化验。
+      parameters:
+      - description: 化验单ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: 版本与作废原因
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/laboratory.voidRequest'
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/laboratory.Response'
+      security:
+      - BearerAuth: []
+      summary: 作废化验单
       tags:
       - 化验室
   /api/v1/miniprogram/dictionaries:

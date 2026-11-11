@@ -523,7 +523,20 @@ export function createDemoService(
         }
         trip.ticket = copy(ticket)
         trip.ticketAvailable = false
+        trip.ticketConfirmedAt = now()
         event(trip, user.name, `关联正式磅单 ${ticket.id}`)
+      })
+    },
+    confirmTicket(id: string, version: number) {
+      return mutate(id, version, 'warehouse', (trip, _state, user) => {
+        if (!trip.ticket) {
+          throw new Error('尚未关联磅单')
+        }
+        if (trip.ticketConfirmedAt) {
+          return
+        }
+        trip.ticketConfirmedAt = now()
+        event(trip, user.name, '确认过磅单关联')
       })
     },
     issuePermit(id: string, version: number) {

@@ -705,6 +705,46 @@ const docTemplate = `{
                 }
             }
         },
+        "/api/v1/laboratory/inspections/{id}/void": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "仅允许在过磅单生成前作废；保留原始检测值、原因和人员时间，并让流转单回到待化验。",
+                "tags": [
+                    "化验室"
+                ],
+                "summary": "作废化验单",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "化验单ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "版本与作废原因",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/laboratory.voidRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/laboratory.Response"
+                        }
+                    }
+                }
+            }
+        },
         "/api/v1/miniprogram/dictionaries": {
             "get": {
                 "security": [
@@ -6654,6 +6694,12 @@ const docTemplate = `{
                 "stage": {
                     "type": "string"
                 },
+                "ticketConfirmedAt": {
+                    "type": "string"
+                },
+                "ticketConfirmedBy": {
+                    "type": "integer"
+                },
                 "ticketId": {
                     "type": "integer"
                 },
@@ -6927,6 +6973,17 @@ const docTemplate = `{
                 },
                 "message": {
                     "type": "string"
+                }
+            }
+        },
+        "laboratory.voidRequest": {
+            "type": "object",
+            "properties": {
+                "reason": {
+                    "type": "string"
+                },
+                "version": {
+                    "type": "integer"
                 }
             }
         },
@@ -8109,6 +8166,9 @@ const docTemplate = `{
                 "ticketNo": {
                     "type": "string"
                 },
+                "tripId": {
+                    "type": "integer"
+                },
                 "type": {
                     "type": "string"
                 },
@@ -8154,6 +8214,9 @@ const docTemplate = `{
                 },
                 "ticketNo": {
                     "type": "string"
+                },
+                "tripId": {
+                    "type": "integer"
                 },
                 "type": {
                     "type": "string"

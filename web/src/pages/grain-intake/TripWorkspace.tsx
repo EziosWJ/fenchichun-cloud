@@ -72,7 +72,11 @@ export default function TripWorkspace({ gate = false }: { gate?: boolean }) {
     }
     if (trip.stage === 'pending_unload') return { tab: 'weighing', title: '下一步：确认现场卸粮', description: '在现场首磅及卸粮完成后，填写实际卸粮地点并确认。' };
     if (trip.stage === 'pending_ticket') return { tab: 'weighing', title: '下一步：关联正式磅单', description: '磅单联网同步至云端后，选择厂区、车牌、货品、供应商一致的单据。' };
-    if (trip.stage === 'ready') return { tab: 'exit', title: '下一步：开具出门证', description: '实际卸粮和有效磅单就绪后开具出门证。' };
+    if (trip.stage === 'ready') {
+      return trip.ticketConfirmedAt
+        ? { tab: 'exit', title: '下一步：开具出门证', description: '实际卸粮和有效磅单就绪后开具出门证。' }
+        : { tab: 'weighing', title: '下一步：确认过磅单关联', description: '过磅端已关联磅单，请核对厂区、车牌、货品和供应商是否一致。' };
+    }
     if (trip.stage === 'permit_pending') return { tab: 'exit', title: '下一步：审批出门证', description: '审批通过后，仍需门卫在实际放行时确认出厂。' };
     if (trip.stage === 'permit_approved') return { tab: 'exit', title: '下一步：门卫确认出厂', description: '核对车辆与出门证后确认出厂，确认后本趟凭据不能再次使用。' };
     if (trip.stage === 'rejected') return { tab: 'exit', title: '下一步：核验拒收依据并确认出厂', description: visual ? '核对目测拒收结论与说明后，确认车辆实际出厂。' : '核对生效化验单的拒收结论与原因后，确认车辆实际出厂。' };
@@ -139,12 +143,18 @@ export default function TripWorkspace({ gate = false }: { gate?: boolean }) {
             </>}
           </Card>
           <Card size="small" title="关联正式磅单">
-            {ticket ? <Descriptions size="small" column={{ xs: 1, sm: 2 }} items={[
+            {ticket ? <>
+              <Descriptions size="small" column={{ xs: 1, sm: 2 }} items={[
               { key: 'number', label: '单号', children: ticket.ticket.ticketNo }, { key: 'status', label: '状态', children: ticket.status === 'valid' ? '有效' : '已作废' },
+              { key: 'confirmed', label: '关联确认', children: trip.ticketConfirmedAt ? <Tag color="green">已确认</Tag> : <Tag color="orange">待确认</Tag> },
               { key: 'gross', label: '毛重（吨）', children: formatTonnes(ticket.ticket.finalGross) }, { key: 'tare', label: '皮重（吨）', children: formatTonnes(ticket.ticket.finalTare) },
               { key: 'actualNet', label: '实际净重（吨）', children: subtractTonnes(ticket.ticket.finalGross, ticket.ticket.finalTare) }, { key: 'net', label: '扣减后重量（吨）', children: formatTonnes(ticket.ticket.finalNet) },
               { key: 'first', label: '首磅时间', children: formatDateTime(ticket.ticket.firstConfirmedAt) }, { key: 'second', label: '回磅时间', children: formatDateTime(ticket.ticket.secondConfirmedAt) },
-            ]} /> : <>
+            ]} />
+              {!trip.ticketConfirmedAt && canTicket && !permit && !trip.exitedAt && <Space style={{ marginTop: 12 }}>
+                <Button type="primary" loading={action.isPending} onClick={() => ask('确认过磅单关联？', 'confirm-ticket', undefined, `${ticket.ticket.plate} · ${ticket.ticket.materialName} · 净重 ${formatTonnes(ticket.ticket.finalNet)} 吨`)}>确认过磅单关联</Button>
+              </Space>}
+            </> : <>
               {!gate && canTicket && !permit && !trip.exitedAt && <Space wrap style={{ marginTop: 16 }}>
                 <Select
                   aria-label="选择正式磅单"
@@ -175,7 +185,7 @@ export default function TripWorkspace({ gate = false }: { gate?: boolean }) {
             { key: 'created', label: '开具时间', children: formatDateTime(permit.createdAt) }, { key: 'approved', label: '审批时间', children: formatDateTime(permit.approvedAt) },
           ]} /> : trip.effectiveConclusion === 'reject' ? <Alert type="warning" title="本趟拒收，不另开出门证。" /> : null}
           <Space wrap style={{ marginTop: 16 }}>
-            {!gate && canIssue && trip.stage === 'ready' && !permit && <Button type="primary" loading={action.isPending} onClick={() => ask('开具本趟出门证？', 'issue-permit')}>开具出门证</Button>}
+            {!gate && canIssue && trip.stage === 'ready' && !permit && trip.ticketConfirmedAt && <Button type="primary" loading={action.isPending} onClick={() => ask('开具本趟出门证？', 'issue-permit')}>开具出门证</Button>}
             {canApprove && trip.stage === 'permit_pending' && permit && <Button type="primary" loading={action.isPending} onClick={() => ask('审批通过该出门证？', 'approve-permit', { permitId: permit.id }, '审批通过仍需门卫在实际放行时确认出厂。')}>审批通过</Button>}
             {canRelease && trip.stage === 'permit_approved' && permit && <Button type="primary" loading={action.isPending} onClick={() => ask('车辆实际出厂，确认放行？', 'confirm-exit', { basis: 'permit', permitId: permit.id }, '核对车辆与出门证；确认后本趟凭据不可再次使用。')}>确认出厂</Button>}
             {canRelease && trip.stage === 'rejected' && (effective || visual) && <Button type="primary" loading={action.isPending} onClick={() => ask('核验拒收依据并确认车辆实际出厂？', 'confirm-exit', { basis: 'rejection', inspectionId: effective?.id, inspectionVersion: effective?.version }, effective?.reason || trip.visualReason)}>确认拒收出厂</Button>}

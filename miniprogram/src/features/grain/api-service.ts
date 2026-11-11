@@ -51,6 +51,7 @@ interface ServerTrip {
   unloadingLocation: string
   unloadedAt: string | null
   ticketId: number | null
+  ticketConfirmedAt: string | null
   createdAt: string
   updatedAt: string
   exitedAt: string | null
@@ -278,6 +279,7 @@ function adaptTrip(trip: ServerTrip, detail?: ServerDetail): Trip {
       : null,
     ticket: ticketOf(detail),
     ticketAvailable: false,
+    ticketConfirmedAt: formatTime(trip.ticketConfirmedAt),
     permit: detail?.permit
       ? {
           id: detail.permit.number,
@@ -537,6 +539,14 @@ export const demo = {
         ticketSiteCode: candidate.siteCode,
         ticketNo,
       },
+    })
+    return adaptTrip(detail.trip, detail)
+  },
+  async confirmTicket(id: string, version: number) {
+    const detail = await request<ServerDetail>({
+      path: `/grain-intake/trips/${id}/confirm-ticket`,
+      method: 'POST',
+      data: { version },
     })
     return adaptTrip(detail.trip, detail)
   },

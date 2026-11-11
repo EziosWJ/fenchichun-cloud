@@ -22,6 +22,7 @@ export const demo: DemoService = {
   confirmUnload: unavailable,
   candidates: unavailable,
   linkTicket: unavailable,
+  confirmTicket: unavailable,
   issuePermit: unavailable,
   approvePermit: unavailable,
   confirmExit: unavailable,

@@ -34,6 +34,7 @@ type syncChangeRecord struct {
 	Digest           string
 	SiteCode         string
 	TicketNo         string
+	TripID           *int64
 	Type             string
 	PreviousSiteCode string
 	Ticket           *TicketSnapshot
@@ -47,6 +48,7 @@ func changeRecordFromV4(c ChangeV4) syncChangeRecord {
 		Digest:           c.Digest,
 		SiteCode:         c.SiteCode,
 		TicketNo:         c.TicketNo,
+		TripID:           c.TripID,
 		Type:             c.Type,
 		PreviousSiteCode: c.PreviousSiteCode,
 		Ticket:           c.Ticket,
@@ -61,6 +63,7 @@ func changeRecordFromV5(c ChangeV5) syncChangeRecord {
 		Digest:           c.Digest,
 		SiteCode:         c.SiteCode,
 		TicketNo:         c.TicketNo,
+		TripID:           c.TripID,
 		Type:             c.Type,
 		PreviousSiteCode: c.PreviousSiteCode,
 		Ticket:           c.Ticket,
@@ -204,6 +207,12 @@ func (r *Repository) applyChange(ctx context.Context, c syncChangeRecord, net in
 			return newSyncError(SyncCategoryConfigOrData, "invalid_request", "未知变化类型")
 		}
 
+		if c.Type != "void" && c.TripID != nil && *c.TripID > 0 {
+			if err := associateTicketToTrip(tx, ticketID, *c.TripID, c, receivedAt); err != nil {
+				return err
+			}
+		}
+
 		change := cloudTicketChange{IssuedSiteCode: c.SiteCode, TicketNo: c.TicketNo, ChangeType: c.Type, Digest: c.Digest, DigestVersion: c.DigestVersion, SchemaVersion: c.SchemaVersion, TicketID: ticketID, ReceivedAt: receivedAt}
 		if err := tx.Create(&change).Error; err != nil {
 			if siteError(err) == ErrConflict {
@@ -221,6 +230,84 @@ func (r *Repository) applyChange(ctx context.Context, c syncChangeRecord, net in
 		return ChangeReceiptV4{}, err
 	}
 	return receipt, nil
+}
+
+// associateTicketToTrip links a factory ticket to the trip id supplied by the
+// weighing program. The association itself is not a confirmation: the store
+// must confirm it from the web or mini program before issuing a permit.
+func associateTicketToTrip(tx *gorm.DB, ticketID, tripID int64, c syncChangeRecord, now time.Time) error {
+	var trip struct {
+		ID                    int64
+		Version               int64
+		SiteCode              string
+		Plate                 string
+		MaterialCode          string
+		PartyCode             string
+		InspectionMethod      string
+		VisualConclusion      string
+		EffectiveInspectionID *int64
+		TicketID              *int64
+		ExitedAt              *time.Time
+	}
+	err := tx.Table("grain_trip").
+		Clauses(clause.Locking{Strength: "UPDATE"}).
+		Select("id, version, site_code, plate, material_code, party_code, inspection_method, visual_conclusion, effective_inspection_id, ticket_id, exited_at").
+		Where("id=?", tripID).
+		Take(&trip).Error
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return newSyncError(SyncCategoryConfigOrData, "trip_not_found", "关联的流转单不存在")
+	}
+	if err != nil {
+		return err
+	}
+	if c.Ticket == nil {
+		return newSyncError(SyncCategoryConfigOrData, "invalid_request", "缺少过磅单信息")
+	}
+	if trip.ExitedAt != nil {
+		return newSyncError(SyncCategoryConflict, "trip_exited", "关联的流转单已出厂")
+	}
+	if trip.TicketID != nil {
+		if *trip.TicketID == ticketID {
+			return nil
+		}
+		return newSyncError(SyncCategoryConflict, "trip_ticket_exists", "关联的流转单已有其他磅单")
+	}
+	if c.SiteCode != trip.SiteCode || c.Ticket.Plate != trip.Plate || c.Ticket.MaterialCode != trip.MaterialCode || c.Ticket.PartyCode != trip.PartyCode || c.Ticket.Direction != "inbound" {
+		return newSyncError(SyncCategoryConflict, "trip_mismatch", "过磅单与流转单的厂区、车牌、货品或供应商不一致")
+	}
+	if trip.InspectionMethod == "lab" && trip.EffectiveInspectionID == nil {
+		return newSyncError(SyncCategoryPredecessorPending, "inspection_pending", "流转单尚未完成化验")
+	}
+	if trip.InspectionMethod == "visual" && trip.VisualConclusion != "accept" {
+		return newSyncError(SyncCategoryConflict, "inspection_not_accepted", "流转单尚未目测接收")
+	}
+	var permits int64
+	if err := tx.Table("grain_exit_permit").Where("trip_id=?", tripID).Count(&permits).Error; err != nil {
+		return err
+	}
+	if permits > 0 {
+		return newSyncError(SyncCategoryConflict, "trip_permit_exists", "关联的流转单已开具出门证")
+	}
+	if trip.InspectionMethod == "lab" {
+		var inspection struct{ Conclusion string }
+		if err := tx.Table("grain_inspection").Select("conclusion").Where("id=?", *trip.EffectiveInspectionID).Take(&inspection).Error; err != nil {
+			return err
+		}
+		if inspection.Conclusion != "accept" {
+			return newSyncError(SyncCategoryConflict, "inspection_not_accepted", "流转单化验结论不是接收")
+		}
+	}
+	if err := tx.Table("grain_trip").Where("id=?", tripID).Updates(map[string]any{
+		"ticket_id":           ticketID,
+		"ticket_confirmed_at": nil,
+		"ticket_confirmed_by": nil,
+		"version":             gorm.Expr("version+1"),
+		"updated_at":          now,
+	}).Error; err != nil {
+		return err
+	}
+	description := "过磅端已关联磅单 " + c.TicketNo + "，等待库管确认"
+	return tx.Exec("INSERT INTO grain_trip_event(trip_id,action,description,actor_id) VALUES (?,?,?,NULL)", tripID, "trip.ticket-associated", description).Error
 }
 
 func ensureTicketAbsent(tx *gorm.DB, siteCode, ticketNo string) error {

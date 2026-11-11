@@ -10,7 +10,7 @@ export interface Trip extends TripInput {
   inspectionMethod: 'lab' | 'visual'; visualConclusion: '' | 'accept' | 'reject'; visualReason: string; visualInspectedAt: string | null; visualInspectedBy: number | null;
   effectiveInspectionId: number | null; effectiveSelectedAt: string | null; effectiveSelectedBy: number | null;
   unloadingLocation: string; unloadedAt: string | null; unloadedBy: number | null;
-  ticketId: number | null; createdBy: number; createdAt: string; updatedAt: string;
+  ticketId: number | null; ticketConfirmedAt?: string | null; ticketConfirmedBy?: number | null; createdBy: number; createdAt: string; updatedAt: string;
   exitedAt: string | null; exitedBy: number | null; exitBasis: string; exitInspectionId: number | null;
   stage: string; effectiveConclusion: string;
   inspectionId: number | null; inspectionConclusion: string;
@@ -28,7 +28,7 @@ export interface TicketCandidate {
   partyCode: string; partyName: string; finalGross: string; finalTare: string; finalNetMilliTonne: number;
   firstConfirmedAt: string; secondConfirmedAt: string; issuedAt: string; linkable: boolean; reason: string;
 }
-export type TripAction = 'record-visual' | 'link-inspection' | 'select-inspection' | 'confirm-unloading' | 'link-ticket' | 'issue-permit' | 'approve-permit' | 'confirm-exit';
+export type TripAction = 'record-visual' | 'link-inspection' | 'select-inspection' | 'confirm-unloading' | 'link-ticket' | 'confirm-ticket' | 'issue-permit' | 'approve-permit' | 'confirm-exit';
 export interface TripCommand {
   inspectionId?: number; inspectionVersion?: number; location?: string; conclusion?: 'accept' | 'reject'; reason?: string;
   ticketSiteCode?: string; ticketNo?: string; basis?: 'permit' | 'rejection'; permitId?: number;

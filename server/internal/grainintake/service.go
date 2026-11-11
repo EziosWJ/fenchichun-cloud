@@ -81,7 +81,7 @@ func (s *Service) Save(ctx context.Context, id, version int64, in Input, e audit
 }
 func (s *Service) Command(ctx context.Context, id int64, action string, in Command, e audit.Event) (Detail, error) {
 	switch action {
-	case "record-visual", "confirm-unloading", "link-ticket", "issue-permit", "approve-permit", "confirm-exit":
+	case "record-visual", "confirm-unloading", "link-ticket", "confirm-ticket", "issue-permit", "approve-permit", "confirm-exit":
 	default:
 		return Detail{}, ErrInvalid
 	}
