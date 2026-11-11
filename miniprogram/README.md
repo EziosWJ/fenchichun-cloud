@@ -73,7 +73,7 @@ APP_MOCK=false
 - OCR 与号码提取代码改编自 [EziosWJ/wechat-plate-ocr](https://github.com/EziosWJ/wechat-plate-ocr)，位于 `src/features/plate-ocr/`。
 - 识别结果会自动拆分省份和号码，但仍需人工核对；识别失败时可直接手动输入。
 - VisionKit 能力和相机需要在真机验证，开发者工具模拟器可能不支持 OCR。
-- 项目基础库已设为 `3.17.6`；低版本微信会提示手动输入。
+- 开发者工具当前使用基础库 `3.13.2`；参考项目建议 `3.17.6`，可按需切换。低版本微信不支持识别时会提示手动输入。
 
 ## 命令
 
