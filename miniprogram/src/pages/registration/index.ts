@@ -7,7 +7,8 @@ import {
   sameDictionary,
 } from '@/features/grain/dictionary-service'
 import { applyAsync, errorMessage, requireLogin } from '@/features/grain/page'
-import { isValidPlate, normalizePlate } from '@/features/grain/plate'
+import { isValidPlate, normalizePlate, plateProvinces } from '@/features/grain/plate'
+import { recognizePlatePhoto } from '@/features/grain/plate-scan'
 import { canEdit } from '@/features/grain/presentation'
 import { demo } from '@/features/grain/service'
 
@@ -43,6 +44,11 @@ Page({
     materialIndex: 0,
     supplierIndex: 0,
     extraOpen: false,
+    provinces: plateProvinces,
+    province: '',
+    provinceIndex: 0,
+    plateBody: '',
+    scanning: false,
   },
   onLoad(query: Record<string, string | undefined>) {
     this.setData({ id: query.id || '', edit: !!query.id })
@@ -95,6 +101,10 @@ Page({
       if (trip) {
         wx.setNavigationBarTitle({ title: '更正登记' })
       }
+      const plate = form.plate || ''
+      const hasProvince = plateProvinces.includes(plate.slice(0, 1))
+      const province = hasProvince ? plate.slice(0, 1) : ''
+      const plateBody = hasProvince ? plate.slice(1) : plate
       this.setData({
         sites,
         materials,
@@ -102,6 +112,9 @@ Page({
         methods,
         suppliers,
         form,
+        province,
+        provinceIndex: Math.max(0, plateProvinces.indexOf(province)),
+        plateBody,
         version: trip?.version || 0,
         siteIndex: Math.max(0, sites.indexOf(form.site)),
         materialIndex: Math.max(0, materialNames.indexOf(form.material)),
@@ -130,13 +143,130 @@ Page({
   },
   input(event: WechatMiniprogram.Input) {
     const field = event.currentTarget.dataset.field
-    const value = field === 'plate'
-      ? event.detail.value.toUpperCase()
-      : event.detail.value
     this.setData({
-      [`form.${field}`]: value,
+      [`form.${field}`]: event.detail.value,
       formError: '',
     })
+  },
+  chooseProvince(event: WechatMiniprogram.PickerChange) {
+    const index = Number(event.detail.value)
+    const province = plateProvinces[index] || ''
+    this.setData({
+      province,
+      provinceIndex: index,
+      'form.plate': `${province}${this.data.plateBody}`,
+      formError: '',
+    })
+  },
+  inputPlateBody(event: WechatMiniprogram.Input) {
+    let value = event.detail.value.toUpperCase()
+    let province = this.data.province
+    if (plateProvinces.includes(value[0])) {
+      province = value[0]
+      value = value.slice(1)
+    }
+    value = value.replace(/[^A-Z0-9]/g, '').slice(0, 7)
+    this.setData({
+      province,
+      provinceIndex: Math.max(0, plateProvinces.indexOf(province)),
+      plateBody: value,
+      'form.plate': `${province}${value}`,
+      formError: '',
+    })
+  },
+  applyScannedPlate(value: string) {
+    const normalized = normalizePlate(value)
+    const hasProvince = plateProvinces.includes(normalized[0])
+    const province = hasProvince ? normalized[0] : this.data.province
+    const body = hasProvince ? normalized.slice(1) : normalized
+    this.setData({
+      province,
+      provinceIndex: Math.max(0, plateProvinces.indexOf(province)),
+      plateBody: body,
+      'form.plate': `${province}${body}`,
+      formError: '',
+    })
+  },
+  scanPlate() {
+    if (this.data.scanning) {
+      return
+    }
+    this.setData({ scanning: true, formError: '' })
+    wx.authorize({
+      scope: 'scope.camera',
+      success: () => this.capturePlate(),
+      fail: () => {
+        this.setData({ scanning: false })
+        wx.showModal({
+          title: '相机权限',
+          content: '未获得相机权限，请前往设置开启，或手动输入车牌。',
+          confirmText: '去设置',
+          success: ({ confirm }) => {
+            if (confirm) {
+              wx.openSetting({})
+            }
+          },
+        })
+      },
+    })
+  },
+  capturePlate() {
+    wx.chooseMedia({
+      count: 1,
+      mediaType: ['image'],
+      sourceType: ['camera'],
+      camera: 'back',
+      success: (result) => {
+        const path = result.tempFiles[0]?.tempFilePath
+        if (!path) {
+          this.setData({ scanning: false })
+          return
+        }
+        this.recognizePlate(path)
+      },
+      fail: (error) => {
+        this.setData({ scanning: false })
+        if (!/cancel/i.test(error.errMsg || '')) {
+          wx.showToast({ title: '未拍摄照片', icon: 'none' })
+        }
+      },
+    })
+  },
+  async recognizePlate(imagePath: string) {
+    try {
+      const result = await recognizePlatePhoto(imagePath)
+      const plate = result.candidates[0] || result.suggestions[0]
+      if (!plate) {
+        wx.showModal({
+          title: '未识别到完整车牌',
+          content: '请对准车牌重拍，或手动输入。',
+          showCancel: false,
+        })
+        return
+      }
+      const suspect = result.candidates.length === 0
+      wx.showModal({
+        title: suspect ? '疑似车牌' : '识别结果',
+        content: `${plate}\n请核对后使用`,
+        confirmText: '填入',
+        cancelText: '不用',
+        success: ({ confirm }) => {
+          if (confirm) {
+            this.applyScannedPlate(plate)
+          }
+        },
+      })
+    }
+    catch (error) {
+      wx.showModal({
+        title: '识别失败',
+        content: errorMessage(error),
+        showCancel: false,
+      })
+    }
+    finally {
+      this.setData({ scanning: false })
+    }
   },
   chooseSite(event: WechatMiniprogram.PickerChange) {
     const index = Number(event.detail.value)
@@ -171,9 +301,14 @@ Page({
     }
     this.setData({ submitting: true, formError: '' })
     try {
+      const plate = normalizePlate(
+        this.data.province
+          ? `${this.data.province}${this.data.plateBody}`
+          : this.data.form.plate,
+      )
       const form = {
         ...this.data.form,
-        plate: normalizePlate(this.data.form.plate),
+        plate,
       }
       if (!isValidPlate(form.plate)) {
         throw new Error('请输入正确的车牌号，例如 晋A12345')

@@ -157,7 +157,8 @@ test('页面控制器从登录、登记到跨岗位确认实际出厂', () => {
   call(register, 'chooseSite', { detail: { value: '1' } })
   call(register, 'chooseMaterial', { detail: { value: '1' } })
   call(register, 'chooseSupplier', { detail: { value: '1' } })
-  call(register, 'input', input('晋A90909', 'plate'))
+  call(register, 'chooseProvince', { detail: { value: '19' } })
+  call(register, 'inputPlateBody', { detail: { value: 'A90909' } })
   call(register, 'save')
   const id = app.navigation().split('id=')[1]
   assert.ok(id)

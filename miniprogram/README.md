@@ -65,6 +65,16 @@ APP_MOCK=false
 - 所有业务请求带 Bearer Token；字典接口也需要登录，匿名访问返回 401。
 - 生产环境必须使用 HTTPS BaseURL，并在微信后台配置 request 合法域名。
 
+### 车牌录入与拍照识别
+
+登记页车牌由三部分组成：左侧省份下拉、中间字母数字输入、右侧“拍照”按钮。
+
+- 拍照使用 `wx.chooseMedia` 调用系统相机，识别基于微信 VisionKit 端侧 OCR，照片不上传、不保存。
+- OCR 与号码提取代码改编自 [EziosWJ/wechat-plate-ocr](https://github.com/EziosWJ/wechat-plate-ocr)，位于 `src/features/plate-ocr/`。
+- 识别结果会自动拆分省份和号码，但仍需人工核对；识别失败时可直接手动输入。
+- VisionKit 能力和相机需要在真机验证，开发者工具模拟器可能不支持 OCR。
+- 项目基础库已设为 `3.17.6`；低版本微信会提示手动输入。
+
 ## 命令
 
 | 命令 | 用途 |

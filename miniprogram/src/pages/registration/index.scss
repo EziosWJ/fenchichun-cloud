@@ -6,3 +6,42 @@
   width: 100%;
   min-height: 120rpx;
 }
+
+.plate-row {
+  display: flex;
+  gap: 12rpx;
+  align-items: center;
+}
+
+.plate-province {
+  flex: 0 0 130rpx;
+}
+
+.plate-control {
+  display: flex;
+  align-items: center;
+  min-height: 76rpx;
+  padding: 0 20rpx;
+  background: #fff;
+  border: 1rpx solid #e5e8eb;
+  border-radius: 12rpx;
+}
+
+.plate-province-value {
+  justify-content: space-between;
+  color: #1e293b;
+}
+
+.plate-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.plate-caret {
+  margin-left: 8rpx;
+  color: #687080;
+}
+
+.plate-camera {
+  flex: 0 0 auto;
+}
