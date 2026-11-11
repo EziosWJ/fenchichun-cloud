@@ -244,17 +244,10 @@ Page({
         })
         return
       }
-      const suspect = result.candidates.length === 0
-      wx.showModal({
-        title: suspect ? '疑似车牌' : '识别结果',
-        content: `${plate}\n请核对后使用`,
-        confirmText: '填入',
-        cancelText: '不用',
-        success: ({ confirm }) => {
-          if (confirm) {
-            this.applyScannedPlate(plate)
-          }
-        },
+      this.applyScannedPlate(plate)
+      wx.showToast({
+        title: result.candidates.length ? '已识别，请核对' : '疑似号码，请核对',
+        icon: 'none',
       })
     }
     catch (error) {

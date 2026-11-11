@@ -43,5 +43,17 @@
 }
 
 .plate-camera {
+  display: flex;
   flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  width: 76rpx;
+  height: 76rpx;
+  background: #fff;
+  border: 1rpx solid #e5e8eb;
+  border-radius: 12rpx;
+}
+
+.plate-camera-hover {
+  background: #f7eee9;
 }

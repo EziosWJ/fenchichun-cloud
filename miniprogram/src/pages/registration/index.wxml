@@ -12,7 +12,10 @@
           <view class="plate-control plate-province-value">{{province || '省份'}} <text class="plate-caret">▾</text></view>
         </picker>
         <input class="plate-control plate-body" value="{{plateBody}}" bindinput="inputPlateBody" placeholder="字母和数字" placeholder-class="field-placeholder" maxlength="7" />
-        <t-button class="plate-camera" size="small" theme="primary" variant="outline" loading="{{scanning}}" disabled="{{scanning}}" bindtap="scanPlate">拍照</t-button>
+        <view class="plate-camera" bindtap="scanPlate" hover-class="plate-camera-hover" aria-role="button" aria-label="拍照识别车牌">
+          <t-loading wx:if="{{scanning}}" size="40rpx" theme="circular" />
+          <t-icon wx:else name="camera" size="44rpx" color="#8c3b2e" />
+        </view>
       </view>
       <view class="subtle">拍照识别后请核对；例如 {{province || '晋'}}A12345</view>
     </view>
