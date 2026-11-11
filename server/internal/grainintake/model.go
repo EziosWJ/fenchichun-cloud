@@ -29,14 +29,15 @@ const PermitPermission = "grain-intake:permits"
 const LabPermission = "laboratory:inspections"
 
 type Input struct {
-	SiteCode     string `json:"siteCode"`
-	Plate        string `json:"plate"`
-	MaterialCode string `json:"materialCode"`
-	PartyCode    string `json:"partyCode"`
-	Driver       string `json:"driver"`
-	DriverPhone  string `json:"driverPhone"`
-	ContractNo   string `json:"contractNo"`
-	Remark       string `json:"remark"`
+	SiteCode        string `json:"siteCode"`
+	Plate           string `json:"plate"`
+	MaterialCode    string `json:"materialCode"`
+	PartyCode       string `json:"partyCode"`
+	Driver          string `json:"driver"`
+	DriverPhone     string `json:"driverPhone"`
+	ContractNo      string `json:"contractNo"`
+	Remark          string `json:"remark"`
+	ClientRequestID string `json:"clientRequestId"`
 }
 
 func (in *Input) normalize() {
@@ -44,6 +45,7 @@ func (in *Input) normalize() {
 	in.Plate = strings.ToUpper(strings.TrimSpace(in.Plate))
 	in.MaterialCode = strings.TrimSpace(in.MaterialCode)
 	in.PartyCode = strings.TrimSpace(in.PartyCode)
+	in.ClientRequestID = strings.TrimSpace(in.ClientRequestID)
 }
 func (in Input) validate() error {
 	if in.SiteCode == "" || in.Plate == "" || in.MaterialCode == "" || in.PartyCode == "" {
@@ -52,7 +54,7 @@ func (in Input) validate() error {
 	for _, f := range []struct {
 		s string
 		n int
-	}{{in.SiteCode, 80}, {in.Plate, 40}, {in.MaterialCode, 80}, {in.PartyCode, 80}, {in.Driver, 100}, {in.DriverPhone, 50}, {in.ContractNo, 100}, {in.Remark, 2000}} {
+	}{{in.SiteCode, 80}, {in.Plate, 40}, {in.MaterialCode, 80}, {in.PartyCode, 80}, {in.Driver, 100}, {in.DriverPhone, 50}, {in.ContractNo, 100}, {in.Remark, 2000}, {in.ClientRequestID, 64}} {
 		if utf8.RuneCountInString(f.s) > f.n {
 			return ErrInvalid
 		}

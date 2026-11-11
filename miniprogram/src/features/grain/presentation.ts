@@ -32,10 +32,9 @@ export function tripStatus(trip: Trip) {
     const status = stageStatuses[trip.stage]
     if (status) {
       if (trip.stage === 'pending_inspection') {
-        return {
-          ...status,
-          label: trip.method === 'lab' ? '待化验' : '待目测',
-        }
+        return trip.method === 'visual'
+          ? { label: '待目测', next: '核对货品并确认目测结果', action: 'visual', waiting: false }
+          : { label: '待化验', next: '等待网页版完成化验', action: '', waiting: true }
       }
       return status
     }

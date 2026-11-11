@@ -6916,6 +6916,9 @@
         "grainintake.Input": {
             "type": "object",
             "properties": {
+                "clientRequestId": {
+                    "type": "string"
+                },
                 "contractNo": {
                     "type": "string"
                 },
@@ -7032,6 +7035,9 @@
         "grainintake.SaveRequest": {
             "type": "object",
             "properties": {
+                "clientRequestId": {
+                    "type": "string"
+                },
                 "contractNo": {
                     "type": "string"
                 },
@@ -7170,6 +7176,9 @@
         "grainintake.Trip": {
             "type": "object",
             "properties": {
+                "clientRequestId": {
+                    "type": "string"
+                },
                 "contractNo": {
                     "type": "string"
                 },

@@ -6924,6 +6924,9 @@ const docTemplate = `{
         "grainintake.Input": {
             "type": "object",
             "properties": {
+                "clientRequestId": {
+                    "type": "string"
+                },
                 "contractNo": {
                     "type": "string"
                 },
@@ -7040,6 +7043,9 @@ const docTemplate = `{
         "grainintake.SaveRequest": {
             "type": "object",
             "properties": {
+                "clientRequestId": {
+                    "type": "string"
+                },
                 "contractNo": {
                     "type": "string"
                 },
@@ -7178,6 +7184,9 @@ const docTemplate = `{
         "grainintake.Trip": {
             "type": "object",
             "properties": {
+                "clientRequestId": {
+                    "type": "string"
+                },
                 "contractNo": {
                     "type": "string"
                 },

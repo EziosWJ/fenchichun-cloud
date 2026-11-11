@@ -17,6 +17,8 @@ export interface Registration {
   phone: string
   contract: string
   note: string
+  /** 登记重试幂等键，仅用于新建，不显示。 */
+  clientRequestId?: string
 }
 
 export interface Inspection {

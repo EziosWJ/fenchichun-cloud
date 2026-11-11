@@ -67,8 +67,8 @@ describe('exit evidence', () => {
     value.trip.ticketId = null;
     api.tripDetail.mockResolvedValue(value);
     renderWithProviders(<TripWorkspace />, { route: '/grain-intake/trips/1', path: '/grain-intake/trips/:id' });
-    await screen.findByText('下一步：确认现场卸粮');
-    const weighingTab = screen.getByRole('tab', { name: '卸粮与磅单' });
+    await screen.findByText('下一步：确认现场卸货');
+    const weighingTab = screen.getByRole('tab', { name: '卸货与磅单' });
     expect(screen.getByRole('tab', { name: '化验结果' })).toHaveAttribute('aria-selected', 'true');
     await userEvent.click(screen.getByRole('button', { name: '去办理' }));
     await waitFor(() => expect(weighingTab).toHaveAttribute('aria-selected', 'true'));

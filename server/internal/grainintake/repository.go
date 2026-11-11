@@ -249,12 +249,37 @@ func (r *Repository) Save(ctx context.Context, id, version int64, in Input, e au
 		var t Trip
 		description := "登记流转单"
 		if id == 0 {
+			// A deadline or lost response can make the client retry a create. The
+			// client-supplied request id makes that retry return the original trip
+			// instead of creating a duplicate.
+			if in.ClientRequestID != "" {
+				var existing Trip
+				err := tx.Where("created_by=? AND client_request_id=?", e.Metadata.ActorID, in.ClientRequestID).Take(&existing).Error
+				if err == nil {
+					value, err = detail(tx, existing.ID)
+					return err
+				}
+				if !errors.Is(err, gorm.ErrRecordNotFound) {
+					return err
+				}
+			}
 			number, err := nextNumber(tx, "grain-trip", "LZ")
 			if err != nil {
 				return err
 			}
 			t = Trip{InspectionMethod: method, Number: number, Version: 1, Input: in, MaterialName: material, PartyName: party, CreatedBy: e.Metadata.ActorID, CreatedAt: now, UpdatedAt: now}
-			if err := tx.Create(&t).Error; err != nil {
+			create := tx
+			if in.ClientRequestID != "" {
+				create = tx.Clauses(clause.OnConflict{DoNothing: true})
+			}
+			if err := create.Create(&t).Error; err != nil {
+				return err
+			}
+			if in.ClientRequestID != "" && t.ID == 0 {
+				if err := tx.Where("created_by=? AND client_request_id=?", e.Metadata.ActorID, in.ClientRequestID).Take(&t).Error; err != nil {
+					return err
+				}
+				value, err = detail(tx, t.ID)
 				return err
 			}
 		} else {

@@ -5,6 +5,7 @@ import type { DeductionEvaluation } from '../deduction/api';
 export interface TripInput {
   siteCode: string; plate: string; materialCode: string; partyCode: string;
   driver: string; driverPhone: string; contractNo: string; remark: string;
+  clientRequestId?: string;
 }
 export interface Trip extends TripInput {
   id: number; number: string; version: number; materialName: string; partyName: string;

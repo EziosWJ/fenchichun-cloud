@@ -25,6 +25,10 @@ function emptyForm(): Registration {
   }
 }
 
+function newRequestId() {
+  return `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 10)}`
+}
+
 Page({
   data: {
     loading: true,
@@ -49,6 +53,7 @@ Page({
     provinceIndex: 0,
     plateBody: '',
     scanning: false,
+    clientRequestId: '',
   },
   onLoad(query: Record<string, string | undefined>) {
     this.setData({ id: query.id || '', edit: !!query.id })
@@ -307,9 +312,16 @@ Page({
       if (!env.mock && !form.supplier) {
         throw new Error('请选择供应商')
       }
+      const clientRequestId = this.data.edit
+        ? ''
+        : this.data.clientRequestId || newRequestId()
+      if (!this.data.edit && !this.data.clientRequestId) {
+        this.setData({ clientRequestId })
+      }
+      const request = { ...form, clientRequestId }
       const result = this.data.edit
-        ? demo.updateTrip(this.data.id, this.data.version, form)
-        : demo.createTrip(form)
+        ? demo.updateTrip(this.data.id, this.data.version, request)
+        : demo.createTrip(request)
       applyAsync(
         result,
         (trip) => {

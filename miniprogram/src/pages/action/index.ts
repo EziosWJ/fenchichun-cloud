@@ -1,5 +1,4 @@
 import type { Conclusion, Trip } from '@/features/grain/types'
-import { env } from '@/config/env'
 import {
   currentDictionary,
   refreshDictionary,
@@ -36,9 +35,6 @@ Page({
     try {
       if (!requireLogin('warehouse')) {
         return
-      }
-      if (!env.mock && this.data.action === 'visual') {
-        throw new Error('请在网页版录入目测结果')
       }
       const dictionary = currentDictionary()
       const apply = (trip: Trip) => {
@@ -132,14 +128,21 @@ Page({
     this.setData({ confirming: true })
     try {
       if (action === 'visual') {
-        demo.recordVisual(
-          trip.id,
-          trip.version,
-          conclusion as Conclusion,
-          reason,
+        applyAsync(
+          demo.recordVisual(
+            trip.serverId || trip.id,
+            trip.version,
+            conclusion as Conclusion,
+            reason,
+          ),
+          () => {
+            this.setData({ confirming: false })
+            wx.navigateBack()
+          },
+          (error) => {
+            this.setData({ formError: errorMessage(error), confirming: false })
+          },
         )
-        this.setData({ confirming: false })
-        wx.navigateBack()
         return
       }
       applyAsync(

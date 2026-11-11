@@ -9,6 +9,7 @@ import type {
 } from './types'
 import { request, session } from '@/utils/api'
 import { currentDictionary, refreshDictionary } from './dictionary-service'
+import { actualNet } from './weight'
 
 const AUTH_KEY = 'grain.auth.v1'
 
@@ -249,7 +250,7 @@ function ticketOf(detail?: ServerDetail): Ticket | null {
     secondAt: formatTime(value.secondConfirmedAt),
     gross: value.finalGross,
     tare: value.finalTare,
-    net: value.finalNet ?? '',
+    net: actualNet(value.finalGross, value.finalTare),
     deducted: value.finalNet ?? '',
   }
 }
@@ -414,6 +415,7 @@ export const demo = {
         driverPhone: input.phone,
         contractNo: input.contract,
         remark: input.note,
+        clientRequestId: input.clientRequestId || undefined,
       },
     })
     return adaptTrip(detail.trip, detail)
@@ -518,7 +520,7 @@ export const demo = {
         secondAt: formatTime(item.secondConfirmedAt),
         gross: item.finalGross,
         tare: item.finalTare,
-        net: `${(item.finalNetMilliTonne / 1000).toFixed(3)} 吨`,
+        net: actualNet(item.finalGross, item.finalTare),
         deducted: `${(item.finalNetMilliTonne / 1000).toFixed(3)} 吨`,
       }))
   },
@@ -549,11 +551,16 @@ export const demo = {
     })
     return adaptTrip(detail.trip, detail)
   },
+  async recordVisual(id: string, version: number, conclusion: 'accept' | 'reject', reason: string) {
+    const detail = await request<ServerDetail>({
+      path: `/grain-intake/trips/${id}/record-visual`,
+      method: 'POST',
+      data: { version, conclusion, reason },
+    })
+    return adaptTrip(detail.trip, detail)
+  },
   simulationTasks() {
     return { lab: [], weigh: [] }
-  },
-  recordVisual() {
-    finish('请在网页版录入目测结果')
   },
   simulateLab() {
     finish('模拟化验仅在离线演示模式可用')
