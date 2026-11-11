@@ -2363,31 +2363,31 @@ paths:
             type: array
       security:
       - BearerAuth: []
-      summary: 查询粮仓
+      summary: 查询仓库
       tags:
-      - 粮仓
+      - 仓库
     post:
       responses: {}
       security:
       - BearerAuth: []
-      summary: 新增粮仓
+      summary: 新增仓库
       tags:
-      - 粮仓
+      - 仓库
   /api/v1/granaries/{id}:
     delete:
       responses: {}
       security:
       - BearerAuth: []
-      summary: 删除粮仓
+      summary: 删除仓库
       tags:
-      - 粮仓
+      - 仓库
     put:
       responses: {}
       security:
       - BearerAuth: []
-      summary: 修改粮仓
+      summary: 修改仓库
       tags:
-      - 粮仓
+      - 仓库
   /api/v1/laboratory/inspections:
     get:
       parameters:

@@ -36,15 +36,15 @@ export default function GranariesPage() {
     onError: (error) => message.error(getApiErrorMessage(error)),
   });
   const columns: ColumnsType<Granary> = [
-    { title: '粮仓名称', dataIndex: 'name', key: 'name' },
+    { title: '仓库名称', dataIndex: 'name', key: 'name' },
     { title: '状态', dataIndex: 'enabled', key: 'enabled', width: 100, render: (value: boolean) => value ? <Tag color="green">启用</Tag> : <Tag>停用</Tag> },
     { title: '备注', dataIndex: 'remark', key: 'remark', ellipsis: true, render: (value: string) => value || '—' },
     ...(canManage ? [{
       title: '操作', key: 'actions', width: 140, render: (_: unknown, row: Granary) => <Space size={4}>
         <Button type="link" size="small" onClick={() => { setEditing(row); form.setFieldsValue({ name: row.name, enabled: row.enabled, remark: row.remark }); setOpen(true); }}>编辑</Button>
         <Button type="link" size="small" danger onClick={() => modal.confirm({
-          title: `删除粮仓「${row.name}」？`,
-          content: '已办理的流转单保留原卸粮地点记录，不受影响。',
+          title: `删除仓库「${row.name}」？`,
+          content: '已办理的流转单保留原卸货地点记录，不受影响。',
           okText: '删除', okButtonProps: { danger: true }, cancelText: '取消',
           onOk: () => remove.mutateAsync(row.id).then(() => undefined),
         })}>删除</Button>
@@ -53,11 +53,11 @@ export default function GranariesPage() {
   ];
   const rows = (list.data ?? []).filter((row) => !keyword || row.name.toLowerCase().includes(keyword.trim().toLowerCase()));
   return <>
-    <PageHeader title="粮仓维护" />
+    <PageHeader title="仓库维护" />
     <Space orientation="vertical" size="middle" style={{ width: '100%', marginTop: 20 }}>
       <Space wrap align="end" style={{ width: '100%', justifyContent: 'space-between' }}>
-        <Input.Search aria-label="粮仓名称" placeholder="搜索粮仓名称" allowClear value={keyword} onChange={(e) => { setKeyword(e.target.value); actions.setPage(1); }} style={{ maxWidth: 320 }} />
-        {canManage && <Button type="primary" icon={<Plus size={16} />} onClick={() => { setEditing(null); form.resetFields(); form.setFieldsValue(blank); setOpen(true); }}>新增粮仓</Button>}
+        <Input.Search aria-label="仓库名称" placeholder="搜索仓库名称" allowClear value={keyword} onChange={(e) => { setKeyword(e.target.value); actions.setPage(1); }} style={{ maxWidth: 320 }} />
+        {canManage && <Button type="primary" icon={<Plus size={16} />} onClick={() => { setEditing(null); form.resetFields(); form.setFieldsValue(blank); setOpen(true); }}>新增仓库</Button>}
       </Space>
       {list.isError && <Alert type="error" title={getApiErrorMessage(list.error)} action={<Button onClick={() => void list.refetch()}>重试</Button>} />}
       <DataTable
@@ -74,7 +74,7 @@ export default function GranariesPage() {
       />
     </Space>
     <Modal
-      title={editing ? '编辑粮仓' : '新增粮仓'}
+      title={editing ? '编辑仓库' : '新增仓库'}
       open={open}
       onCancel={() => setOpen(false)}
       onOk={() => void form.validateFields().then((v) => save.mutate(v))}
@@ -82,7 +82,7 @@ export default function GranariesPage() {
       destroyOnHidden
     >
       <Form form={form} layout="vertical" initialValues={blank}>
-        <Form.Item name="name" label="粮仓名称" rules={[{ required: true, whitespace: true, message: '请输入粮仓名称' }]}>
+        <Form.Item name="name" label="仓库名称" rules={[{ required: true, whitespace: true, message: '请输入仓库名称' }]}>
           <Input maxLength={100} placeholder="例如：1 号仓" />
         </Form.Item>
         <Form.Item name="enabled" label="启用" valuePropName="checked"><Switch /></Form.Item>

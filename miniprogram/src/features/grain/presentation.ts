@@ -12,7 +12,7 @@ const stageStatuses: Record<string, {
   waiting: boolean
 }> = {
   pending_inspection: { label: '待检验', next: '等待网页版完成化验或目测', action: '', waiting: true },
-  pending_unload: { label: '待卸粮', next: '现场首磅和卸粮完成后确认', action: 'unload', waiting: false },
+  pending_unload: { label: '待卸货', next: '现场首磅和卸货完成后确认', action: 'unload', waiting: false },
   pending_ticket: { label: '待磅单', next: '磅单同步后选择并关联', action: 'ticket', waiting: false },
   ready: { label: '待开证', next: '核对磅单并开具出门证', action: 'issue', waiting: false },
   permit_pending: { label: '待审批', next: '核对出门证并审批', action: 'approve', waiting: false },
@@ -82,8 +82,8 @@ export function tripStatus(trip: Trip) {
   }
   if (!trip.unload) {
     return {
-      label: '待卸粮',
-      next: '现场首磅和卸粮完成后确认',
+      label: '待卸货',
+      next: '现场首磅和卸货完成后确认',
       action: 'unload',
       waiting: false,
     }

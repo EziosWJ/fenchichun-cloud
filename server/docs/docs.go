@@ -654,9 +654,9 @@ const docTemplate = `{
                     }
                 ],
                 "tags": [
-                    "粮仓"
+                    "仓库"
                 ],
-                "summary": "查询粮仓",
+                "summary": "查询仓库",
                 "parameters": [
                     {
                         "type": "boolean",
@@ -684,9 +684,9 @@ const docTemplate = `{
                     }
                 ],
                 "tags": [
-                    "粮仓"
+                    "仓库"
                 ],
-                "summary": "新增粮仓",
+                "summary": "新增仓库",
                 "responses": {}
             }
         },
@@ -698,9 +698,9 @@ const docTemplate = `{
                     }
                 ],
                 "tags": [
-                    "粮仓"
+                    "仓库"
                 ],
-                "summary": "修改粮仓",
+                "summary": "修改仓库",
                 "responses": {}
             },
             "delete": {
@@ -710,9 +710,9 @@ const docTemplate = `{
                     }
                 ],
                 "tags": [
-                    "粮仓"
+                    "仓库"
                 ],
-                "summary": "删除粮仓",
+                "summary": "删除仓库",
                 "responses": {}
             }
         },

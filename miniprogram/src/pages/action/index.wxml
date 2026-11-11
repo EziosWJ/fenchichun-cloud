@@ -2,7 +2,7 @@
   <loading-state wx:if="{{loading}}" text="正在加载车辆" />
   <error-state wx:elif="{{error}}" text="{{error}}" bind:retry="load" />
   <block wx:elif="{{trip}}">
-    <view class="screen-title">{{action === 'visual' ? '确认目测' : '确认卸粮'}}</view>
+    <view class="screen-title">{{action === 'visual' ? '确认目测' : '确认卸货'}}</view>
     <view class="detail-card"><view class="plate">{{trip.plate}}</view><view>{{trip.site}}　{{trip.material}}</view><view class="subtle">{{trip.id}}</view><view class="subtle">供应商：{{trip.supplier}}</view></view>
     <block wx:if="{{action === 'visual'}}">
       <view class="field-label choice-title">目测结论 *</view>
@@ -10,8 +10,8 @@
       <view wx:if="{{conclusion === 'reject'}}" class="field"><view class="field-label">拒收原因 *</view><textarea class="field-control reason" value="{{reason}}" bindinput="inputReason" placeholder="请填写拒收原因" maxlength="200" auto-height /></view>
       <view class="subtle choice-title">请核对货品和供应商；目测确认后不可覆盖。</view>
     </block>
-    <block wx:else><view class="field"><view class="field-label">实际卸粮地点 *</view><picker range="{{granaries}}" value="{{granaryIndex}}" bindchange="chooseGranary"><view class="field-control {{granaryIndex ? '' : 'field-placeholder'}}">{{granaries[granaryIndex] || '请选择卸粮地点'}}　›</view></picker></view><view class="notice choice-title">请在现场首磅和卸粮完成后确认，无需等待首磅上传。</view></block>
+    <block wx:else><view class="field"><view class="field-label">实际卸货地点 *</view><picker range="{{granaries}}" value="{{granaryIndex}}" bindchange="chooseGranary"><view class="field-control {{granaryIndex ? '' : 'field-placeholder'}}">{{granaries[granaryIndex] || '请选择卸货地点'}}　›</view></picker></view><view class="notice choice-title">请在现场首磅和卸货完成后确认，无需等待首磅上传。</view></block>
     <view wx:if="{{formError}}" class="error-text">{{formError}}</view>
-    <view class="form-footer"><t-button block size="large" theme="primary" disabled="{{confirming}}" bindtap="submit">{{action === 'visual' ? '确认目测' : '确认卸粮'}}</t-button></view>
+    <view class="form-footer"><t-button block size="large" theme="primary" disabled="{{confirming}}" bindtap="submit">{{action === 'visual' ? '确认目测' : '确认卸货'}}</t-button></view>
   </block>
 </view>

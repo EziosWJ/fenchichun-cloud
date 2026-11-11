@@ -27,7 +27,7 @@ Page({
   onLoad(query: Record<string, string | undefined>) {
     this.setData({ id: query.id || '', action: query.action || '' })
     wx.setNavigationBarTitle({
-      title: query.action === 'visual' ? '确认目测' : '确认卸粮',
+      title: query.action === 'visual' ? '确认目测' : '确认卸货',
     })
     this.load()
   },
@@ -50,7 +50,7 @@ Page({
         }
         this.setData({
           trip,
-          granaries: ['请选择卸粮地点', ...dictionary.granaries.map(item => item.name)],
+          granaries: ['请选择卸货地点', ...dictionary.granaries.map(item => item.name)],
         })
         this.setData({ loading: false })
       }
@@ -103,15 +103,15 @@ Page({
       return this.setData({ formError: '请填写拒收原因' })
     }
     if (action === 'unload' && !location.trim()) {
-      return this.setData({ formError: '请选择实际卸粮地点' })
+      return this.setData({ formError: '请选择实际卸货地点' })
     }
     const content
       = action === 'visual'
         ? `请核对 ${trip.plate}、${trip.material}和供应商 ${trip.supplier}。目测${conclusion === 'accept' ? '接收' : `拒收，原因：${reason.trim()}`}；确认后不可覆盖。`
-        : `请确认 ${trip.plate} 已完成现场首磅和卸粮，实际卸粮地点为 ${location.trim()}。`
+        : `请确认 ${trip.plate} 已完成现场首磅和卸货，实际卸货地点为 ${location.trim()}。`
     this.setData({ confirming: true })
     wx.showModal({
-      title: action === 'visual' ? '确认目测结果' : '确认现场卸粮',
+      title: action === 'visual' ? '确认目测结果' : '确认现场卸货',
       content,
       confirmText: '确认',
       success: ({ confirm }) => {

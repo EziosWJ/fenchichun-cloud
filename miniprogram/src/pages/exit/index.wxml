@@ -30,7 +30,7 @@
           <view class="record-header"><view><view class="record-title">检验与过磅明细</view><view class="record-caption">{{trip.plate}} · {{trip.material}}</view></view></view>
           <view class="record-row"><text class="record-label">检验结果</text><text class="record-value">{{inspection}}</text></view>
           <view wx:if="{{trip.inspection && trip.inspection.values}}" class="record-note"><view class="record-note-label">检测数据</view><view>{{trip.inspection.values}}</view></view>
-          <view class="record-row"><text class="record-label">实际卸粮地点</text><text class="record-value">{{trip.unload ? trip.unload.location : '未确认'}}</text></view>
+          <view class="record-row"><text class="record-label">实际卸货地点</text><text class="record-value">{{trip.unload ? trip.unload.location : '未确认'}}</text></view>
           <view class="record-row"><text class="record-label">磅单号</text><text class="record-value">{{trip.ticket ? trip.ticket.id : '未关联'}}</text></view>
           <block wx:if="{{trip.ticket}}">
             <view class="record-row"><text class="record-label">首磅时间</text><text class="record-value">{{trip.ticket.firstAt || '未提供'}}</text></view>

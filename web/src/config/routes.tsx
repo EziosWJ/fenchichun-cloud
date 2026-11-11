@@ -62,7 +62,7 @@ export const routeDefinitions: AppRouteDefinition[] = [
     component: lazy(() => import('../pages/grain-intake/ExitBasisPage')),
   },
   {
-    path: '/grain-intake/granaries', label: '粮仓维护', title: '粮仓维护', icon: Warehouse,
+    path: '/grain-intake/granaries', label: '仓库维护', title: '仓库维护', icon: Warehouse,
     menuComponent: 'grain-intake/granaries/index', menuPath: '/grain-intake/granaries',
     component: lazy(() => import('../pages/grain-intake/GranariesPage')),
   },

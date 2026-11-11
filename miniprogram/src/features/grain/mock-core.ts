@@ -174,7 +174,7 @@ function seed(): DemoState {
       item.events.push({
         at: item.unload.at,
         operator: '演示库管',
-        text: `确认卸粮：${item.unload.location}`,
+        text: `确认卸货：${item.unload.location}`,
       })
     }
     if (item.ticket) {
@@ -483,13 +483,13 @@ export function createDemoService(
       return mutate(id, version, 'warehouse', (trip, _state, user) => {
         checkAccepted(trip)
         if (trip.unload) {
-          throw new Error('本趟已经确认卸粮')
+          throw new Error('本趟已经确认卸货')
         }
         if (!location.trim()) {
-          throw new Error('请填写实际卸粮地点')
+          throw new Error('请填写实际卸货地点')
         }
         trip.unload = { location: location.trim(), at: now() }
-        event(trip, user.name, `确认卸粮：${location.trim()}`)
+        event(trip, user.name, `确认卸货：${location.trim()}`)
       })
     },
     candidates(id: string) {
@@ -506,7 +506,7 @@ export function createDemoService(
       return mutate(id, version, 'warehouse', (trip, state, user) => {
         checkAccepted(trip)
         if (!trip.unload || trip.ticket) {
-          throw new Error('请先确认卸粮，且每趟只能关联一张磅单')
+          throw new Error('请先确认卸货，且每趟只能关联一张磅单')
         }
         const ticket = state.tickets.find(
           item => item.id === ticketId && item.tripId === trip.id,
@@ -543,7 +543,7 @@ export function createDemoService(
       return mutate(id, version, 'warehouse', (trip, _state, user) => {
         checkAccepted(trip)
         if (!trip.unload || !trip.ticket || trip.permit) {
-          throw new Error('需先确认卸粮并关联正式磅单，且不能重复开证')
+          throw new Error('需先确认卸货并关联正式磅单，且不能重复开证')
         }
         trip.permit = {
           id: `CMZ${trip.id.slice(-4)}`,
@@ -624,7 +624,7 @@ export function createDemoService(
           || trip.ticket
           || state.tickets.some(item => item.tripId === id)
         ) {
-          throw new Error('本趟尚未卸粮，或已有模拟磅单')
+          throw new Error('本趟尚未卸货，或已有模拟磅单')
         }
         const ticket: Ticket = {
           id: `BDDEMO${String(++state.sequence).padStart(4, '0')}`,

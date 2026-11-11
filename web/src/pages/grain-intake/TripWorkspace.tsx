@@ -70,11 +70,11 @@ export default function TripWorkspace({ gate = false }: { gate?: boolean }) {
         ? { title: '下一步：记录目测结果', description: '目测记录是本趟的检验依据，确认后不能修改。' }
         : { tab: 'inspections', title: '下一步：录入化验单', description: '录入化验结果后自动生效。' };
     }
-    if (trip.stage === 'pending_unload') return { tab: 'weighing', title: '下一步：确认现场卸粮', description: '在现场首磅及卸粮完成后，填写实际卸粮地点并确认。' };
+    if (trip.stage === 'pending_unload') return { tab: 'weighing', title: '下一步：确认现场卸货', description: '在现场首磅及卸货完成后，填写实际卸货地点并确认。' };
     if (trip.stage === 'pending_ticket') return { tab: 'weighing', title: '下一步：关联正式磅单', description: '磅单联网同步至云端后，选择厂区、车牌、货品、供应商一致的单据。' };
     if (trip.stage === 'ready') {
       return trip.ticketConfirmedAt
-        ? { tab: 'exit', title: '下一步：开具出门证', description: '实际卸粮和有效磅单就绪后开具出门证。' }
+        ? { tab: 'exit', title: '下一步：开具出门证', description: '实际卸货和有效磅单就绪后开具出门证。' }
         : { tab: 'weighing', title: '下一步：确认过磅单关联', description: '过磅端已关联磅单，请核对厂区、车牌、货品和供应商是否一致。' };
     }
     if (trip.stage === 'permit_pending') return { tab: 'exit', title: '下一步：审批出门证', description: '审批通过后，仍需门卫在实际放行时确认出厂。' };
@@ -128,7 +128,7 @@ export default function TripWorkspace({ gate = false }: { gate?: boolean }) {
           { key: 'reason', label: '原因', children: effective.reason || '—' },
         ]} />
           {query.data.deductions.length > 0 && <div style={{ marginTop: 8 }}>
-            <Tag color="blue">云端建议扣减</Tag>
+            <Tag color="blue">扣减规则</Tag>
             {query.data.deductions.map((item) => <Tag key={`${item.ruleCode}-${item.ruleVersion}`}>
               {item.categoryName}：{item.mode === 'amount' ? `${(item.amountMilliTonne / 1000).toFixed(3)} 吨` : `${((item.rateBp ?? 0) / 100).toFixed(2)}%`}
               {item.basisValue ? `（${item.basisValue}）` : ''}
@@ -140,13 +140,13 @@ export default function TripWorkspace({ gate = false }: { gate?: boolean }) {
         ...(visual ? [] : [{ key: 'inspections', label: '化验结果', children: <Space orientation="vertical" size="small" style={{ width: '100%' }}>
           {labView}
         </Space> }]),
-        { key: 'weighing', label: '卸粮与磅单', children: <Space orientation="vertical" size="small" style={{ width: '100%' }}>
-          <Card size="small" title="现场卸粮确认">
-            {trip.unloadedAt ? <Descriptions size="small" column={{ xs: 1, sm: 2 }} items={[{ key: 'location', label: '实际卸粮地点', children: trip.unloadingLocation }, { key: 'time', label: '确认时间', children: formatDateTime(trip.unloadedAt) }]} /> : <>
+        { key: 'weighing', label: '卸货与磅单', children: <Space orientation="vertical" size="small" style={{ width: '100%' }}>
+          <Card size="small" title="现场卸货确认">
+            {trip.unloadedAt ? <Descriptions size="small" column={{ xs: 1, sm: 2 }} items={[{ key: 'location', label: '实际卸货地点', children: trip.unloadingLocation }, { key: 'time', label: '确认时间', children: formatDateTime(trip.unloadedAt) }]} /> : <>
               {!gate && canUnload && !locked && trip.effectiveConclusion === 'accept' ? <Space.Compact style={{ width: '100%', maxWidth: 560, marginTop: 16 }}>
-                <Select aria-label="实际卸粮地点" placeholder="选择粮仓" style={{ minWidth: 220 }} loading={granaryQuery.isLoading} value={location || undefined} onChange={(value?: string) => setLocation(value ?? '')} options={(granaryQuery.data ?? []).map((g) => ({ value: g.name, label: g.name }))} notFoundContent={granaryQuery.isLoading ? '加载中…' : '请先在粮仓维护中添加'} />
-                <Button type="primary" disabled={!location.trim() || action.isPending} onClick={() => ask('确认实际卸粮完成？', 'confirm-unloading', { location }, '请确认现场已经完成首磅及卸粮，地点填写准确。')}>确认卸粮</Button>
-              </Space.Compact> : <p style={{ marginTop: 16, marginBottom: 0 }}>待确认接收并完成现场卸粮。</p>}
+                <Select aria-label="实际卸货地点" placeholder="选择仓库" style={{ minWidth: 220 }} loading={granaryQuery.isLoading} value={location || undefined} onChange={(value?: string) => setLocation(value ?? '')} options={(granaryQuery.data ?? []).map((g) => ({ value: g.name, label: g.name }))} notFoundContent={granaryQuery.isLoading ? '加载中…' : '请先在仓库维护中添加'} />
+                <Button type="primary" disabled={!location.trim() || action.isPending} onClick={() => ask('确认实际卸货完成？', 'confirm-unloading', { location }, '请确认现场已经完成首磅及卸货，地点填写准确。')}>确认卸货</Button>
+              </Space.Compact> : <p style={{ marginTop: 16, marginBottom: 0 }}>待确认接收并完成现场卸货。</p>}
             </>}
           </Card>
           <Card size="small" title="关联正式磅单">
@@ -165,7 +165,7 @@ export default function TripWorkspace({ gate = false }: { gate?: boolean }) {
               {!gate && canTicket && !permit && !trip.exitedAt && <Space wrap style={{ marginTop: 16 }}>
                 <Select
                   aria-label="选择正式磅单"
-                  placeholder={trip.unloadedAt ? '选择已同步的正式磅单' : '请先确认卸粮'}
+                  placeholder={trip.unloadedAt ? '选择已同步的正式磅单' : '请先确认卸货'}
                   style={{ minWidth: 420 }}
                   showSearch
                   optionFilterProp="label"
@@ -178,7 +178,7 @@ export default function TripWorkspace({ gate = false }: { gate?: boolean }) {
                     label: `${c.ticketNo}｜${c.plate}｜净重 ${(c.finalNetMilliTonne / 1000).toFixed(3)} 吨｜回磅 ${formatDateTime(c.secondConfirmedAt)}${c.linkable ? '' : `（${c.reason}）`}`,
                     disabled: !c.linkable,
                   }))}
-                  notFoundContent={ticketOptions.isLoading ? '加载中…' : trip.unloadedAt ? '没有匹配的正式磅单' : '请先确认卸粮'}
+                  notFoundContent={ticketOptions.isLoading ? '加载中…' : trip.unloadedAt ? '没有匹配的正式磅单' : '请先确认卸货'}
                 />
                 <Button disabled={!trip.unloadedAt || !selectedTicket || action.isPending} onClick={() => selectedTicket && ask(`关联磅单 ${selectedTicket.ticketNo}？`, 'link-ticket', { ticketSiteCode: selectedTicket.siteCode, ticketNo: selectedTicket.ticketNo }, `${selectedTicket.plate} · ${selectedTicket.materialName} · 净重 ${(selectedTicket.finalNetMilliTonne / 1000).toFixed(3)} 吨`)}>关联磅单</Button>
               </Space>}

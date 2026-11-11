@@ -52,15 +52,15 @@
 
     <view class="detail-section">
       <view class="section-toggle" data-section="unload" bindtap="toggleSection" aria-role="button" aria-expanded="{{expanded.unload}}">
-        <view class="section-toggle-inner"><text class="section-heading">卸粮信息</text><view class="section-end"><text>{{trip.unload ? '已确认' : (trip.inspection && trip.inspection.conclusion === 'reject' ? '拒收无需卸粮' : '待确认')}}</text><text class="chevron">{{expanded.unload ? '⌃' : '›'}}</text></view></view>
+        <view class="section-toggle-inner"><text class="section-heading">卸货信息</text><view class="section-end"><text>{{trip.unload ? '已确认' : (trip.inspection && trip.inspection.conclusion === 'reject' ? '拒收无需卸货' : '待确认')}}</text><text class="chevron">{{expanded.unload ? '⌃' : '›'}}</text></view></view>
       </view>
       <view wx:if="{{expanded.unload}}" class="section-content">
         <view class="record-sheet">
-          <view class="record-header"><view><view class="record-title">现场卸粮确认</view><view class="record-caption">{{trip.plate}} · {{trip.site}}</view></view><text class="record-badge">{{trip.unload ? '已确认' : (trip.inspection && trip.inspection.conclusion === 'reject' ? '无需卸粮' : '待确认')}}</text></view>
+          <view class="record-header"><view><view class="record-title">现场卸货确认</view><view class="record-caption">{{trip.plate}} · {{trip.site}}</view></view><text class="record-badge">{{trip.unload ? '已确认' : (trip.inspection && trip.inspection.conclusion === 'reject' ? '无需卸货' : '待确认')}}</text></view>
           <view class="record-row"><text class="record-label">货品</text><text class="record-value">{{trip.material}}</text></view>
-          <view class="record-row"><text class="record-label">实际卸粮地点</text><text class="record-value">{{trip.unload ? trip.unload.location : '未确认'}}</text></view>
+          <view class="record-row"><text class="record-label">实际卸货地点</text><text class="record-value">{{trip.unload ? trip.unload.location : '未确认'}}</text></view>
           <view wx:if="{{trip.unload}}" class="record-row"><text class="record-label">确认时间</text><text class="record-value">{{trip.unload.at}}</text></view>
-          <view wx:else class="record-empty">{{trip.inspection && trip.inspection.conclusion === 'reject' ? '本趟拒收退厂，无需确认卸粮' : '现场首磅及卸粮完成后，由库管确认实际地点'}}</view>
+          <view wx:else class="record-empty">{{trip.inspection && trip.inspection.conclusion === 'reject' ? '本趟拒收退厂，无需确认卸货' : '现场首磅及卸货完成后，由库管确认实际地点'}}</view>
         </view>
       </view>
     </view>

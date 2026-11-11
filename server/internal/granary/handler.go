@@ -25,7 +25,7 @@ func respond(c *gin.Context, value any, err error) {
 		platformhttp.OK(c, value)
 		return
 	}
-	status, message := 500, "粮仓操作失败"
+	status, message := 500, "仓库操作失败"
 	switch {
 	case errors.Is(err, ErrInvalid):
 		status = 400
@@ -61,8 +61,8 @@ func key(c *gin.Context) (int64, bool) {
 }
 
 // list godoc
-// @Summary 查询粮仓
-// @Tags 粮仓
+// @Summary 查询仓库
+// @Tags 仓库
 // @Security BearerAuth
 // @Param enabled query boolean false "仅启用"
 // @Success 200 {array} Granary
@@ -77,8 +77,8 @@ func (h *Handler) list(c *gin.Context) {
 }
 
 // create godoc
-// @Summary 新增粮仓
-// @Tags 粮仓
+// @Summary 新增仓库
+// @Tags 仓库
 // @Security BearerAuth
 // @Router /api/v1/granaries [post]
 func (h *Handler) create(c *gin.Context) {
@@ -96,8 +96,8 @@ func (h *Handler) create(c *gin.Context) {
 }
 
 // update godoc
-// @Summary 修改粮仓
-// @Tags 粮仓
+// @Summary 修改仓库
+// @Tags 仓库
 // @Security BearerAuth
 // @Router /api/v1/granaries/{id} [put]
 func (h *Handler) update(c *gin.Context) {
@@ -119,8 +119,8 @@ func (h *Handler) update(c *gin.Context) {
 }
 
 // remove godoc
-// @Summary 删除粮仓
-// @Tags 粮仓
+// @Summary 删除仓库
+// @Tags 仓库
 // @Security BearerAuth
 // @Router /api/v1/granaries/{id} [delete]
 func (h *Handler) remove(c *gin.Context) {

@@ -28,7 +28,7 @@ func requireAny(tx *gorm.DB, actor int64, permissions ...string) error {
 	return nil
 }
 
-// List 返回指定厂区的粮仓；siteCode 为空时返回全部。
+// List 返回指定厂区的仓库；siteCode 为空时返回全部。
 func (r *Repository) List(ctx context.Context, actor int64, onlyEnabled bool) ([]Granary, error) {
 	records := []Granary{}
 	err := r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {

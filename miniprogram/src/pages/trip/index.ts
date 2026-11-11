@@ -12,7 +12,7 @@ import { demo } from '@/features/grain/service'
 const actionLabels: Record<string, string> = {
   edit: '补充供应商',
   visual: '确认目测',
-  unload: '确认卸粮',
+  unload: '确认卸货',
   ticket: '查看磅单候选',
   'confirm-ticket': '确认过磅单关联',
   issue: '开具出门证',
