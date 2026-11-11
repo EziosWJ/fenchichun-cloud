@@ -6,6 +6,7 @@
     "pages/profile/index",
     "pages/trips/index",
     "pages/registration/index",
+    "pages/plate-camera/index",
     "pages/trip/index",
     "pages/action/index",
     "pages/tickets/index",

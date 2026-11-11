@@ -69,7 +69,7 @@ APP_MOCK=false
 
 登记页车牌由三部分组成：左侧省份下拉、中间字母数字输入、右侧“拍照”按钮。
 
-- 拍照使用 `wx.chooseMedia` 调用系统相机，识别基于微信 VisionKit 端侧 OCR，照片不上传、不保存。
+- 拍照使用项目内相机页（`<camera>`）并在取景层叠加绿色提示框，引导将车牌放入框内；识别基于微信 VisionKit 端侧 OCR，照片不上传、不保存。
 - OCR 与号码提取代码改编自 [EziosWJ/wechat-plate-ocr](https://github.com/EziosWJ/wechat-plate-ocr)，位于 `src/features/plate-ocr/`。
 - 识别结果会自动拆分省份和号码，并按车牌规则将发牌机关字母之后的 `O` 纠正为 `0`、`I` 纠正为 `1`；第二位发牌机关字母和其他易混字符仍需人工核对。
 - 识别失败时可直接手动输入。

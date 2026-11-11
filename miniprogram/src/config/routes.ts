@@ -4,6 +4,7 @@ export const routes = {
   profile: '/pages/profile/index',
   trips: '/pages/trips/index',
   registration: '/pages/registration/index',
+  plateCamera: '/pages/plate-camera/index',
   trip: '/pages/trip/index',
   action: '/pages/action/index',
   tickets: '/pages/tickets/index',

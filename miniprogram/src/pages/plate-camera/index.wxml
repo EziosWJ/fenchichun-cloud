@@ -1,0 +1,18 @@
+<view class="camera-page">
+  <view class="camera-heading">将车牌放入绿色框内</view>
+  <view class="camera-hint">车牌大致居中即可，避开反光和遮挡</view>
+  <view class="camera-viewport">
+    <camera class="camera" device-position="back" flash="{{flash}}" resolution="high" bindinitdone="cameraInitialized" binderror="cameraError">
+      <cover-view class="finder"><cover-view class="finder-label">车牌放在这里</cover-view></cover-view>
+    </camera>
+  </view>
+  <view wx:if="{{error}}" class="camera-error">{{error}}</view>
+  <view class="camera-controls">
+    <view class="camera-side" bindtap="toggleFlash" aria-role="button">{{flash === 'torch' ? '关闭补光' : '开启补光'}}</view>
+    <view class="shutter {{cameraReady ? '' : 'shutter-disabled'}}" bindtap="takePhoto" aria-role="button" aria-label="拍照">
+      <view class="shutter-inner"></view>
+    </view>
+    <view class="camera-side" bindtap="cancel" aria-role="button">取消</view>
+  </view>
+  <view class="camera-tip">拍照后会自动识别，结果可在登记页修改</view>
+</view>

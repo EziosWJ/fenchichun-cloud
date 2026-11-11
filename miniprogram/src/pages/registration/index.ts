@@ -211,24 +211,19 @@ Page({
     })
   },
   capturePlate() {
-    wx.chooseMedia({
-      count: 1,
-      mediaType: ['image'],
-      sourceType: ['camera'],
-      camera: 'back',
-      success: (result) => {
-        const path = result.tempFiles[0]?.tempFilePath
-        if (!path) {
+    wx.navigateTo({
+      url: routes.plateCamera,
+      events: {
+        onPhoto: (path: string) => {
+          void this.recognizePlate(path)
+        },
+        onCancel: () => {
           this.setData({ scanning: false })
-          return
-        }
-        this.recognizePlate(path)
+        },
       },
-      fail: (error) => {
+      fail: () => {
         this.setData({ scanning: false })
-        if (!/cancel/i.test(error.errMsg || '')) {
-          wx.showToast({ title: '未拍摄照片', icon: 'none' })
-        }
+        wx.showToast({ title: '无法打开相机', icon: 'none' })
       },
     })
   },
