@@ -603,6 +603,8 @@ definitions:
         type: string
       unloadedAt:
         type: string
+      unloadingLocation:
+        type: string
       version:
         type: integer
     type: object

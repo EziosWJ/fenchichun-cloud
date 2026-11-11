@@ -7167,6 +7167,9 @@ const docTemplate = `{
                 "unloadedAt": {
                     "type": "string"
                 },
+                "unloadingLocation": {
+                    "type": "string"
+                },
                 "version": {
                     "type": "integer"
                 }

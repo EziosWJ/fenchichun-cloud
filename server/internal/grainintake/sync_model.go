@@ -40,6 +40,7 @@ type SyncTrip struct {
 	EffectiveConclusion string                 `json:"effectiveConclusion,omitempty"`
 	RegisteredAt        time.Time              `json:"registeredAt"`
 	UnloadedAt          *time.Time             `json:"unloadedAt,omitempty"`
+	UnloadingLocation   string                 `json:"unloadingLocation,omitempty"`
 	TicketNo            string                 `json:"ticketNo,omitempty"`
 	Linkable            bool                   `json:"linkable"`
 	Blockers            []string               `json:"blockers"`
@@ -66,6 +67,7 @@ type syncTripRow struct {
 	EffectiveInspectionID *int64     `gorm:"column:effective_inspection_id"`
 	RegisteredAt          time.Time  `gorm:"column:created_at"`
 	UnloadedAt            *time.Time `gorm:"column:unloaded_at"`
+	UnloadingLocation     string     `gorm:"column:unloading_location"`
 	ExitedAt              *time.Time `gorm:"column:exited_at"`
 	TicketID              *int64     `gorm:"column:ticket_id"`
 	TicketNo              string     `gorm:"column:ticket_no"`

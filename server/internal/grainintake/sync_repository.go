@@ -35,7 +35,7 @@ func requireEnabledSite(tx *gorm.DB, siteCode string) error {
 func syncTripSelect() string {
 	return "t.id, t.number, t.version, t.plate, t.material_code, t.material_name, t.party_code, t.party_name, " +
 		"t.driver, t.driver_phone, t.contract_no, t.inspection_method, t.visual_conclusion, t.visual_reason, t.visual_inspected_at, " +
-		"t.effective_inspection_id, t.created_at, t.unloaded_at, t.exited_at, t.ticket_id, COALESCE(w.ticket_no,'') AS ticket_no, " +
+		"t.effective_inspection_id, t.created_at, t.unloaded_at, t.unloading_location, t.exited_at, t.ticket_id, COALESCE(w.ticket_no,'') AS ticket_no, " +
 		stageSQL + " AS stage"
 }
 
@@ -78,7 +78,7 @@ func (r *Repository) syncTrips(ctx context.Context, siteCode, plate, tripNo stri
 				PartyCode: row.PartyCode, PartyName: row.PartyName, Driver: row.Driver,
 				DriverPhone: row.DriverPhone, ContractNo: row.ContractNo,
 				InspectionMethod: row.InspectionMethod, RegisteredAt: row.RegisteredAt,
-				UnloadedAt: row.UnloadedAt, TicketNo: row.TicketNo,
+				UnloadedAt: row.UnloadedAt, UnloadingLocation: row.UnloadingLocation, TicketNo: row.TicketNo,
 				Blockers: []string{},
 			}
 			if row.EffectiveInspectionID != nil {
