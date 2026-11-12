@@ -9,6 +9,7 @@ import type {
 } from './types'
 import { request, session } from '@/utils/api'
 import { currentDictionary, refreshDictionary } from './dictionary-service'
+import { actualNet } from './weight'
 
 const AUTH_KEY = 'grain.auth.v1'
 
@@ -62,6 +63,7 @@ interface ServerTrip {
 
 interface ServerInspection {
   id: number
+  status: 'confirmed' | 'void'
   version: number
   conclusion: 'accept' | 'reject'
   reason: string
@@ -111,6 +113,7 @@ interface ServerCandidate {
   partyName: string
   finalGross: string
   finalTare: string
+  finalNet: string
   finalNetMilliTonne: number
   firstConfirmedAt: string
   secondConfirmedAt: string
@@ -125,6 +128,7 @@ interface ServerDetail {
   permit: ServerPermit | null
   ticket: ServerTicketRecord | null
   events: ServerEvent[]
+  ticketWarning?: string
 }
 
 interface ServerPage {
@@ -204,8 +208,9 @@ function inspectionsOf(trip: ServerTrip, detail?: ServerDetail): Inspection | nu
       values: '',
     }
   }
-  const inspection = detail?.inspections.find(item => item.id === trip.effectiveInspectionId)
-    ?? detail?.inspections[0]
+  const inspections = detail?.inspections.filter(item => item.status === 'confirmed') ?? []
+  const inspection = inspections.find(item => item.id === trip.effectiveInspectionId)
+    ?? inspections[0]
   if (inspection) {
     return {
       method: 'lab',
@@ -241,7 +246,6 @@ function ticketOf(detail?: ServerDetail): Ticket | null {
   const value = record.ticket
   return {
     id: value.ticketNo,
-    tripId: '',
     site: siteName(record.siteCode),
     plate: value.plate,
     material: value.materialName,
@@ -250,7 +254,7 @@ function ticketOf(detail?: ServerDetail): Ticket | null {
     secondAt: formatTime(value.secondConfirmedAt),
     gross: value.finalGross,
     tare: value.finalTare,
-    net: value.finalNet ?? '',
+    net: actualNet(value.finalGross, value.finalTare),
     deducted: value.finalNet ?? '',
   }
 }
@@ -278,8 +282,8 @@ function adaptTrip(trip: ServerTrip, detail?: ServerDetail): Trip {
       ? { location: trip.unloadingLocation, at: formatTime(trip.unloadedAt) }
       : null,
     ticket: ticketOf(detail),
-    ticketAvailable: false,
     ticketConfirmedAt: formatTime(trip.ticketConfirmedAt),
+    ticketWarning: detail?.ticketWarning ?? '',
     permit: detail?.permit
       ? {
           id: detail.permit.number,
@@ -301,7 +305,7 @@ function finish(message: string): never {
   throw new Error(message)
 }
 
-export const demo = {
+export const grainService = {
   options() {
     const dictionary = currentDictionary()
     return {
@@ -314,7 +318,6 @@ export const demo = {
       granaries: dictionary.granaries.map(item => item.name),
     }
   },
-  setDictionary() {},
   current(): AuthState | null {
     const auth = readAuth()
     if (!auth) {
@@ -415,6 +418,7 @@ export const demo = {
         driverPhone: input.phone,
         contractNo: input.contract,
         remark: input.note,
+        clientRequestId: input.clientRequestId || undefined,
       },
     })
     return adaptTrip(detail.trip, detail)
@@ -451,8 +455,8 @@ export const demo = {
     if (trip.stage === 'rejected') {
       data.basis = 'rejection'
       if (trip.inspectionMethod !== 'visual') {
-        const inspection = detail.inspections.find(item => item.id === trip.effectiveInspectionId)
-          ?? detail.inspections[0]
+        const inspection = detail.inspections.find(item => item.id === trip.effectiveInspectionId && item.status === 'confirmed')
+          ?? detail.inspections.find(item => item.status === 'confirmed')
         if (!inspection) {
           finish('未找到拒收化验依据')
         }
@@ -506,22 +510,21 @@ export const demo = {
     const list = await request<ServerCandidate[]>({
       path: `/grain-intake/trips/${id}/ticket-candidates`,
     })
-    return list
-      .filter(item => item.linkable)
-      .map(item => ({
-        id: item.ticketNo,
-        tripId: '',
-        site: siteName(item.siteCode),
-        plate: item.plate,
-        material: item.materialName,
-        supplier: item.partyName,
-        firstAt: formatTime(item.firstConfirmedAt),
-        secondAt: formatTime(item.secondConfirmedAt),
-        gross: item.finalGross,
-        tare: item.finalTare,
-        net: `${(item.finalNetMilliTonne / 1000).toFixed(3)} 吨`,
-        deducted: `${(item.finalNetMilliTonne / 1000).toFixed(3)} 吨`,
-      }))
+    return list.map(item => ({
+      id: item.ticketNo,
+      site: siteName(item.siteCode),
+      plate: item.plate,
+      material: item.materialName,
+      supplier: item.partyName,
+      firstAt: formatTime(item.firstConfirmedAt),
+      secondAt: formatTime(item.secondConfirmedAt),
+      gross: item.finalGross,
+      tare: item.finalTare,
+      net: actualNet(item.finalGross, item.finalTare),
+      deducted: item.finalNet ?? '',
+      linkable: item.linkable,
+      reason: item.reason,
+    }))
   },
   async linkTicket(id: string, version: number, ticketNo: string) {
     const list = await request<ServerCandidate[]>({
@@ -550,19 +553,12 @@ export const demo = {
     })
     return adaptTrip(detail.trip, detail)
   },
-  simulationTasks() {
-    return { lab: [], weigh: [] }
-  },
-  recordVisual() {
-    finish('请在网页版录入目测结果')
-  },
-  simulateLab() {
-    finish('模拟化验仅在离线演示模式可用')
-  },
-  simulateTicket() {
-    finish('模拟磅单仅在离线演示模式可用')
-  },
-  reset() {
-    finish('真实模式不能重置数据')
+  async recordVisual(id: string, version: number, conclusion: 'accept' | 'reject', reason: string) {
+    const detail = await request<ServerDetail>({
+      path: `/grain-intake/trips/${id}/record-visual`,
+      method: 'POST',
+      data: { version, conclusion, reason },
+    })
+    return adaptTrip(detail.trip, detail)
   },
 }

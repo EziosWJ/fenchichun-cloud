@@ -17,6 +17,8 @@ export interface Registration {
   phone: string
   contract: string
   note: string
+  /** 登记重试幂等键，仅用于新建，不显示。 */
+  clientRequestId?: string
 }
 
 export interface Inspection {
@@ -32,7 +34,6 @@ export interface Inspection {
 
 export interface Ticket {
   id: string
-  tripId: string
   site: string
   plate: string
   material: string
@@ -43,6 +44,8 @@ export interface Ticket {
   tare: string
   net: string
   deducted: string
+  linkable?: boolean
+  reason?: string
 }
 
 export interface EventRecord {
@@ -53,10 +56,9 @@ export interface EventRecord {
 
 export interface Trip extends Registration {
   id: string
-  /** 服务端数字主键；Mock 模式为空。 */
-  serverId?: string
-  /** 服务端办理阶段；Mock 模式为空。 */
-  stage?: string
+  /** 服务端数字主键。 */
+  serverId: string
+  stage: string
   number?: string
   version: number
   createdAt: string
@@ -65,25 +67,11 @@ export interface Trip extends Registration {
   inspection: Inspection | null
   unload: { location: string, at: string } | null
   ticket: Ticket | null
-  ticketAvailable: boolean
   ticketConfirmedAt?: string
+  ticketWarning?: string
   permit: { id: string, numericId?: number, issuedAt: string, approvedAt: string } | null
   exitedAt: string
   events: EventRecord[]
-}
-
-export interface DemoState {
-  schema: 1
-  sequence: number
-  user: User | null
-  role: Role | null
-  trips: Trip[]
-  tickets: Ticket[]
-}
-
-export interface DemoStorage {
-  get: () => unknown
-  set: (state: DemoState) => void
 }
 
 export interface DictionarySite {

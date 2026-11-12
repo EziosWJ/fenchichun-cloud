@@ -235,6 +235,8 @@ func (r *Repository) applyChange(ctx context.Context, c syncChangeRecord, net in
 // associateTicketToTrip links a factory ticket to the trip id supplied by the
 // weighing program. The association itself is not a confirmation: the store
 // must confirm it from the web or mini program before issuing a permit.
+// Time-order anomalies are retained and reported as a warning so the factory
+// sync is not blocked; confirm/issue/exit still validate the order later.
 func associateTicketToTrip(tx *gorm.DB, ticketID, tripID int64, c syncChangeRecord, now time.Time) error {
 	var trip struct {
 		ID                    int64
@@ -245,17 +247,20 @@ func associateTicketToTrip(tx *gorm.DB, ticketID, tripID int64, c syncChangeReco
 		PartyCode             string
 		InspectionMethod      string
 		VisualConclusion      string
+		VisualInspectedAt     *time.Time
 		EffectiveInspectionID *int64
+		EffectiveSelectedAt   *time.Time
+		UnloadedAt            *time.Time
 		TicketID              *int64
 		ExitedAt              *time.Time
 	}
 	err := tx.Table("grain_trip").
 		Clauses(clause.Locking{Strength: "UPDATE"}).
-		Select("id, version, site_code, plate, material_code, party_code, inspection_method, visual_conclusion, effective_inspection_id, ticket_id, exited_at").
+		Select("id, version, site_code, plate, material_code, party_code, inspection_method, visual_conclusion, visual_inspected_at, effective_inspection_id, effective_selected_at, unloaded_at, ticket_id, exited_at").
 		Where("id=?", tripID).
 		Take(&trip).Error
 	if errors.Is(err, gorm.ErrRecordNotFound) {
-		return newSyncError(SyncCategoryConfigOrData, "trip_not_found", "关联的流转单不存在")
+		return newSyncError(SyncCategoryConfigOrData, "trip_not_found", "关联的流转单不存在，请核对流转单号是否已登记。")
 	}
 	if err != nil {
 		return err
@@ -264,38 +269,49 @@ func associateTicketToTrip(tx *gorm.DB, ticketID, tripID int64, c syncChangeReco
 		return newSyncError(SyncCategoryConfigOrData, "invalid_request", "缺少过磅单信息")
 	}
 	if trip.ExitedAt != nil {
-		return newSyncError(SyncCategoryConflict, "trip_exited", "关联的流转单已出厂")
+		return newSyncError(SyncCategoryConflict, "trip_exited", "关联的流转单已确认出厂，不能再关联磅单。")
 	}
 	if trip.TicketID != nil {
 		if *trip.TicketID == ticketID {
 			return nil
 		}
-		return newSyncError(SyncCategoryConflict, "trip_ticket_exists", "关联的流转单已有其他磅单")
+		return newSyncError(SyncCategoryConflict, "trip_ticket_exists", "关联的流转单已有关联磅单；如需更换，请先作废原磅单或联系管理员解除关联。")
 	}
 	if c.SiteCode != trip.SiteCode || c.Ticket.Plate != trip.Plate || c.Ticket.MaterialCode != trip.MaterialCode || c.Ticket.PartyCode != trip.PartyCode || c.Ticket.Direction != "inbound" {
-		return newSyncError(SyncCategoryConflict, "trip_mismatch", "过磅单与流转单的厂区、车牌、货品或供应商不一致")
+		return newSyncError(SyncCategoryConflict, "trip_mismatch", "过磅单与流转单的厂区、车牌、货品、供应商或方向不一致，不能自动关联；请核对这些信息后重新同步。")
 	}
 	if trip.InspectionMethod == "lab" && trip.EffectiveInspectionID == nil {
-		return newSyncError(SyncCategoryPredecessorPending, "inspection_pending", "流转单尚未完成化验")
+		return newSyncError(SyncCategoryPredecessorPending, "inspection_pending", "流转单尚未完成化验，暂不能关联磅单；请等待化验员录入并确认结果。")
 	}
 	if trip.InspectionMethod == "visual" && trip.VisualConclusion != "accept" {
-		return newSyncError(SyncCategoryConflict, "inspection_not_accepted", "流转单尚未目测接收")
+		return newSyncError(SyncCategoryConflict, "inspection_not_accepted", "流转单尚未目测接收，不能自动关联磅单；请先完成目测接收确认。")
 	}
 	var permits int64
 	if err := tx.Table("grain_exit_permit").Where("trip_id=?", tripID).Count(&permits).Error; err != nil {
 		return err
 	}
 	if permits > 0 {
-		return newSyncError(SyncCategoryConflict, "trip_permit_exists", "关联的流转单已开具出门证")
+		return newSyncError(SyncCategoryConflict, "trip_permit_exists", "关联的流转单已开具出门证，不能再关联磅单。")
 	}
+	var confirmedAt *time.Time
 	if trip.InspectionMethod == "lab" {
-		var inspection struct{ Conclusion string }
-		if err := tx.Table("grain_inspection").Select("conclusion").Where("id=?", *trip.EffectiveInspectionID).Take(&inspection).Error; err != nil {
+		var inspection struct {
+			Conclusion  string
+			ConfirmedAt *time.Time
+		}
+		if err := tx.Table("grain_inspection").Select("conclusion, confirmed_at").Where("id=?", *trip.EffectiveInspectionID).Take(&inspection).Error; err != nil {
 			return err
 		}
 		if inspection.Conclusion != "accept" {
-			return newSyncError(SyncCategoryConflict, "inspection_not_accepted", "流转单化验结论不是接收")
+			return newSyncError(SyncCategoryConflict, "inspection_not_accepted", "流转单化验结论不是接收，不能关联磅单。请先处理拒收退厂。")
 		}
+		confirmedAt = inspection.ConfirmedAt
+	} else {
+		confirmedAt = trip.VisualInspectedAt
+	}
+	warning := InspectionOrderReason(trip.InspectionMethod, trip.VisualConclusion == "accept", confirmedAt, trip.EffectiveSelectedAt, c.Ticket.FirstConfirmedAt)
+	if warning == "" {
+		warning = UnloadOrderReason(trip.UnloadedAt, c.Ticket.FirstConfirmedAt, c.Ticket.SecondConfirmedAt)
 	}
 	if err := tx.Table("grain_trip").Where("id=?", tripID).Updates(map[string]any{
 		"ticket_id":           ticketID,
@@ -307,6 +323,9 @@ func associateTicketToTrip(tx *gorm.DB, ticketID, tripID int64, c syncChangeReco
 		return err
 	}
 	description := "过磅端已关联磅单 " + c.TicketNo + "，等待库管确认"
+	if warning != "" {
+		description += "；时间顺序异常：" + warning + "，请库管核对化验、首磅、卸货和回磅时间"
+	}
 	return tx.Exec("INSERT INTO grain_trip_event(trip_id,action,description,actor_id) VALUES (?,?,?,NULL)", tripID, "trip.ticket-associated", description).Error
 }
 

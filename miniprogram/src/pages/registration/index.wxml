@@ -20,7 +20,7 @@
       <view class="subtle">拍照识别后请核对；例如 {{province || '晋'}}A12345</view>
     </view>
     <view class="field"><view class="field-label">货品 *</view><picker range="{{materials}}" value="{{materialIndex}}" bindchange="chooseMaterial"><view class="field-control {{materialIndex ? '' : 'field-placeholder'}}">{{materials[materialIndex]}}　›</view></picker><view wx:if="{{materialIndex}}" class="subtle">检验方式：{{methods[materialIndex]}}</view></view>
-    <view class="field"><view class="field-label">供应商</view><picker range="{{suppliers}}" value="{{supplierIndex}}" bindchange="chooseSupplier"><view class="field-control">{{suppliers[supplierIndex]}}　›</view></picker><view class="subtle">可暂时待核实，检验确认前请补充</view></view>
+    <view class="field"><view class="field-label">供应商</view><picker range="{{suppliers}}" value="{{supplierIndex}}" bindchange="chooseSupplier"><view class="field-control">{{suppliers[supplierIndex]}}　›</view></picker></view>
     <view class="field"><view class="heading-row" bindtap="toggleExtra"><text class="field-label">其他信息（选填）</text><text class="subtle">{{extraOpen ? '收起' : '展开'}}　›</text></view>
       <block wx:if="{{extraOpen}}">
         <view class="extra-field"><view class="subtle">司机</view><input class="field-control" value="{{form.driver}}" data-field="driver" bindinput="input" placeholder="请输入司机姓名" maxlength="30" /></view>

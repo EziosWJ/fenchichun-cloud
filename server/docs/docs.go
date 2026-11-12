@@ -6939,6 +6939,9 @@ const docTemplate = `{
                 "ticket": {
                     "$ref": "#/definitions/weighbridge.TicketResult"
                 },
+                "ticketWarning": {
+                    "type": "string"
+                },
                 "trip": {
                     "$ref": "#/definitions/grainintake.Trip"
                 }
@@ -6987,6 +6990,9 @@ const docTemplate = `{
         "grainintake.Input": {
             "type": "object",
             "properties": {
+                "clientRequestId": {
+                    "type": "string"
+                },
                 "contractNo": {
                     "type": "string"
                 },
@@ -7103,6 +7109,9 @@ const docTemplate = `{
         "grainintake.SaveRequest": {
             "type": "object",
             "properties": {
+                "clientRequestId": {
+                    "type": "string"
+                },
                 "contractNo": {
                     "type": "string"
                 },
@@ -7244,6 +7253,9 @@ const docTemplate = `{
         "grainintake.Trip": {
             "type": "object",
             "properties": {
+                "clientRequestId": {
+                    "type": "string"
+                },
                 "contractNo": {
                     "type": "string"
                 },

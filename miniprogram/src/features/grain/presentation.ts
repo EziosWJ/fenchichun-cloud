@@ -11,7 +11,6 @@ const stageStatuses: Record<string, {
   action: string
   waiting: boolean
 }> = {
-  pending_inspection: { label: '待检验', next: '等待网页版完成化验或目测', action: '', waiting: true },
   pending_unload: { label: '待卸货', next: '现场首磅和卸货完成后确认', action: 'unload', waiting: false },
   pending_ticket: { label: '待磅单', next: '磅单同步后选择并关联', action: 'ticket', waiting: false },
   ready: { label: '待开证', next: '核对磅单并开具出门证', action: 'issue', waiting: false },
@@ -23,109 +22,15 @@ const stageStatuses: Record<string, {
 }
 
 export function tripStatus(trip: Trip) {
-  if (trip.stage) {
-    if (trip.stage === 'ready') {
-      return trip.ticketConfirmedAt
-        ? { label: '待开证', next: '核对磅单并开具出门证', action: 'issue', waiting: false }
-        : { label: '待确认磅单', next: '核对过磅端关联的磅单', action: 'confirm-ticket', waiting: false }
-    }
-    const status = stageStatuses[trip.stage]
-    if (status) {
-      if (trip.stage === 'pending_inspection') {
-        return {
-          ...status,
-          label: trip.method === 'lab' ? '待化验' : '待目测',
-        }
-      }
-      return status
-    }
+  if (trip.stage === 'ready' && !trip.ticketConfirmedAt) {
+    return { label: '待确认磅单', next: '核对过磅端关联的磅单', action: 'confirm-ticket', waiting: false }
   }
-  if (trip.exitedAt) {
-    return {
-      label: '已出厂',
-      next: `实际出厂：${trip.exitedAt}`,
-      action: '',
-      waiting: true,
-    }
+  if (trip.stage === 'pending_inspection') {
+    return trip.method === 'visual'
+      ? { label: '待目测', next: '核对货品并确认目测结果', action: 'visual', waiting: false }
+      : { label: '待化验', next: '等待网页版完成化验', action: '', waiting: true }
   }
-  if (trip.inspection?.conclusion === 'reject') {
-    return {
-      label: '等待退厂',
-      next: '拒收退厂，等待门卫核验',
-      action: '',
-      waiting: true,
-    }
-  }
-  if (!trip.inspection) {
-    if (!trip.supplier) {
-      return {
-        label: trip.method === 'lab' ? '等待化验' : '待目测',
-        next: '请先补充供应商',
-        action: 'edit',
-        waiting: false,
-      }
-    }
-    if (trip.method === 'lab') {
-      return {
-        label: '等待化验',
-        next: '等待化验员确认生效结果',
-        action: '',
-        waiting: true,
-      }
-    }
-    return {
-      label: '待目测',
-      next: '核对货品并确认目测结果',
-      action: 'visual',
-      waiting: false,
-    }
-  }
-  if (!trip.unload) {
-    return {
-      label: '待卸货',
-      next: '现场首磅和卸货完成后确认',
-      action: 'unload',
-      waiting: false,
-    }
-  }
-  if (!trip.ticket) {
-    if (trip.ticketAvailable) {
-      return {
-        label: '待关联磅单',
-        next: '磅单已同步，请核对并关联',
-        action: 'ticket',
-        waiting: false,
-      }
-    }
-    return {
-      label: '等待磅单同步',
-      next: '同步后选择并关联正式磅单',
-      action: 'ticket',
-      waiting: true,
-    }
-  }
-  if (!trip.permit) {
-    return {
-      label: '待开证',
-      next: '核对依据并开具出门证',
-      action: 'issue',
-      waiting: false,
-    }
-  }
-  if (!trip.permit.approvedAt) {
-    return {
-      label: '待审批',
-      next: '核对出门证并审批',
-      action: 'approve',
-      waiting: false,
-    }
-  }
-  return {
-    label: '等待出厂',
-    next: '出门证已审批，等待门卫放行',
-    action: '',
-    waiting: true,
-  }
+  return stageStatuses[trip.stage] ?? stageStatuses.blocked
 }
 
 export function exitType(trip: Trip) {
@@ -136,14 +41,8 @@ export function exitType(trip: Trip) {
 }
 
 export function exitEligible(trip: Trip) {
-  if (trip.stage) {
-    return !trip.exitedAt
-      && (trip.stage === 'permit_approved' || trip.stage === 'rejected')
-  }
-  return (
-    !trip.exitedAt
-    && (trip.inspection?.conclusion === 'reject' || !!trip.permit?.approvedAt)
-  )
+  return !trip.exitedAt
+    && (trip.stage === 'permit_approved' || trip.stage === 'rejected')
 }
 
 export function inspectionText(trip: Trip) {
@@ -157,18 +56,9 @@ export function inspectionText(trip: Trip) {
 }
 
 export function canEdit(trip: Trip) {
-  if (trip.stage) {
-    return trip.stage === 'pending_inspection'
-      && !trip.inspection
-      && !trip.unload
-      && !trip.ticket
-      && !trip.permit
-  }
-  return (
-    !trip.inspection
+  return trip.stage === 'pending_inspection'
+    && !trip.inspection
     && !trip.unload
     && !trip.ticket
     && !trip.permit
-    && !trip.exitedAt
-  )
 }

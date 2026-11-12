@@ -1,6 +1,6 @@
 import type { Ticket, Trip } from '@/features/grain/types'
+import { grainService } from '@/features/grain/api-service'
 import { applyAsync, errorMessage, requireLogin } from '@/features/grain/page'
-import { demo } from '@/features/grain/service'
 
 Page({
   data: {
@@ -28,7 +28,7 @@ Page({
           throw new Error('本趟状态已变化，请返回详情查看')
         }
         applyAsync(
-          demo.candidates(trip.serverId || trip.id),
+          grainService.candidates(trip.serverId),
           (tickets) => {
             this.setData({ trip, tickets })
             this.setData({ loading: false })
@@ -38,7 +38,7 @@ Page({
           },
         )
       }
-      applyAsync(demo.getTrip(this.data.id), applyTrip, (error) => {
+      applyAsync(grainService.getTrip(this.data.id), applyTrip, (error) => {
         this.setData({ error: errorMessage(error), loading: false })
       })
     }
@@ -51,6 +51,14 @@ Page({
       item => item.id === event.currentTarget.dataset.id,
     )
     if (!ticket) {
+      return
+    }
+    if (ticket.linkable === false) {
+      wx.showModal({
+        title: '暂不能关联',
+        content: `${ticket.reason || '时间顺序不一致'}。请核对化验、首磅、卸货和回磅时间后再关联。`,
+        showCancel: false,
+      })
       return
     }
     const trip = this.data.trip
@@ -80,7 +88,7 @@ Page({
     this.setData({ confirming: true })
     try {
       applyAsync(
-        demo.linkTicket(trip.serverId || trip.id, trip.version, ticket.id),
+        grainService.linkTicket(trip.serverId, trip.version, ticket.id),
         () => {
           this.setData({ confirming: false })
           wx.navigateBack()

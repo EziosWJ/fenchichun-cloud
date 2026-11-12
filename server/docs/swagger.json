@@ -6931,6 +6931,9 @@
                 "ticket": {
                     "$ref": "#/definitions/weighbridge.TicketResult"
                 },
+                "ticketWarning": {
+                    "type": "string"
+                },
                 "trip": {
                     "$ref": "#/definitions/grainintake.Trip"
                 }
@@ -6979,6 +6982,9 @@
         "grainintake.Input": {
             "type": "object",
             "properties": {
+                "clientRequestId": {
+                    "type": "string"
+                },
                 "contractNo": {
                     "type": "string"
                 },
@@ -7095,6 +7101,9 @@
         "grainintake.SaveRequest": {
             "type": "object",
             "properties": {
+                "clientRequestId": {
+                    "type": "string"
+                },
                 "contractNo": {
                     "type": "string"
                 },
@@ -7236,6 +7245,9 @@
         "grainintake.Trip": {
             "type": "object",
             "properties": {
+                "clientRequestId": {
+                    "type": "string"
+                },
                 "contractNo": {
                     "type": "string"
                 },

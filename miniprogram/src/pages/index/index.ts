@@ -1,6 +1,6 @@
 import type { Role, Trip } from '@/features/grain/types'
-import { env } from '@/config/env'
 import { routes } from '@/config/routes'
+import { grainService } from '@/features/grain/api-service'
 import {
   applyAsync,
   cards,
@@ -10,13 +10,11 @@ import {
   sortTrips,
 } from '@/features/grain/page'
 import { exitEligible, roleLabels } from '@/features/grain/presentation'
-import { demo } from '@/features/grain/service'
 
 Page({
   data: {
     loading: true,
     error: '',
-    mock: env.mock,
     role: 'warehouse' as Role,
     roleName: '',
     canSwitch: false,
@@ -53,7 +51,7 @@ Page({
         })
         this.setData({ loading: false })
       }
-      applyAsync(demo.listTrips(), apply, (error) => {
+      applyAsync(grainService.listTrips(), apply, (error) => {
         this.setData({ error: errorMessage(error), loading: false })
       })
     }
@@ -76,7 +74,7 @@ Page({
         itemList: roles.map(role => roleLabels[role]),
         success: ({ tapIndex }) => {
           try {
-            demo.switchRole(roles[tapIndex])
+            grainService.switchRole(roles[tapIndex])
             this.setData({ query: '', gateHistory: false })
             this.load()
           }

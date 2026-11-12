@@ -8,6 +8,7 @@
     <view class="subtle">流转单号：{{trip.id}}</view>
     <view class="subtle">登记时间：{{trip.createdAt}}</view>
     <view class="notice trip-notice"><view class="notice-title">{{trip.exitedAt ? '本趟已完成' : '下一步'}}</view><view>{{next}}</view></view>
+    <view wx:if="{{trip.ticketWarning}}" class="notice trip-notice"><view class="notice-title">磅单需要核对</view><view>{{trip.ticketWarning}}</view></view>
     <view wx:if="{{trip.inspection && trip.inspection.conclusion === 'reject'}}" class="rejection-summary">{{inspection}}：{{trip.inspection.reason || '未填写拒收原因'}}</view>
 
     <view class="detail-section">
@@ -67,12 +68,12 @@
 
     <view class="detail-section">
       <view class="section-toggle" data-section="ticket" bindtap="toggleSection" aria-role="button" aria-expanded="{{expanded.ticket}}">
-        <view class="section-toggle-inner"><text class="section-heading">正式磅单</text><view class="section-end"><text>{{trip.ticket ? (trip.ticketConfirmedAt ? '已确认' : '待确认') : (trip.inspection && trip.inspection.conclusion === 'reject' ? '拒收无需关联' : (trip.ticketAvailable ? '待关联' : '未关联'))}}</text><text class="chevron">{{expanded.ticket ? '⌃' : '›'}}</text></view></view>
+        <view class="section-toggle-inner"><text class="section-heading">正式磅单</text><view class="section-end"><text>{{trip.ticket ? (trip.ticketConfirmedAt ? '已确认' : '待确认') : (trip.inspection && trip.inspection.conclusion === 'reject' ? '拒收无需关联' : '未关联')}}</text><text class="chevron">{{expanded.ticket ? '⌃' : '›'}}</text></view></view>
       </view>
       <view wx:if="{{expanded.ticket}}" class="section-content">
         <view class="record-sheet">
-          <view class="record-header"><view><view class="record-title">正式过磅单</view><view class="record-caption">{{trip.ticket ? '磅单号 ' + trip.ticket.id : '磅单关联信息'}}</view></view><text class="record-badge">{{trip.ticket ? (trip.ticketConfirmedAt ? '已确认' : '待确认') : (trip.inspection && trip.inspection.conclusion === 'reject' ? '无需关联' : (trip.ticketAvailable ? '待关联' : '未关联'))}}</text></view>
-          <view wx:if="{{!trip.ticket}}" class="record-empty">{{trip.inspection && trip.inspection.conclusion === 'reject' ? '本趟拒收退厂，无需关联磅单' : (trip.ticketAvailable ? '磅单已同步，请核对并关联' : (trip.unload ? '尚未关联；等待同步不代表现场没有称重' : '尚未关联'))}}</view>
+          <view class="record-header"><view><view class="record-title">正式过磅单</view><view class="record-caption">{{trip.ticket ? '磅单号 ' + trip.ticket.id : '磅单关联信息'}}</view></view><text class="record-badge">{{trip.ticket ? (trip.ticketConfirmedAt ? '已确认' : '待确认') : (trip.inspection && trip.inspection.conclusion === 'reject' ? '无需关联' : '未关联')}}</text></view>
+          <view wx:if="{{!trip.ticket}}" class="record-empty">{{trip.inspection && trip.inspection.conclusion === 'reject' ? '本趟拒收退厂，无需关联磅单' : (trip.unload ? '尚未关联；等待同步不代表现场没有称重' : '尚未关联')}}</view>
           <view wx:if="{{!trip.ticket && action === 'ticket'}}" class="record-action"><text class="text-link" bindtap="act">查看磅单候选 ›</text></view>
           <block wx:if="{{trip.ticket}}">
             <view class="record-row"><text class="record-label">关联确认</text><text class="record-value">{{trip.ticketConfirmedAt ? '已确认' : '待确认'}}</text></view>

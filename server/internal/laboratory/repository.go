@@ -50,11 +50,13 @@ type tripReference struct {
 	ID                                                              int64
 	SiteCode                                                        string
 	Plate, MaterialCode, PartyCode, Driver, DriverPhone, ContractNo string
+	InspectionMethod                                                string
 	ExitedAt, UnloadedAt                                            *time.Time
 	TicketID, EffectiveInspectionID                                 *int64
 }
 
-// inspectionTrip 锁定流转单并确认它仍处于可化验阶段。
+// inspectionTrip 锁定流转单并确认它仍处于可化验阶段。已卸粮的流转单仍可
+// 更正化验值，但 Create 会禁止把结论改为拒收，避免货已入库却产生拒收依据。
 func inspectionTrip(tx *gorm.DB, id int64) (tripReference, error) {
 	var t tripReference
 	err := tx.Table("grain_trip").Clauses(clause.Locking{Strength: "UPDATE"}).Where("id=?", id).Take(&t).Error
@@ -63,6 +65,9 @@ func inspectionTrip(tx *gorm.DB, id int64) (tripReference, error) {
 	}
 	if err != nil {
 		return t, err
+	}
+	if t.InspectionMethod != "lab" {
+		return t, fmt.Errorf("%w：目测流转单不能录入化验结果", ErrConflict)
 	}
 	var n int64
 	if err := tx.Table("grain_exit_permit").Where("trip_id=?", id).Count(&n).Error; err != nil {
@@ -160,6 +165,9 @@ func (r *Repository) Create(ctx context.Context, in Input, e audit.Event) (Inspe
 		trip, err := inspectionTrip(tx, *in.TripID)
 		if err != nil {
 			return err
+		}
+		if in.Conclusion == "reject" && trip.UnloadedAt != nil {
+			return fmt.Errorf("%w：已确认卸粮，不能改判拒收", ErrConflict)
 		}
 		var n int64
 		if err := tx.Model(&Inspection{}).Where("trip_id=? AND status <> 'void'", *in.TripID).Count(&n).Error; err != nil {

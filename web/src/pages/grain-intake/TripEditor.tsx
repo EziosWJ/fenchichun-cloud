@@ -1,4 +1,4 @@
-import { useDeferredValue, useMemo, useState } from 'react';
+import { useDeferredValue, useMemo, useRef, useState } from 'react';
 import { Alert, App, AutoComplete, Button, Col, Form, Input, Modal, Row, Select } from 'antd';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { materials, parties, sites } from '../../features/weighbridge/api';
@@ -15,6 +15,7 @@ export default function TripEditor({ original, onClose, onSaved }: { original?: 
   const { message } = App.useApp();
   const client = useQueryClient();
   const [form] = Form.useForm<TripInput>();
+  const createRequestId = useRef(`${Date.now().toString(36)}${Math.random().toString(36).slice(2, 10)}`);
   const materialCode = Form.useWatch('materialCode', form);
   const [plateKeyword, setPlateKeyword] = useState(original?.plate ?? '');
   const siteQuery = useQuery({ queryKey: ['weighbridge', 'sites'], queryFn: sites });
@@ -39,7 +40,7 @@ export default function TripEditor({ original, onClose, onSaved }: { original?: 
     if (matched) form.setFieldsValue({ siteCode: matched.siteCode, materialCode: matched.materialCode, partyCode: matched.partyCode, driver: matched.driver, driverPhone: matched.driverPhone });
   };
   const save = useMutation({
-    mutationFn: (v: TripInput) => saveTrip({ ...blank, ...v, partyCode: v.partyCode || '' }, original),
+    mutationFn: (v: TripInput) => saveTrip({ ...blank, ...v, partyCode: v.partyCode || '', clientRequestId: original ? undefined : createRequestId.current }, original),
     onSuccess: (value) => { message.success('流转单已保存'); void client.invalidateQueries({ queryKey: ['grain-intake'] }); onSaved(value); },
     onError: (error) => message.error(getApiErrorMessage(error)),
   });

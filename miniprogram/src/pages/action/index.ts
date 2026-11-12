@@ -1,5 +1,5 @@
 import type { Conclusion, Trip } from '@/features/grain/types'
-import { env } from '@/config/env'
+import { grainService } from '@/features/grain/api-service'
 import {
   currentDictionary,
   refreshDictionary,
@@ -7,7 +7,6 @@ import {
 } from '@/features/grain/dictionary-service'
 import { applyAsync, errorMessage, requireLogin } from '@/features/grain/page'
 import { tripStatus } from '@/features/grain/presentation'
-import { demo } from '@/features/grain/service'
 
 Page({
   data: {
@@ -37,9 +36,6 @@ Page({
       if (!requireLogin('warehouse')) {
         return
       }
-      if (!env.mock && this.data.action === 'visual') {
-        throw new Error('请在网页版录入目测结果')
-      }
       const dictionary = currentDictionary()
       const apply = (trip: Trip) => {
         if (
@@ -54,7 +50,7 @@ Page({
         })
         this.setData({ loading: false })
       }
-      applyAsync(demo.getTrip(this.data.id), apply, (error) => {
+      applyAsync(grainService.getTrip(this.data.id), apply, (error) => {
         this.setData({ error: errorMessage(error), loading: false })
       })
     }
@@ -132,24 +128,33 @@ Page({
     this.setData({ confirming: true })
     try {
       if (action === 'visual') {
-        demo.recordVisual(
-          trip.id,
-          trip.version,
-          conclusion as Conclusion,
-          reason,
+        applyAsync(
+          grainService.recordVisual(
+            trip.serverId,
+            trip.version,
+            conclusion as Conclusion,
+            reason,
+          ),
+          () => {
+            this.setData({ confirming: false })
+            wx.navigateBack()
+          },
+          (error) => {
+            this.setData({ formError: errorMessage(error), confirming: false })
+            this.load(false)
+          },
         )
-        this.setData({ confirming: false })
-        wx.navigateBack()
         return
       }
       applyAsync(
-        demo.confirmUnload(trip.serverId || trip.id, trip.version, location),
+        grainService.confirmUnload(trip.serverId, trip.version, location),
         () => {
           this.setData({ confirming: false })
           wx.navigateBack()
         },
         (error) => {
           this.setData({ formError: errorMessage(error), confirming: false })
+          this.load(false)
         },
       )
     }

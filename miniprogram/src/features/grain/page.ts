@@ -1,10 +1,10 @@
 import type { Role, Trip } from './types'
 import { routes } from '@/config/routes'
-import { demo } from '@/features/grain/service'
+import { grainService } from './api-service'
 import { exitEligible, exitType, inspectionText, tripStatus } from './presentation'
 
 export function requireLogin(role?: Role) {
-  const current = demo.current()
+  const current = grainService.current()
   if (!current) {
     wx.reLaunch({ url: routes.login })
     return null
@@ -21,22 +21,12 @@ export function errorMessage(error: unknown) {
   return error instanceof Error ? error.message : '操作未完成，请重试'
 }
 
-/** 同时兼容本地 Mock 的同步返回和真实接口的 Promise 返回。 */
 export function applyAsync<T>(
-  value: T | Promise<T>,
+  value: Promise<T>,
   onValue: (value: T) => void,
   onError: (error: unknown) => void,
 ) {
-  if (value && typeof (value as Promise<T>).then === 'function') {
-    (value as Promise<T>).then(onValue).catch(onError)
-    return
-  }
-  try {
-    onValue(value as T)
-  }
-  catch (error) {
-    onError(error)
-  }
+  void value.then(onValue).catch(onError)
 }
 
 export function cards(trips: Trip[]) {
@@ -62,7 +52,7 @@ export function matches(trip: Trip, query: string) {
   )
 }
 
-const actionableActions = new Set(['edit', 'visual', 'unload', 'ticket', 'issue', 'approve'])
+const actionableActions = new Set(['visual', 'unload', 'ticket', 'confirm-ticket', 'issue', 'approve'])
 
 /** 当前角色真正需要操作的流转单排在前面，其余（等待他人或已办）按更新时间倒序。 */
 export function sortTrips(trips: Trip[], role: Role) {

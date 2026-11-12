@@ -39,6 +39,7 @@ export default function InspectionFormModal({ trip, open, onClose, onSaved }: {
   const moisture = Form.useWatch('moisture', form);
   const [previewMoisture, setPreviewMoisture] = useState('');
   const [rejecting, setRejecting] = useState(false);
+  const canReject = !trip.unloadedAt;
   const save = useMutation({
     mutationFn: createInspection,
     onSuccess: () => { message.success('化验结果已保存并生效'); onSaved(); },
@@ -69,6 +70,10 @@ export default function InspectionFormModal({ trip, open, onClose, onSaved }: {
     } catch {
       return;
     }
+    if (conclusion === 'reject' && !canReject) {
+      message.error('已确认卸粮，不能改判拒收');
+      return;
+    }
     if (conclusion === 'reject' && !values.reason?.trim()) {
       message.error('拒收必须填写原因');
       return;
@@ -90,9 +95,10 @@ export default function InspectionFormModal({ trip, open, onClose, onSaved }: {
     destroyOnHidden
     footer={rejecting
       ? <Space><Button onClick={() => setRejecting(false)}>返回</Button><Button danger loading={save.isPending} onClick={() => void submit('reject')}>确认拒收</Button></Space>
-      : <Space><Button onClick={onClose}>取消</Button><Button danger onClick={() => setRejecting(true)}>拒收</Button><Button type="primary" loading={save.isPending} onClick={() => void submit('accept')}>接收</Button></Space>}
+      : <Space><Button onClick={onClose}>取消</Button>{canReject && <Button danger onClick={() => setRejecting(true)}>拒收</Button>}<Button type="primary" loading={save.isPending} onClick={() => void submit('accept')}>接收</Button></Space>}
   >
     {save.isError && <Alert type="error" title={getApiErrorMessage(save.error)} />}
+    {!canReject && <Alert type="info" title="已确认卸粮，重录只能选择接收。" />}
     <Form form={form} layout="vertical" initialValues={blank}>
       <div className={styles.detail}>
         <div className={styles.overview}>

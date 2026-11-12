@@ -5,6 +5,7 @@ import type { DeductionEvaluation } from '../deduction/api';
 export interface TripInput {
   siteCode: string; plate: string; materialCode: string; partyCode: string;
   driver: string; driverPhone: string; contractNo: string; remark: string;
+  clientRequestId?: string;
 }
 export interface Trip extends TripInput {
   id: number; number: string; version: number; materialName: string; partyName: string;
@@ -23,10 +24,10 @@ export interface Permit {
   tripNumber: string; plate: string; siteCode: string; exitedAt: string | null; stage: string;
 }
 export interface TripEvent { id: number; tripId: number; action: string; description: string; actorId: number | null; actorName: string; createdAt: string }
-export interface TripDetail { trip: Trip; inspections: Inspection[]; permit: Permit | null; ticket: TicketRecord | null; events: TripEvent[]; deductions: DeductionEvaluation[] }
+export interface TripDetail { trip: Trip; inspections: Inspection[]; permit: Permit | null; ticket: TicketRecord | null; events: TripEvent[]; deductions: DeductionEvaluation[]; ticketWarning?: string }
 export interface TicketCandidate {
   siteCode: string; ticketNo: string; plate: string; materialCode: string; materialName: string;
-  partyCode: string; partyName: string; finalGross: string; finalTare: string; finalNetMilliTonne: number;
+  partyCode: string; partyName: string; finalGross: string; finalTare: string; finalNet: string; finalNetMilliTonne: number;
   firstConfirmedAt: string; secondConfirmedAt: string; issuedAt: string; linkable: boolean; reason: string;
 }
 export type TripAction = 'record-visual' | 'link-inspection' | 'select-inspection' | 'confirm-unloading' | 'link-ticket' | 'confirm-ticket' | 'issue-permit' | 'approve-permit' | 'confirm-exit';

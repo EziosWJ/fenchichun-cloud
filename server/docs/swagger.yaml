@@ -412,6 +412,8 @@ definitions:
         $ref: '#/definitions/grainintake.Permit'
       ticket:
         $ref: '#/definitions/weighbridge.TicketResult'
+      ticketWarning:
+        type: string
       trip:
         $ref: '#/definitions/grainintake.Trip'
     type: object
@@ -443,6 +445,8 @@ definitions:
     type: object
   grainintake.Input:
     properties:
+      clientRequestId:
+        type: string
       contractNo:
         type: string
       driver:
@@ -519,6 +523,8 @@ definitions:
     type: object
   grainintake.SaveRequest:
     properties:
+      clientRequestId:
+        type: string
       contractNo:
         type: string
       driver:
@@ -612,6 +618,8 @@ definitions:
     type: object
   grainintake.Trip:
     properties:
+      clientRequestId:
+        type: string
       contractNo:
         type: string
       createdAt:

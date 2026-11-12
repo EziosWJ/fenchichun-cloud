@@ -1,25 +1,17 @@
 import type { DictionaryPayload } from './types'
-import { demoDictionary } from '@/features/grain/dictionary-snapshot'
 import { request } from '@/utils/api'
 
 const CACHE_KEY = 'grain.dictionary.v1'
+const emptyDictionary: DictionaryPayload = {
+  version: '',
+  sites: [],
+  materials: [],
+  suppliers: [],
+  granaries: [],
+}
 
 let cached: DictionaryPayload | undefined
 let refreshing: Promise<DictionaryPayload | null> | null = null
-
-function snapshot(): DictionaryPayload {
-  return {
-    version: 'snapshot',
-    sites: demoDictionary.sites.map(item => ({ code: item.code, name: item.name })),
-    materials: demoDictionary.materials.map(item => ({
-      code: item.code,
-      name: item.name,
-      inspectionMethod: item.inspectionMethod,
-    })),
-    suppliers: demoDictionary.suppliers.map(item => ({ code: item.code, name: item.name })),
-    granaries: demoDictionary.granaries.map(item => ({ id: item.id, name: item.name })),
-  }
-}
 
 function valid(value: unknown): value is DictionaryPayload {
   if (!value || typeof value !== 'object') {
@@ -43,15 +35,14 @@ function readCache(): DictionaryPayload | null {
   }
 }
 
-/** 同步返回当前可用字典：接口缓存优先，其次构建时快照。 */
 export function currentDictionary(): DictionaryPayload {
   if (!cached) {
-    cached = readCache() ?? snapshot()
+    cached = readCache() ?? emptyDictionary
   }
   return cached
 }
 
-/** 匿名拉取最新字典；成功时写入缓存并更新本地演示选项，失败返回 null。 */
+/** 登录后拉取字典并更新本地缓存，失败时保留已有缓存。 */
 export function refreshDictionary(): Promise<DictionaryPayload | null> {
   if (refreshing) {
     return refreshing

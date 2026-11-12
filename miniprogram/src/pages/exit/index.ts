@@ -1,11 +1,11 @@
 import type { Trip } from '@/features/grain/types'
+import { grainService } from '@/features/grain/api-service'
 import { applyAsync, errorMessage, requireLogin } from '@/features/grain/page'
 import {
   exitEligible,
   exitType,
   inspectionText,
 } from '@/features/grain/presentation'
-import { demo } from '@/features/grain/service'
 
 Page({
   data: {
@@ -40,7 +40,7 @@ Page({
         })
         this.setData({ loading: false })
       }
-      applyAsync(demo.getTrip(this.data.id), apply, (error) => {
+      applyAsync(grainService.getTrip(this.data.id), apply, (error) => {
         this.setData({ error: errorMessage(error), loading: false })
       })
     }
@@ -79,7 +79,7 @@ Page({
     this.setData({ confirming: true })
     try {
       applyAsync(
-        demo.confirmExit(trip.serverId || trip.id, trip.version),
+        grainService.confirmExit(trip.serverId, trip.version),
         () => {
           wx.showToast({ title: '已确认实际出厂', icon: 'success' })
           this.setData({ confirming: false })

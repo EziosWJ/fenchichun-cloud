@@ -1,11 +1,9 @@
-import { env } from '@/config/env'
 import { routes } from '@/config/routes'
+import { grainService } from '@/features/grain/api-service'
 import { applyAsync, errorMessage } from '@/features/grain/page'
-import { demo } from '@/features/grain/service'
 
 Page({
   data: {
-    mock: env.mock,
     account: '',
     password: '',
     showPassword: false,
@@ -14,7 +12,7 @@ Page({
   },
   onShow() {
     try {
-      if (demo.current()) {
+      if (grainService.current()) {
         wx.reLaunch({ url: routes.workbench })
       }
     }
@@ -41,7 +39,7 @@ Page({
         throw new Error('请输入员工账号和密码')
       }
       applyAsync(
-        demo.login(this.data.account, this.data.password),
+        grainService.login(this.data.account, this.data.password),
         () => {
           this.setData({ password: '', submitting: false })
           wx.reLaunch({ url: routes.workbench })

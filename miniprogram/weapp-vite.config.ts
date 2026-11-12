@@ -32,22 +32,15 @@ export default defineConfig(({
   if (!/^https:\/\//.test(baseURL) && !localDev) {
     throw new Error('APP_API_BASE_URL 必须为 HTTPS URL（开发/测试可为本机或局域网 HTTP）')
   }
-  const mock = values.APP_MOCK === 'true'
-  if (mode === 'production' && mock) {
-    throw new Error('生产构建禁止启用 Mock')
-  }
   return {
     define: {
       __APP_CONFIG__: JSON.stringify({
         mode,
         baseURL,
-        mock,
       }),
     },
     resolve: {
       alias: {
-        '@/features/grain/dictionary-snapshot': fileURLToPath(new URL(mock ? './src/features/grain/dictionary.ts' : './src/features/grain/dictionary-empty.ts', import.meta.url)),
-        '@/features/grain/service': fileURLToPath(new URL(mock ? './src/features/grain/service.ts' : './src/features/grain/api-service.ts', import.meta.url)),
         '@': fileURLToPath(new URL('./src', import.meta.url)),
       },
     },

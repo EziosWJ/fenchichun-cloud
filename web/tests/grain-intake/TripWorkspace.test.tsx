@@ -73,6 +73,35 @@ describe('exit evidence', () => {
     await userEvent.click(screen.getByRole('button', { name: '去办理' }));
     await waitFor(() => expect(weighingTab).toHaveAttribute('aria-selected', 'true'));
   });
+  it('keeps unloading available after the weighing side pre-linked a ticket', async () => {
+    const value = evidence();
+    value.trip = { ...value.trip, stage: 'pending_unload', unloadedAt: null, unloadingLocation: '', ticketId: 21, ticketConfirmedAt: null };
+    value.permit = null;
+    value.ticket = null;
+    api.tripDetail.mockResolvedValue(value);
+    renderWithProviders(<TripWorkspace />, { route: '/grain-intake/trips/1', path: '/grain-intake/trips/:id' });
+    await screen.findByText('下一步：确认现场卸货');
+    await userEvent.click(screen.getByRole('tab', { name: '卸货与磅单' }));
+    expect(await screen.findByRole('button', { name: '确认卸货' })).toBeInTheDocument();
+  });
+  it('offers laboratory entry after the only inspection was voided', async () => {
+    const value = evidence();
+    value.trip = { ...value.trip, stage: 'pending_inspection', effectiveInspectionId: null, effectiveSelectedAt: null, effectiveSelectedBy: null, effectiveConclusion: '', inspectionId: null, inspectionConclusion: '', unloadedAt: null, ticketId: null, ticketConfirmedAt: null };
+    value.inspections = [{ ...value.inspections[0], id: 20, status: 'void', voidedAt: value.trip.createdAt, voidReason: '录入错误' }];
+    value.permit = null;
+    value.ticket = null;
+    api.tripDetail.mockResolvedValue(value);
+    renderWithProviders(<TripWorkspace />, { route: '/grain-intake/trips/1', path: '/grain-intake/trips/:id' });
+    expect(await screen.findByRole('button', { name: '去录入化验结果' })).toBeInTheDocument();
+  });
+  it('shows the ticket time warning with next-step guidance', async () => {
+    const value = evidence();
+    value.ticketWarning = '回磅早于卸粮，无法继续开证或出厂。请核对化验、首磅、卸货和回磅时间；如属离线补录，请联系管理员处理后再办理。';
+    api.tripDetail.mockResolvedValue(value);
+    renderWithProviders(<TripWorkspace />, { route: '/grain-intake/trips/1', path: '/grain-intake/trips/:id' });
+    await screen.findByText('磅单需要核对');
+    expect(screen.getByText(/回磅早于卸粮/)).toBeInTheDocument();
+  });
   it('hides release actions when the ticket evidence is blocked', async () => {
     const value = evidence(); value.trip.stage = 'blocked';
     api.tripDetail.mockResolvedValue(value);
