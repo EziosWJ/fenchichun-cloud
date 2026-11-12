@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Alert, App, Button, Form, Input, InputNumber, Modal, Radio, Select, Space, Switch, Table, Tag, Typography } from 'antd';
+import { Alert, App, Button, Form, Input, InputNumber, Modal, Radio, Select, Space, Switch, Table, Tag, Tooltip, Typography } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Plus } from 'lucide-react';
@@ -30,22 +30,19 @@ interface Values {
   materialCode: string;
   categoryCode: string;
   mode: 'amount' | 'percent';
-  basisField: '' | 'moisture';
   amountTonnes: number;
-  effectiveFrom: string;
   enabled: boolean;
   remark: string;
   ranges: RangeValues[];
 }
 
 const blank: Values = {
-  code: '', materialCode: '', categoryCode: '', mode: 'percent', basisField: 'moisture',
-  amountTonnes: 0, effectiveFrom: '', enabled: true, remark: '',
+  code: '', materialCode: '', categoryCode: '', mode: 'percent',
+  amountTonnes: 0, enabled: true, remark: '',
   ranges: [{ minValue: '', maxValue: '', ratePercent: 0 }],
 };
 
-const modeLabel = { amount: '按吨扣减', percent: '按比例扣减' } as const;
-const basisLabel: Record<string, string> = { moisture: '水分' };
+const modeLabel = { amount: '按吨扣减', percent: '按百分比扣减' } as const;
 
 function rangeText(rule: DeductionRule): string {
   if (rule.mode === 'amount') return `${(rule.amountMilliTonne / 1000).toFixed(3)} 吨`;
@@ -59,9 +56,9 @@ function toInput(values: Values): DeductionRuleInput {
     materialCode: values.materialCode,
     categoryCode: values.categoryCode,
     mode: values.mode,
-    basisField: values.mode === 'percent' ? values.basisField : '',
+    basisField: values.mode === 'percent' ? 'moisture' : '',
     amountMilliTonne: values.mode === 'amount' ? Math.round((values.amountTonnes ?? 0) * 1000) : 0,
-    effectiveFrom: values.effectiveFrom?.trim() ?? '',
+    effectiveFrom: '',
     enabled: values.enabled,
     remark: values.remark?.trim() ?? '',
     ranges: values.mode === 'percent'
@@ -103,8 +100,8 @@ export default function DeductionRulesPage() {
     setEditing(rule);
     form.setFieldsValue({
       code: rule.code, materialCode: rule.materialCode, categoryCode: rule.categoryCode,
-      mode: rule.mode, basisField: rule.basisField === 'moisture' ? 'moisture' : '', amountTonnes: rule.amountMilliTonne / 1000,
-      effectiveFrom: rule.effectiveFrom ? rule.effectiveFrom.slice(0, 10) : '', enabled: rule.enabled, remark: rule.remark,
+      mode: rule.mode, amountTonnes: rule.amountMilliTonne / 1000,
+      enabled: rule.enabled, remark: rule.remark,
       ranges: rule.ranges.length > 0
         ? rule.ranges.map((item) => ({ minValue: item.minValue, maxValue: item.maxValue ?? '', ratePercent: item.rateBp / 100 }))
         : [{ minValue: '', maxValue: '', ratePercent: 0 }],
@@ -133,13 +130,11 @@ export default function DeductionRulesPage() {
   };
 
   const columns: ColumnsType<DeductionRule> = [
-    { title: '物料', dataIndex: 'materialName', key: 'materialName' },
+    { title: '物料', dataIndex: 'materialName', key: 'materialName', width: 180 },
     { title: '扣减类别', dataIndex: 'categoryName', key: 'categoryName', width: 110 },
-    { title: '方式', dataIndex: 'mode', key: 'mode', width: 110, render: (value: 'amount' | 'percent') => modeLabel[value] },
-    { title: '依据', dataIndex: 'basisField', key: 'basisField', width: 90, render: (value: string) => basisLabel[value] ?? '—' },
-    { title: '规则', key: 'rule', render: (_: unknown, row) => <Typography.Text ellipsis={{ tooltip: rangeText(row) }} style={{ maxWidth: 300 }}>{rangeText(row)}</Typography.Text> },
+    { title: '方式', dataIndex: 'mode', key: 'mode', width: 120, render: (value: 'amount' | 'percent') => modeLabel[value] },
+    { title: '规则', key: 'rule', ellipsis: { showTitle: false }, render: (_: unknown, row) => <Tooltip title={rangeText(row)}><span>{rangeText(row)}</span></Tooltip> },
     { title: '版本', dataIndex: 'version', key: 'version', width: 70 },
-    { title: '生效日期', dataIndex: 'effectiveFrom', key: 'effectiveFrom', width: 120, render: (value: string) => value ? value.slice(0, 10) : '立即' },
     { title: '状态', dataIndex: 'enabled', key: 'enabled', width: 90, render: (value: boolean) => value ? <Tag color="green">启用</Tag> : <Tag>停用</Tag> },
     ...(canManage ? [{
       title: '操作', key: 'actions', width: 130,
@@ -192,8 +187,8 @@ export default function DeductionRulesPage() {
             <Form.Item name="categoryCode" label="扣减类别" rules={[{ required: true, message: '请选择扣减类别' }]}>
               <Select options={categoryOptions} />
             </Form.Item>
-            <Form.Item name="code" label="规则编码" extra="留空自动生成">
-              <Input maxLength={40} placeholder="留空自动生成" disabled={!!editing} />
+            <Form.Item name="code" label="规则编码（选填）">
+              <Input maxLength={40} disabled={!!editing} />
             </Form.Item>
           </div>
         </section>
@@ -205,25 +200,15 @@ export default function DeductionRulesPage() {
               buttonStyle="solid"
               options={[
                 { value: 'amount', label: '按吨直接扣减' },
-                { value: 'percent', label: '按水分比例扣减' },
+                { value: 'percent', label: '按百分比扣减' },
               ]}
             />
           </Form.Item>
           {mode === 'amount'
-            ? <div className={styles.grid2}>
-              <Form.Item name="amountTonnes" label="每车扣减重量" rules={[{ required: true, message: '请填写扣减重量' }]}>
-                <InputNumber min={0.001} step={0.001} precision={3} suffix="吨/车" style={{ width: '100%' }} />
-              </Form.Item>
-              <div className={styles.fieldHint}>按固定重量扣减，不依赖化验检测值。</div>
-            </div>
-            : <>
-              <div className={styles.grid2}>
-                <Form.Item name="basisField" label="检测值依据" rules={[{ required: true, message: '请选择依据' }]}>
-                  <Select options={[{ value: 'moisture', label: '水分（%）' }]} />
-                </Form.Item>
-                <div className={styles.fieldHint}>按化验水分落入的区间比例扣减；比例由磅房按最终净重折算吨数。</div>
-              </div>
-              <Form.List name="ranges" rules={[{
+            ? <Form.Item name="amountTonnes" label="每车扣减重量" rules={[{ required: true, message: '请填写扣减重量' }]} style={{ maxWidth: 320 }}>
+              <InputNumber min={0.001} step={0.001} precision={3} suffix="吨/车" style={{ width: '100%' }} />
+            </Form.Item>
+            : <Form.List name="ranges" rules={[{
                 validator: async (_, value: RangeValues[]) => {
                   if (!value || value.length === 0) throw new Error('至少配置一个区间');
                 },
@@ -251,20 +236,13 @@ export default function DeductionRulesPage() {
                     </div>
                   </div>)}
                 </div>}
-              </Form.List>
-            </>}
+              </Form.List>}
         </section>
         <section className={styles.formSection}>
-          <div className={styles.sectionTitle}>生效与备注</div>
-          <div className={styles.grid3}>
-            <Form.Item name="effectiveFrom" label="生效日期" extra="留空表示立即生效">
-              <Input placeholder="2026-01-01" />
-            </Form.Item>
-            <Form.Item name="enabled" label="启用" valuePropName="checked">
-              <Switch />
-            </Form.Item>
-            <div />
-          </div>
+          <div className={styles.sectionTitle}>状态与备注</div>
+          <Form.Item name="enabled" label="启用" valuePropName="checked">
+            <Switch />
+          </Form.Item>
           <Form.Item name="remark" label="备注" style={{ marginBottom: 0 }}>
             <Input.TextArea rows={3} maxLength={500} showCount placeholder="选填，说明规则来源或适用范围" />
           </Form.Item>

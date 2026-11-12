@@ -35,9 +35,22 @@ describe('inspection result entry', () => {
     renderWithProviders(<InspectionFormModal trip={trip} open onClose={() => {}} onSaved={() => {}} />);
     expect(screen.getByText('容量（g/L）')).toBeInTheDocument();
     expect(screen.queryByText('杂质（%）')).not.toBeInTheDocument();
+    expect(screen.getByText('鲁A11111')).toBeInTheDocument();
+    expect(screen.getByText('高粱')).toBeInTheDocument();
+    expect(screen.getByText('SITE01')).toBeInTheDocument();
+    expect(screen.getByText('供货方')).toBeInTheDocument();
+    expect(screen.getByTitle('流转单号 / 车次')).toBeInTheDocument();
+    expect(screen.getByTitle('车牌')).toBeInTheDocument();
+    expect(screen.getByTitle('粮种')).toBeInTheDocument();
+    expect(screen.getByTitle('供应商')).toBeInTheDocument();
+    expect(screen.queryByText('单据信息')).not.toBeInTheDocument();
+    expect(screen.getByText('其他信息')).toBeInTheDocument();
     await user.type(screen.getByRole('spinbutton', { name: '水分（%）' }), '13.8');
     await waitFor(() => expect(api.deductionPreview).toHaveBeenCalledWith('C-M-0010', '13.8'));
+    expect(await screen.findByText('净重扣减比例')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '净重扣减比例说明' })).toBeInTheDocument();
     await screen.findByText('1.00%');
+    expect(screen.queryByText(/落入/)).not.toBeInTheDocument();
     await user.type(screen.getByRole('spinbutton', { name: '容量（g/L）' }), '750');
     await user.click(screen.getByRole('button', { name: '接收' }));
     await waitFor(() => expect(api.createInspection).toHaveBeenCalled());
@@ -45,5 +58,17 @@ describe('inspection result entry', () => {
       tripId: 1, moisture: expect.stringMatching(/^13\.8/), bulkDensity: '750', conclusion: 'accept',
     });
     expect(api.createInspection.mock.calls[0][0]).not.toHaveProperty('impurity');
+  });
+
+  it('marks the reject reason field as required', async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<InspectionFormModal trip={trip} open onClose={() => {}} onSaved={() => {}} />);
+    await user.type(screen.getByRole('spinbutton', { name: '水分（%）' }), '13.8');
+    await user.type(screen.getByRole('spinbutton', { name: '容量（g/L）' }), '750');
+    await user.click(screen.getByRole('button', { name: '拒收' }));
+    await user.click(screen.getByRole('button', { name: '确认拒收' }));
+    const error = await screen.findByText('请填写拒收原因');
+    expect(error.closest('.ant-form-item')).toHaveClass('ant-form-item-has-error');
+    expect(api.createInspection).not.toHaveBeenCalled();
   });
 });

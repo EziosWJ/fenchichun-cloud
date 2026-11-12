@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react';
-import { Alert, App, Button, Descriptions, Form, Input, InputNumber, Modal, Space, Tag, Typography } from 'antd';
+import { Building2, FileText, Truck, Users, Wheat } from 'lucide-react';
+import { Alert, App, Button, Descriptions, Form, Input, InputNumber, Modal, Space, Tooltip, Typography } from 'antd';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import type { Trip } from '../../features/grain-intake/api';
 import { createInspection } from '../../features/laboratory/api';
-import { deductionPreview, type DeductionEvaluation } from '../../features/deduction/api';
+import { deductionPreview } from '../../features/deduction/api';
 import { getApiErrorMessage } from '../../lib/api/errors';
 import styles from './InspectionModal.module.css';
 
@@ -17,10 +18,8 @@ interface Values {
 const blank: Values = { moisture: '', bulkDensity: '', reason: '', remark: '' };
 const decimal = /^(0|[1-9][0-9]{0,5})(\.[0-9]{1,6})?$/;
 
-function evaluationText(item: DeductionEvaluation) {
-  return item.mode === 'amount'
-    ? `${(item.amountMilliTonne / 1000).toFixed(3)} 吨`
-    : `${((item.rateBp ?? 0) / 100).toFixed(2)}%`;
+function formatRate(rateBp: number) {
+  return `${(rateBp / 100).toFixed(2)}%`;
 }
 
 /**
@@ -63,6 +62,9 @@ export default function InspectionFormModal({ trip, open, onClose, onSaved }: {
     retry: false,
     staleTime: 30_000,
   });
+  const previewItems = preview.data ?? [];
+  const previewMoistureValue = previewItems[0]?.basisValue || previewMoisture;
+  const previewRates = previewItems.map((item) => formatRate(item.rateBp ?? 0)).join('、');
   const submit = async (conclusion: 'accept' | 'reject') => {
     let values: Values;
     try {
@@ -72,10 +74,6 @@ export default function InspectionFormModal({ trip, open, onClose, onSaved }: {
     }
     if (conclusion === 'reject' && !canReject) {
       message.error('已确认卸粮，不能改判拒收');
-      return;
-    }
-    if (conclusion === 'reject' && !values.reason?.trim()) {
-      message.error('拒收必须填写原因');
       return;
     }
     save.mutate({
@@ -101,10 +99,32 @@ export default function InspectionFormModal({ trip, open, onClose, onSaved }: {
     {!canReject && <Alert type="info" title="已确认卸粮，重录只能选择接收。" />}
     <Form form={form} layout="vertical" initialValues={blank}>
       <div className={styles.detail}>
-        <div className={styles.overview}>
-          <Typography.Text strong className={styles.overviewNumber} copyable={{ text: trip.number }}>{trip.number}</Typography.Text>
-          <div className={styles.overviewMeta}>
-            {[trip.plate, trip.siteCode, trip.materialName, trip.partyName].filter(Boolean).join(' · ')}
+        <div className={styles.identity}>
+          <div className={styles.identityTop}>
+            <div className={styles.tripLine} title="流转单号 / 车次">
+              <FileText size={14} aria-hidden />
+              <Typography.Text className={styles.tripNo} copyable={{ text: trip.number }}>{trip.number}</Typography.Text>
+            </div>
+            <div className={styles.siteLine} title="厂区">
+              <Building2 size={13} aria-hidden />
+              <span>{trip.siteCode}</span>
+            </div>
+          </div>
+          <div className={styles.identityMain}>
+            <div className={styles.plateLine} title="车牌">
+              <Truck size={16} aria-hidden />
+              <strong className={styles.plateBadge}>{trip.plate}</strong>
+            </div>
+            <div className={styles.identityText}>
+              <div className={styles.materialLine} title="粮种">
+                <Wheat size={15} aria-hidden />
+                <span className={styles.materialName}>{trip.materialName}</span>
+              </div>
+              <div className={styles.supplierLine} title="供应商">
+                <Users size={13} aria-hidden />
+                <span className={styles.supplierName}>{trip.partyName || '—'}</span>
+              </div>
+            </div>
           </div>
         </div>
         <section className={styles.resultCard}>
@@ -121,34 +141,34 @@ export default function InspectionFormModal({ trip, open, onClose, onSaved }: {
             </Form.Item>
           </div>
           <div className={styles.preview}>
-            <div className={styles.previewTitle}>水分扣减规则</div>
+            <div className={styles.previewTitle}>水分扣减</div>
             {!moisture ? <span className={styles.previewHint}>填写水分后自动匹配扣减规则</span>
               : !moistureValid ? <span className={styles.previewHint}>请填写 0 至 100 的水分</span>
               : preview.isFetching ? <span className={styles.previewHint}>正在匹配扣减规则…</span>
               : preview.isError ? <span className={styles.previewError}>扣减规则查询失败：{getApiErrorMessage(preview.error)}</span>
-              : preview.data && preview.data.length > 0
-                ? <ul className={styles.previewList}>
-                    {preview.data.map((item) => <li key={`${item.ruleCode}-${item.ruleVersion}`}>
-                      <Tag color="blue">{item.categoryName}</Tag>
-                      <strong>{evaluationText(item)}</strong>
-                      {item.explanation && <span>{item.explanation}</span>}
-                    </li>)}
-                  </ul>
-                : <span className={styles.previewHint}>当前水分未匹配到扣减规则</span>}
+              : previewItems.length > 0
+                ? <>
+                    <div className={styles.previewSummary}>
+                      <span className={styles.previewCurrent}>当前 <strong>{previewMoistureValue}%</strong></span>
+                      <span className={styles.previewArrow} aria-hidden>→</span>
+                      <span className={styles.previewRateLabel}>净重扣减比例</span>
+                      <strong className={styles.previewRate}>{previewRates}</strong>
+                      <Tooltip title="按最终净重折算；比例来自当前物料的区间规则。">
+                        <button type="button" className={styles.previewHelp} aria-label="净重扣减比例说明">?</button>
+                      </Tooltip>
+                    </div>
+                  </>
+                : <span className={styles.previewHint}>当前数值未匹配到扣减规则</span>}
           </div>
-          {rejecting && <Form.Item name="reason" label="拒收原因" style={{ marginTop: 14, marginBottom: 0 }}><Input.TextArea maxLength={2000} rows={2} placeholder="请填写拒收原因" /></Form.Item>}
+          {rejecting && <Form.Item name="reason" label="拒收原因" rules={[{ required: true, whitespace: true, message: '请填写拒收原因' }]} style={{ marginTop: 14, marginBottom: 0 }}><Input.TextArea maxLength={2000} rows={2} placeholder="请填写拒收原因" /></Form.Item>}
         </section>
-        <section className={styles.infoCard}>
-          <div className={styles.sectionTitle}>单据信息</div>
+        {(trip.driver || trip.driverPhone || trip.contractNo) && <section className={styles.infoCard}>
+          <div className={styles.sectionTitle}>其他信息</div>
           <Descriptions size="small" layout="vertical" column={{ xs: 1, sm: 2 }} items={[
-            { key: 'plate', label: '车牌', children: trip.plate },
-            { key: 'site', label: '厂区', children: trip.siteCode },
-            { key: 'material', label: '粮种', children: trip.materialName },
-            { key: 'party', label: '供应商', children: trip.partyName || '—' },
             { key: 'driver', label: '司机', children: `${trip.driver || '—'} ${trip.driverPhone}` },
             { key: 'contract', label: '合同编号', children: trip.contractNo || '—' },
           ]} />
-        </section>
+        </section>}
         <section className={styles.remarkSection}>
           <div className={styles.sectionTitle}>备注</div>
           <Form.Item name="remark" noStyle><Input.TextArea maxLength={2000} rows={2} placeholder="选填，补充化验或现场情况" /></Form.Item>

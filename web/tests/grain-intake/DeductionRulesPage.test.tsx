@@ -45,4 +45,16 @@ describe('deduction rules page', () => {
     await user.click(within(dialog).getByRole('button', { name: '删除' }));
     await waitFor(() => expect(api.deleteDeductionRule).toHaveBeenCalledWith(7));
   });
+
+  it('keeps the rule form focused on category, percentage and enabled state', async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<DeductionRulesPage />);
+    await screen.findByText('13~14 → 1.00%');
+    await user.click(screen.getByRole('button', { name: '新增规则' }));
+    const dialog = await screen.findByRole('dialog');
+    expect(within(dialog).queryByText('检测值依据')).not.toBeInTheDocument();
+    expect(within(dialog).queryByText('生效日期')).not.toBeInTheDocument();
+    expect(within(dialog).getByText('按百分比扣减')).toBeInTheDocument();
+    expect(within(dialog).getByText('启用')).toBeInTheDocument();
+  });
 });
