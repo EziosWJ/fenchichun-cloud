@@ -31,7 +31,7 @@ export default function PermitsPage() {
     { title: '流转单号', dataIndex: 'number' }, { title: '车牌', dataIndex: 'plate' }, { title: '货品', dataIndex: 'materialName' }, { title: '供应商', dataIndex: 'partyName' },
     { title: '当前阶段', dataIndex: 'stage', render: (v: string) => <Tag>{stageLabel(v)}</Tag> },
     { title: '实际出厂', dataIndex: 'exitedAt', render: (v: string | null) => formatDateTime(v) },
-    { title: '操作', key: 'action', render: (_, row) => <Link to={`/grain-intake/permits/${row.id}`}>核验拒收依据</Link> },
+    { title: '操作', key: 'action', render: (_, row) => <Link to={`/grain-intake/trips/${row.id}`}>查看流转单</Link> },
   ];
   return <>
     <PageHeader title="出门证与出厂核验" />
