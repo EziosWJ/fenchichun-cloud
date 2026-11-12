@@ -1,6 +1,6 @@
 import type { Registration, Trip } from '@/features/grain/types'
-import { env } from '@/config/env'
 import { routes } from '@/config/routes'
+import { grainService } from '@/features/grain/api-service'
 import {
   currentDictionary,
   refreshDictionary,
@@ -10,7 +10,6 @@ import { applyAsync, errorMessage, requireLogin } from '@/features/grain/page'
 import { correctPlateOcrConfusions, isValidPlate, normalizePlate, plateProvinces } from '@/features/grain/plate'
 import { recognizePlatePhoto } from '@/features/grain/plate-scan'
 import { canEdit } from '@/features/grain/presentation'
-import { demo } from '@/features/grain/service'
 
 function emptyForm(): Registration {
   return {
@@ -66,9 +65,7 @@ Page({
         this.setData({ loading: false })
         return
       }
-      const dictionary = currentDictionary()
-      demo.setDictionary(dictionary)
-      const options = demo.options()
+      const options = grainService.options()
       const sites = ['请选择厂区', ...options.sites]
       const materialNames = ['', ...options.materials.map(item => item.name)]
       const materials = [
@@ -84,7 +81,7 @@ Page({
           item.method === 'lab' ? '化验' : '目测',
         ),
       ]
-      const suppliers = ['待核实', ...options.suppliers]
+      const suppliers = ['请选择供应商', ...options.suppliers]
       const applyTrip = (trip: Trip | null) => {
         try {
           if (trip && !canEdit(trip)) {
@@ -134,7 +131,7 @@ Page({
         }
       }
       if (this.data.edit) {
-        applyAsync(demo.getTrip(this.data.id), applyTrip, (error) => {
+        applyAsync(grainService.getTrip(this.data.id), applyTrip, (error) => {
           this.setData({ error: errorMessage(error), loading: false })
         })
       }
@@ -153,7 +150,6 @@ Page({
     const before = currentDictionary()
     void refreshDictionary().then((after) => {
       if (after && !sameDictionary(before, after)) {
-        demo.setDictionary(after)
         this.load(false)
       }
     })
@@ -321,7 +317,7 @@ Page({
       if (!isValidPlate(form.plate)) {
         throw new Error('请输入正确的车牌号，例如 晋A12345')
       }
-      if (!env.mock && !form.supplier) {
+      if (!form.supplier) {
         throw new Error('请选择供应商')
       }
       const clientRequestId = this.data.edit
@@ -332,8 +328,8 @@ Page({
       }
       const request = { ...form, clientRequestId }
       const result = this.data.edit
-        ? demo.updateTrip(this.data.id, this.data.version, request)
-        : demo.createTrip(request)
+        ? grainService.updateTrip(this.data.id, this.data.version, request)
+        : grainService.createTrip(request)
       applyAsync(
         result,
         (trip) => {
@@ -343,7 +339,7 @@ Page({
           }
           else {
             wx.redirectTo({
-              url: `${routes.trip}?id=${encodeURIComponent(trip.serverId || trip.id)}`,
+              url: `${routes.trip}?id=${encodeURIComponent(trip.serverId)}`,
             })
           }
         },

@@ -9,6 +9,5 @@ export const routes = {
   action: '/pages/action/index',
   tickets: '/pages/tickets/index',
   exit: '/pages/exit/index',
-  simulation: '/pages/simulation/index',
   components: '/pages/ui/index',
 } as const

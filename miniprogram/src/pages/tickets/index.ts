@@ -1,6 +1,6 @@
 import type { Ticket, Trip } from '@/features/grain/types'
+import { grainService } from '@/features/grain/api-service'
 import { applyAsync, errorMessage, requireLogin } from '@/features/grain/page'
-import { demo } from '@/features/grain/service'
 
 Page({
   data: {
@@ -28,7 +28,7 @@ Page({
           throw new Error('本趟状态已变化，请返回详情查看')
         }
         applyAsync(
-          demo.candidates(trip.serverId || trip.id),
+          grainService.candidates(trip.serverId),
           (tickets) => {
             this.setData({ trip, tickets })
             this.setData({ loading: false })
@@ -38,7 +38,7 @@ Page({
           },
         )
       }
-      applyAsync(demo.getTrip(this.data.id), applyTrip, (error) => {
+      applyAsync(grainService.getTrip(this.data.id), applyTrip, (error) => {
         this.setData({ error: errorMessage(error), loading: false })
       })
     }
@@ -88,7 +88,7 @@ Page({
     this.setData({ confirming: true })
     try {
       applyAsync(
-        demo.linkTicket(trip.serverId || trip.id, trip.version, ticket.id),
+        grainService.linkTicket(trip.serverId, trip.version, ticket.id),
         () => {
           this.setData({ confirming: false })
           wx.navigateBack()

@@ -1,15 +1,14 @@
 import type { EventRecord, Trip } from '@/features/grain/types'
 import { routes } from '@/config/routes'
+import { grainService } from '@/features/grain/api-service'
 import { applyAsync, errorMessage, requireLogin } from '@/features/grain/page'
 import {
   canEdit,
   inspectionText,
   tripStatus,
 } from '@/features/grain/presentation'
-import { demo } from '@/features/grain/service'
 
 const actionLabels: Record<string, string> = {
-  'edit': '补充供应商',
   'visual': '确认目测',
   'unload': '确认卸货',
   'ticket': '查看磅单候选',
@@ -90,7 +89,7 @@ Page({
         })
         this.setData({ loading: false })
       }
-      applyAsync(demo.getTrip(this.data.id), apply, (error) => {
+      applyAsync(grainService.getTrip(this.data.id), apply, (error) => {
         this.setData({ error: errorMessage(error), loading: false })
       })
     }
@@ -116,17 +115,14 @@ Page({
       return
     }
     const action = this.data.action
-    if (action === 'edit') {
-      return this.edit()
-    }
     if (action === 'visual' || action === 'unload') {
       return wx.navigateTo({
-        url: `${routes.action}?id=${encodeURIComponent(trip.serverId || trip.id)}&action=${action}`,
+        url: `${routes.action}?id=${encodeURIComponent(trip.serverId)}&action=${action}`,
       })
     }
     if (action === 'ticket') {
       return wx.navigateTo({
-        url: `${routes.tickets}?id=${encodeURIComponent(trip.serverId || trip.id)}`,
+        url: `${routes.tickets}?id=${encodeURIComponent(trip.serverId)}`,
       })
     }
     if (action === 'confirm-ticket') {
@@ -173,7 +169,7 @@ Page({
     this.setData({ confirming: true })
     try {
       applyAsync(
-        demo.confirmTicket(trip.serverId || trip.id, trip.version),
+        grainService.confirmTicket(trip.serverId, trip.version),
         () => {
           wx.showToast({ title: '已确认过磅单关联', icon: 'success' })
           this.setData({ confirming: false })
@@ -209,8 +205,8 @@ Page({
     this.setData({ confirming: true })
     try {
       const result = action === 'issue'
-        ? demo.issuePermit(trip.serverId || trip.id, trip.version)
-        : demo.approvePermit(trip.serverId || trip.id, trip.version)
+        ? grainService.issuePermit(trip.serverId, trip.version)
+        : grainService.approvePermit(trip.serverId, trip.version)
       applyAsync(
         result,
         () => {

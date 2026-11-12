@@ -5,7 +5,7 @@
   <error-state wx:elif="{{error}}" text="{{error}}" bind:retry="load" />
   <block wx:else>
     <view class="notice ticket-notice">未查到同步磅单不代表现场没有称重，请稍后重试。</view>
-    <empty-state wx:if="{{!tickets.length}}" text="暂无可关联的正式磅单"><view class="subtle">演示时可在“我的” → “演示控制台”模拟磅单同步。</view></empty-state>
+    <empty-state wx:if="{{!tickets.length}}" text="暂无可关联的正式磅单" />
     <view wx:for="{{tickets}}" wx:key="id" class="detail-card">
       <view class="heading-row"><text class="section-heading">{{item.id}}</text><text class="status">{{item.linkable === false ? '暂不可关联' : '可关联'}}</text></view>
       <view class="detail-row"><text class="detail-label">车牌 / 厂区</text><text class="detail-value">{{item.plate}} / {{item.site}}</text></view>

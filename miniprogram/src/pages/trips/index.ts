@@ -1,4 +1,5 @@
 import type { TimeRange } from '@/features/grain/page'
+import { grainService } from '@/features/grain/api-service'
 import {
   applyAsync,
   cards,
@@ -7,7 +8,6 @@ import {
   requireLogin,
   withinTimeRange,
 } from '@/features/grain/page'
-import { demo } from '@/features/grain/service'
 
 Page({
   data: {
@@ -27,7 +27,7 @@ Page({
         return
       }
       applyAsync(
-        demo.listTrips(),
+        grainService.listTrips(),
         (all) => {
           this.setData({
             trips: cards(all.filter(trip =>

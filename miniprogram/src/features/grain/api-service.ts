@@ -245,7 +245,6 @@ function ticketOf(detail?: ServerDetail): Ticket | null {
   const value = record.ticket
   return {
     id: value.ticketNo,
-    tripId: '',
     site: siteName(record.siteCode),
     plate: value.plate,
     material: value.materialName,
@@ -282,7 +281,6 @@ function adaptTrip(trip: ServerTrip, detail?: ServerDetail): Trip {
       ? { location: trip.unloadingLocation, at: formatTime(trip.unloadedAt) }
       : null,
     ticket: ticketOf(detail),
-    ticketAvailable: false,
     ticketConfirmedAt: formatTime(trip.ticketConfirmedAt),
     ticketWarning: detail?.ticketWarning ?? '',
     permit: detail?.permit
@@ -306,7 +304,7 @@ function finish(message: string): never {
   throw new Error(message)
 }
 
-export const demo = {
+export const grainService = {
   options() {
     const dictionary = currentDictionary()
     return {
@@ -319,7 +317,6 @@ export const demo = {
       granaries: dictionary.granaries.map(item => item.name),
     }
   },
-  setDictionary() {},
   current(): AuthState | null {
     const auth = readAuth()
     if (!auth) {
@@ -514,7 +511,6 @@ export const demo = {
     })
     return list.map(item => ({
       id: item.ticketNo,
-      tripId: '',
       site: siteName(item.siteCode),
       plate: item.plate,
       material: item.materialName,
@@ -563,17 +559,5 @@ export const demo = {
       data: { version, conclusion, reason },
     })
     return adaptTrip(detail.trip, detail)
-  },
-  simulationTasks() {
-    return { lab: [], weigh: [] }
-  },
-  simulateLab() {
-    finish('模拟化验仅在离线演示模式可用')
-  },
-  simulateTicket() {
-    finish('模拟磅单仅在离线演示模式可用')
-  },
-  reset() {
-    finish('真实模式不能重置数据')
   },
 }

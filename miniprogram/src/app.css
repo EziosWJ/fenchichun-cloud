@@ -56,14 +56,6 @@ page {
   color: #687080;
 }
 
-.demo-note {
-  padding: 12rpx 18rpx;
-  font-size: 23rpx;
-  color: #805047;
-  background: #fbf4f1;
-  border-radius: 8rpx;
-}
-
 .heading-row {
   display: flex;
   gap: 16rpx;

@@ -1,4 +1,4 @@
-import { VisionOcrService, supportsVisionOCR } from '@/features/plate-ocr/vision-ocr'
+import { supportsVisionOCR, VisionOcrService } from '@/features/plate-ocr/vision-ocr'
 
 export interface PlateScanResult {
   candidates: string[]

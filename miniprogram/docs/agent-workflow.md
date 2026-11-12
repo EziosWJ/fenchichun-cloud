@@ -13,7 +13,7 @@
 
 ## 代码验收
 
-1. `npm ci`，`npm run check`；构建默认生产，演示 Mock 用 `npm run build:development`。
+1. 运行 `npm ci` 和 `npm run check`。用开发版联调时，在 `.env.development.local` 配置后端地址，再运行 `npm run build:development`。
 2. 微信开发者工具导入 miniprogram/project.config.json，指向 dist；登录并开启设置中的服务端口，配置真实 AppID 后才能真机预览。
 3. `npm run ide:doctor -- --strict` 检查环境。`npm run open` 打开工程。
 4. `npm run ide:logs` 桥接日志；触发页面操作并确认日志来自当前项目。日志桥接持续运行，任务完成后 Ctrl+C；不把无连接时的空输出记为无错误。
@@ -21,7 +21,7 @@
 6. `npm run accept` 限时执行构建、严格 doctor、截图；日志通过 ide:logs 独立验证，输出 .tmp/accept-*.log。失败返回非零；不会上传或发布。
 7. UI 检查 320、375、430 CSS px；真机至少一台检查安全区、滚动和文字，不用 Web 截图替代。
 
-基准截图在首次实际验收通过后存入 docs/acceptance/baseline-home.png，记录 Mock 数据、基础库、renderer、视口、工具版本。后续 `npm exec -- wv compare --help` 核对比较参数，更新基准必须说明 UI 变化。
+基准截图在首次实际验收通过后存入 docs/acceptance/baseline-home.png，记录测试数据、基础库、renderer、视口、工具版本。后续 `npm exec -- wv compare --help` 核对比较参数，更新基准必须说明 UI 变化。
 
 ## 日志约定
 

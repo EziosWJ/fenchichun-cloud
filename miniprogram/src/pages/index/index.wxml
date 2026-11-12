@@ -1,5 +1,4 @@
 <view class="screen">
-  <view wx:if="{{mock}}" class="demo-note">演示模式 · 数据仅保存在本机</view>
   <view class="workbench-heading heading-row">
     <view><view class="screen-title">{{roleName}}工作台</view><view class="subtle workbench-subtitle">{{role === 'warehouse' ? '查看车辆进度，办理现场作业' : '核对出厂依据，确认车辆放行'}}</view></view>
     <view wx:if="{{canSwitch}}" class="text-link" bindtap="switchRole">切换岗位</view>

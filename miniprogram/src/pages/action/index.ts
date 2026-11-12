@@ -1,4 +1,5 @@
 import type { Conclusion, Trip } from '@/features/grain/types'
+import { grainService } from '@/features/grain/api-service'
 import {
   currentDictionary,
   refreshDictionary,
@@ -6,7 +7,6 @@ import {
 } from '@/features/grain/dictionary-service'
 import { applyAsync, errorMessage, requireLogin } from '@/features/grain/page'
 import { tripStatus } from '@/features/grain/presentation'
-import { demo } from '@/features/grain/service'
 
 Page({
   data: {
@@ -50,7 +50,7 @@ Page({
         })
         this.setData({ loading: false })
       }
-      applyAsync(demo.getTrip(this.data.id), apply, (error) => {
+      applyAsync(grainService.getTrip(this.data.id), apply, (error) => {
         this.setData({ error: errorMessage(error), loading: false })
       })
     }
@@ -129,8 +129,8 @@ Page({
     try {
       if (action === 'visual') {
         applyAsync(
-          demo.recordVisual(
-            trip.serverId || trip.id,
+          grainService.recordVisual(
+            trip.serverId,
             trip.version,
             conclusion as Conclusion,
             reason,
@@ -147,7 +147,7 @@ Page({
         return
       }
       applyAsync(
-        demo.confirmUnload(trip.serverId || trip.id, trip.version, location),
+        grainService.confirmUnload(trip.serverId, trip.version, location),
         () => {
           this.setData({ confirming: false })
           wx.navigateBack()

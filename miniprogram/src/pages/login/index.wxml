@@ -2,8 +2,7 @@
   <view class="brand"><view class="brand-mark"></view><text>汾池春</text></view>
   <view class="login-title">员工登录</view>
   <view class="login-subtitle">使用员工账号和密码进入工作台</view>
-  <view wx:if="{{mock}}" class="demo-note login-note">演示模式 · 数据仅保存在本机</view>
-  <view wx:else class="notice login-note">请使用员工账号登录</view>
+  <view class="notice login-note">请使用员工账号登录</view>
   <view class="login-form">
     <view class="field">
       <view class="field-label">员工账号</view>
@@ -18,6 +17,6 @@
     </view>
     <view wx:if="{{error}}" class="error-text">{{error}}</view>
     <view class="login-button"><t-button theme="primary" block size="large" loading="{{submitting}}" disabled="{{submitting}}" bindtap="login">登 录</t-button></view>
-    <view class="login-hint">{{mock ? '演示账号与使用方式见项目 README' : '库管、门卫和管理员可使用小程序'}}</view>
+    <view class="login-hint">库管、门卫和管理员可使用小程序</view>
   </view>
 </view>
