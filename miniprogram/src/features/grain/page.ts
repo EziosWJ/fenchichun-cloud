@@ -62,7 +62,7 @@ export function matches(trip: Trip, query: string) {
   )
 }
 
-const actionableActions = new Set(['edit', 'visual', 'unload', 'ticket', 'issue', 'approve'])
+const actionableActions = new Set(['edit', 'visual', 'unload', 'ticket', 'confirm-ticket', 'issue', 'approve'])
 
 /** 当前角色真正需要操作的流转单排在前面，其余（等待他人或已办）按更新时间倒序。 */
 export function sortTrips(trips: Trip[], role: Role) {

@@ -135,12 +135,13 @@ type Event struct {
 func (Event) TableName() string { return "grain_trip_event" }
 
 type Detail struct {
-	Trip        Trip                      `json:"trip"`
-	Inspections []laboratory.Inspection   `json:"inspections"`
-	Permit      *Permit                   `json:"permit"`
-	Ticket      *weighbridge.TicketResult `json:"ticket"`
-	Events      []Event                   `json:"events"`
-	Deductions  []deduction.Evaluation    `json:"deductions"`
+	Trip          Trip                      `json:"trip"`
+	Inspections   []laboratory.Inspection   `json:"inspections"`
+	Permit        *Permit                   `json:"permit"`
+	Ticket        *weighbridge.TicketResult `json:"ticket"`
+	Events        []Event                   `json:"events"`
+	Deductions    []deduction.Evaluation    `json:"deductions"`
+	TicketWarning string                    `json:"ticketWarning"`
 }
 
 // TicketCandidate is a cloud ticket that matches this trip's site, plate,
@@ -156,6 +157,7 @@ type TicketCandidate struct {
 	PartyName          string    `json:"partyName"`
 	FinalGross         string    `json:"finalGross"`
 	FinalTare          string    `json:"finalTare"`
+	FinalNet           string    `json:"finalNet"`
 	FinalNetMilliTonne int64     `json:"finalNetMilliTonne"`
 	FirstConfirmedAt   time.Time `json:"firstConfirmedAt"`
 	SecondConfirmedAt  time.Time `json:"secondConfirmedAt"`

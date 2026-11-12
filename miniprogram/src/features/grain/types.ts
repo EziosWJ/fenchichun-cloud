@@ -45,6 +45,8 @@ export interface Ticket {
   tare: string
   net: string
   deducted: string
+  linkable?: boolean
+  reason?: string
 }
 
 export interface EventRecord {
@@ -69,6 +71,7 @@ export interface Trip extends Registration {
   ticket: Ticket | null
   ticketAvailable: boolean
   ticketConfirmedAt?: string
+  ticketWarning?: string
   permit: { id: string, numericId?: number, issuedAt: string, approvedAt: string } | null
   exitedAt: string
   events: EventRecord[]

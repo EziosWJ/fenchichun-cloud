@@ -31,6 +31,7 @@ export default function TripWorkspace({ gate = false }: { gate?: boolean }) {
   const query = useQuery({ queryKey: ['grain-intake', 'detail', key, gate], queryFn: () => tripDetail(key, gate), enabled: Number.isSafeInteger(key) && key > 0 });
   const [editing, setEditing] = useState(false);
   const [tab, setTab] = useState('inspections');
+  const [actionError, setActionError] = useState('');
   const [location, setLocation] = useState('');
   const [visualConclusion, setVisualConclusion] = useState<'accept' | 'reject'>('accept');
   const [visualReason, setVisualReason] = useState('');
@@ -48,17 +49,18 @@ export default function TripWorkspace({ gate = false }: { gate?: boolean }) {
   const refresh = () => { void client.invalidateQueries({ queryKey: ['grain-intake'] }); void client.invalidateQueries({ queryKey: ['laboratory'] }); };
   const action = useMutation({
     mutationFn: ({ kind, input }: { kind: TripAction; input?: TripCommand }) => tripAction(query.data!.trip, kind, input),
-    onSuccess: () => { message.success('办理成功'); refresh(); },
-    onError: (error) => { message.error(getApiErrorMessage(error)); refresh(); },
+    onSuccess: () => { setActionError(''); message.success('办理成功'); refresh(); },
+    onError: (error) => { const text = getApiErrorMessage(error); setActionError(text); message.error(text); refresh(); },
   });
   if (!Number.isSafeInteger(key) || key <= 0) return <Alert type="error" title="流转单地址无效" />;
   if (query.isLoading) return <Card loading />;
   if (query.isError) return <Alert type="error" title={getApiErrorMessage(query.error)} action={<Button onClick={() => void query.refetch()}>重试</Button>} />;
   if (!query.data) return <Empty description="未找到流转单" />;
-  const { trip, permit, ticket, events } = query.data;
-  const effective = query.data.inspections.find((i) => i.id === trip.effectiveInspectionId);
+  const { trip, permit, ticket, events, ticketWarning } = query.data;
+  const effective = query.data.inspections.find((i) => i.id === trip.effectiveInspectionId && i.status === 'confirmed');
   const selectedTicket = ticketOptions.data?.find((c) => c.ticketNo === ticketNo);
-  const locked = !!(trip.unloadedAt || trip.ticketId || permit || trip.exitedAt);
+  const unloadLocked = !!(trip.unloadedAt || permit || trip.exitedAt);
+  const labLocked = !!(trip.ticketId || permit || trip.exitedAt);
   const visual = trip.inspectionMethod === 'visual';
   const activeTab = visual && tab === 'inspections' ? 'weighing' : tab;
   const ask = (title: string, kind: TripAction, input?: TripCommand, content?: string) => modal.confirm({ title, content, okText: '确认', cancelText: '取消', onOk: () => action.mutateAsync({ kind, input }).then(() => undefined) });
@@ -82,7 +84,7 @@ export default function TripWorkspace({ gate = false }: { gate?: boolean }) {
     if (trip.stage === 'rejected') return { tab: 'exit', title: '下一步：核验拒收依据并确认出厂', description: visual ? '核对目测拒收结论与说明后，确认车辆实际出厂。' : '核对生效化验单的拒收结论与原因后，确认车辆实际出厂。' };
     return null;
   })();
-  const inspection = query.data.inspections[0];
+  const inspection = effective;
   const labView = <Space orientation="vertical" size="middle" style={{ width: '100%' }}>
     {inspection ? <Descriptions size="small" column={{ xs: 1, sm: 2, lg: 3 }} items={[
       { key: 'number', label: '化验单号', children: inspection.number },
@@ -92,7 +94,7 @@ export default function TripWorkspace({ gate = false }: { gate?: boolean }) {
       { key: 'impurity', label: '杂质（%）', children: inspection.impurity || '—' },
       { key: 'reason', label: '拒收原因', children: inspection.reason || '—' },
     ]} /> : <span style={{ color: 'var(--ant-color-text-secondary)' }}>尚未录入化验结果</span>}
-    {!gate && canInspect && !locked && !inspection && <Button type="primary" onClick={() => navigate(`/laboratory/inspections?keyword=${encodeURIComponent(trip.number)}`)}>去录入化验结果</Button>}
+    {!gate && canInspect && !labLocked && !inspection && <Button type="primary" onClick={() => navigate(`/laboratory/inspections?keyword=${encodeURIComponent(trip.number)}`)}>去录入化验结果</Button>}
   </Space>;
   return <>
     <PageHeader
@@ -101,6 +103,8 @@ export default function TripWorkspace({ gate = false }: { gate?: boolean }) {
       onBack={() => navigate(gate ? '/grain-intake/permits' : '/grain-intake/trips')}
     />
     <div className="pageStack" style={{ marginTop: 20, gap: 12 }}>
+      {actionError && <Alert type="error" showIcon closable title="操作未完成" description={actionError} onClose={() => setActionError('')} />}
+      {ticketWarning && <Alert type="warning" showIcon title="磅单需要核对" description={ticketWarning} />}
       {trip.stage === 'blocked' && <Alert type="error" title="当前依据已失效或存在冲突，暂停开证和放行，请核查磅单与化验记录。" />}
       {trip.exitedAt && <Alert type="success" title={`已于 ${formatDateTime(trip.exitedAt)} 确认出厂，本趟凭据不能再次使用。`} />}
       {nextStep && <Alert type={trip.stage === 'pending_unload' || trip.stage === 'pending_ticket' ? 'warning' : 'info'} showIcon title={nextStep.title} description={nextStep.description} action={nextStep.tab ? <Button size="small" onClick={() => { if (nextStep.tab) setTab(nextStep.tab); }}>去办理</Button> : undefined} />}
@@ -143,7 +147,7 @@ export default function TripWorkspace({ gate = false }: { gate?: boolean }) {
         { key: 'weighing', label: '卸货与磅单', children: <Space orientation="vertical" size="small" style={{ width: '100%' }}>
           <Card size="small" title="现场卸货确认">
             {trip.unloadedAt ? <Descriptions size="small" column={{ xs: 1, sm: 2 }} items={[{ key: 'location', label: '实际卸货地点', children: trip.unloadingLocation }, { key: 'time', label: '确认时间', children: formatDateTime(trip.unloadedAt) }]} /> : <>
-              {!gate && canUnload && !locked && trip.effectiveConclusion === 'accept' ? <Space.Compact style={{ width: '100%', maxWidth: 560, marginTop: 16 }}>
+              {!gate && canUnload && !unloadLocked && trip.effectiveConclusion === 'accept' ? <Space.Compact style={{ width: '100%', maxWidth: 560, marginTop: 16 }}>
                 <Select aria-label="实际卸货地点" placeholder="选择仓库" style={{ minWidth: 220 }} loading={granaryQuery.isLoading} value={location || undefined} onChange={(value?: string) => setLocation(value ?? '')} options={(granaryQuery.data ?? []).map((g) => ({ value: g.name, label: g.name }))} notFoundContent={granaryQuery.isLoading ? '加载中…' : '请先在仓库维护中添加'} />
                 <Button type="primary" disabled={!location.trim() || action.isPending} onClick={() => ask('确认实际卸货完成？', 'confirm-unloading', { location }, '请确认现场已经完成首磅及卸货，地点填写准确。')}>确认卸货</Button>
               </Space.Compact> : <p style={{ marginTop: 16, marginBottom: 0 }}>待确认接收并完成现场卸货。</p>}
@@ -159,7 +163,7 @@ export default function TripWorkspace({ gate = false }: { gate?: boolean }) {
               { key: 'first', label: '首磅时间', children: formatDateTime(ticket.ticket.firstConfirmedAt) }, { key: 'second', label: '回磅时间', children: formatDateTime(ticket.ticket.secondConfirmedAt) },
             ]} />
               {!trip.ticketConfirmedAt && canTicket && !permit && !trip.exitedAt && <Space style={{ marginTop: 12 }}>
-                <Button type="primary" loading={action.isPending} onClick={() => ask('确认过磅单关联？', 'confirm-ticket', undefined, `${ticket.ticket.plate} · ${ticket.ticket.materialName} · 净重 ${formatTonnes(ticket.ticket.finalNet)} 吨`)}>确认过磅单关联</Button>
+                <Button type="primary" loading={action.isPending} onClick={() => ask('确认过磅单关联？', 'confirm-ticket', undefined, `${ticket.ticket.plate} · ${ticket.ticket.materialName} · 实际净重 ${subtractTonnes(ticket.ticket.finalGross, ticket.ticket.finalTare)} 吨 · 扣减后 ${formatTonnes(ticket.ticket.finalNet)} 吨`)}>确认过磅单关联</Button>
               </Space>}
             </> : <>
               {!gate && canTicket && !permit && !trip.exitedAt && <Space wrap style={{ marginTop: 16 }}>
@@ -175,12 +179,12 @@ export default function TripWorkspace({ gate = false }: { gate?: boolean }) {
                   onChange={(value?: string) => setTicketNo(value ?? '')}
                   options={(ticketOptions.data ?? []).map((c) => ({
                     value: c.ticketNo,
-                    label: `${c.ticketNo}｜${c.plate}｜净重 ${(c.finalNetMilliTonne / 1000).toFixed(3)} 吨｜回磅 ${formatDateTime(c.secondConfirmedAt)}${c.linkable ? '' : `（${c.reason}）`}`,
+                    label: `${c.ticketNo}｜${c.plate}｜实际净重 ${subtractTonnes(c.finalGross, c.finalTare)} 吨｜扣减后 ${formatTonnes(c.finalNet)}｜回磅 ${formatDateTime(c.secondConfirmedAt)}${c.linkable ? '' : `（${c.reason}）`}`,
                     disabled: !c.linkable,
                   }))}
                   notFoundContent={ticketOptions.isLoading ? '加载中…' : trip.unloadedAt ? '没有匹配的正式磅单' : '请先确认卸货'}
                 />
-                <Button disabled={!trip.unloadedAt || !selectedTicket || action.isPending} onClick={() => selectedTicket && ask(`关联磅单 ${selectedTicket.ticketNo}？`, 'link-ticket', { ticketSiteCode: selectedTicket.siteCode, ticketNo: selectedTicket.ticketNo }, `${selectedTicket.plate} · ${selectedTicket.materialName} · 净重 ${(selectedTicket.finalNetMilliTonne / 1000).toFixed(3)} 吨`)}>关联磅单</Button>
+                <Button disabled={!trip.unloadedAt || !selectedTicket || action.isPending} onClick={() => selectedTicket && ask(`关联磅单 ${selectedTicket.ticketNo}？`, 'link-ticket', { ticketSiteCode: selectedTicket.siteCode, ticketNo: selectedTicket.ticketNo }, `${selectedTicket.plate} · ${selectedTicket.materialName} · 实际净重 ${subtractTonnes(selectedTicket.finalGross, selectedTicket.finalTare)} 吨 · 扣减后 ${formatTonnes(selectedTicket.finalNet)} 吨`)}>关联磅单</Button>
               </Space>}
               {ticketOptions.isError && <Alert type="error" title={getApiErrorMessage(ticketOptions.error)} action={<Button onClick={() => void ticketOptions.refetch()}>重试</Button>} />}
             </>}

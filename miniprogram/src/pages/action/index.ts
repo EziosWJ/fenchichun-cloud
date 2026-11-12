@@ -141,6 +141,7 @@ Page({
           },
           (error) => {
             this.setData({ formError: errorMessage(error), confirming: false })
+            this.load(false)
           },
         )
         return
@@ -153,6 +154,7 @@ Page({
         },
         (error) => {
           this.setData({ formError: errorMessage(error), confirming: false })
+          this.load(false)
         },
       )
     }

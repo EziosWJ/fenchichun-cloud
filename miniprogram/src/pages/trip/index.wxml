@@ -8,6 +8,7 @@
     <view class="subtle">流转单号：{{trip.id}}</view>
     <view class="subtle">登记时间：{{trip.createdAt}}</view>
     <view class="notice trip-notice"><view class="notice-title">{{trip.exitedAt ? '本趟已完成' : '下一步'}}</view><view>{{next}}</view></view>
+    <view wx:if="{{trip.ticketWarning}}" class="notice trip-notice"><view class="notice-title">磅单需要核对</view><view>{{trip.ticketWarning}}</view></view>
     <view wx:if="{{trip.inspection && trip.inspection.conclusion === 'reject'}}" class="rejection-summary">{{inspection}}：{{trip.inspection.reason || '未填写拒收原因'}}</view>
 
     <view class="detail-section">

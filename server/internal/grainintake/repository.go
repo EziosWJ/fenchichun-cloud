@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
+	"strings"
 	"time"
 )
 
@@ -163,6 +164,24 @@ func detail(tx *gorm.DB, id int64) (Detail, error) {
 			return result, err
 		}
 		result.Ticket = &weighbridge.TicketResult{SiteCode: row.SiteCode, Status: row.Status, Ticket: snap, VoidReason: row.VoidReason, VoidedBy: row.VoidedBy, VoidedAt: row.VoidedAt}
+		if row.Status != "valid" {
+			result.TicketWarning = "关联的过磅单已作废，无法继续开证或出厂。请重新关联有效磅单；如已开具出门证，请联系管理员核查后再办理。"
+		} else {
+			var confirmedAt *time.Time
+			if result.Trip.InspectionMethod == "visual" {
+				confirmedAt = result.Trip.VisualInspectedAt
+			} else if result.Trip.EffectiveInspectionID != nil {
+				for _, item := range result.Inspections {
+					if item.ID == *result.Trip.EffectiveInspectionID {
+						confirmedAt = item.ConfirmedAt
+						break
+					}
+				}
+			}
+			if reason := ticketOrderReason(result.Trip, confirmedAt, snap); isTicketTimeWarning(reason) {
+				result.TicketWarning = reason + "，无法继续开证或出厂。请核对化验、首磅、卸货和回磅时间；如属离线补录，请联系管理员处理后再办理。"
+			}
+		}
 	}
 	err = tx.Table("grain_trip_event e").Select("e.*,COALESCE(NULLIF(u.nickname,''),u.username,'') AS actor_name").Joins("LEFT JOIN sys_user u ON u.id=e.actor_id").Where("e.trip_id=?", id).Order("e.id DESC").Scan(&result.Events).Error
 	return result, err
@@ -336,20 +355,20 @@ func effective(tx *gorm.DB, t Trip) (laboratory.Inspection, error) {
 	var i laboratory.Inspection
 	if t.InspectionMethod == "visual" {
 		if t.VisualInspectedAt == nil || t.VisualInspectedBy == nil || (t.VisualConclusion != "accept" && t.VisualConclusion != "reject") {
-			return i, fmt.Errorf("%w：尚未确认目测结果", ErrConflict)
+			return i, fmt.Errorf("%w：尚未确认目测结果，无法继续办理。请先记录目测接收或拒收结论。", ErrConflict)
 		}
 		i.Conclusion, i.Reason, i.ConfirmedAt = t.VisualConclusion, t.VisualReason, t.VisualInspectedAt
 		return i, nil
 	}
 	if t.EffectiveInspectionID == nil {
-		return i, fmt.Errorf("%w：尚未选择生效化验单", ErrConflict)
+		return i, fmt.Errorf("%w：尚未选择生效化验单，无法继续办理。请先在化验单页录入并确认化验结果。", ErrConflict)
 	}
 	err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).Where("id=?", *t.EffectiveInspectionID).Take(&i).Error
 	if err != nil {
 		return i, err
 	}
 	if i.Status != "confirmed" || i.TripID == nil || *i.TripID != t.ID || i.SiteCode != t.SiteCode || i.Plate != t.Plate || i.MaterialCode != t.MaterialCode || i.PartyCode != t.PartyCode {
-		return i, fmt.Errorf("%w：生效化验单已失效或信息不一致", ErrConflict)
+		return i, fmt.Errorf("%w：生效化验单已失效或与流转单信息不一致，无法继续办理。请核对化验单后重新录入或选择有效结果。", ErrConflict)
 	}
 	return i, nil
 }
@@ -358,29 +377,47 @@ func ready(tx *gorm.DB, t Trip) (laboratory.Inspection, error) {
 	if err != nil {
 		return i, err
 	}
-	if i.Conclusion != "accept" || t.UnloadedAt == nil || t.UnloadingLocation == "" || t.TicketID == nil {
-		return i, fmt.Errorf("%w：须确认接收、卸粮及关联有效磅单", ErrConflict)
+	var problems []string
+	if i.Conclusion != "accept" {
+		problems = append(problems, "检验结论不是接收")
 	}
-	var ticket struct{ Status string }
-	err = tx.Table("wb_cloud_ticket").Clauses(clause.Locking{Strength: "UPDATE"}).Where("id=?", *t.TicketID).Take(&ticket).Error
-	if err != nil {
-		return i, err
+	if t.UnloadedAt == nil {
+		problems = append(problems, "尚未确认卸货")
+	} else if t.UnloadingLocation == "" {
+		problems = append(problems, "未记录实际卸货地点")
 	}
-	if ticket.Status != "valid" {
-		return i, fmt.Errorf("%w：关联磅单已作废", ErrConflict)
+	if t.TicketID == nil {
+		problems = append(problems, "尚未关联有效磅单")
+	} else {
+		var ticket struct{ Status string }
+		err = tx.Table("wb_cloud_ticket").Clauses(clause.Locking{Strength: "UPDATE"}).Where("id=?", *t.TicketID).Take(&ticket).Error
+		if err != nil {
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				problems = append(problems, "关联的磅单不存在")
+			} else {
+				return i, err
+			}
+		} else if ticket.Status != "valid" {
+			problems = append(problems, "关联磅单已作废")
+		}
+	}
+	if len(problems) > 0 {
+		return i, fmt.Errorf("%w：%s，无法继续办理。请按顺序检查：确认检验接收、确认卸货及实际地点、关联有效磅单。", ErrConflict, strings.Join(problems, "；"))
 	}
 	return i, nil
 }
 
-// linkTicket applies the same checks to the authenticated link-ticket command
-// and to the site's automatic link after the weighing ticket has synced.
+// linkTicket validates an operator-selected ticket before it is linked.
 func linkTicket(tx *gorm.DB, t *Trip, ticketSiteCode, ticketNo string) (string, error) {
 	i, err := effective(tx, *t)
 	if err != nil {
 		return "", err
 	}
-	if i.Conclusion != "accept" || t.UnloadedAt == nil {
-		return "", fmt.Errorf("%w：请先确认接收与卸粮", ErrConflict)
+	if i.Conclusion != "accept" {
+		return "", fmt.Errorf("%w：检验结论不是接收，不能关联磅单。请先按拒收流程办理退厂。", ErrConflict)
+	}
+	if t.UnloadedAt == nil {
+		return "", fmt.Errorf("%w：尚未确认卸货，不能关联磅单。请先在“卸货与磅单”页确认实际卸货地点和卸货完成。", ErrConflict)
 	}
 	var ticket struct {
 		ID                                                                    int64
@@ -388,30 +425,49 @@ func linkTicket(tx *gorm.DB, t *Trip, ticketSiteCode, ticketNo string) (string, 
 	}
 	err = tx.Table("wb_cloud_ticket").Clauses(clause.Locking{Strength: "UPDATE"}).Where("issued_site_code=? AND ticket_no=?", ticketSiteCode, ticketNo).Take(&ticket).Error
 	if errors.Is(err, gorm.ErrRecordNotFound) {
-		return "", fmt.Errorf("%w：磅单尚未同步到云端", ErrConflict)
+		return "", fmt.Errorf("%w：磅单尚未同步到云端，不能关联。请等待厂端同步后刷新候选磅单。", ErrConflict)
 	}
 	if err != nil {
 		return "", err
 	}
-	if ticket.SiteCode != t.SiteCode || ticket.Status != "valid" || ticket.Direction != "inbound" || ticket.Plate != t.Plate || ticket.MaterialCode != t.MaterialCode || ticket.PartyCode != t.PartyCode {
-		return "", fmt.Errorf("%w：磅单厂区、方向、车牌、粮种或供应商不一致", ErrConflict)
+	if ticket.Status != "valid" {
+		return "", fmt.Errorf("%w：该磅单已作废，不能关联。请选择其他有效磅单。", ErrConflict)
+	}
+	if ticket.Direction != "inbound" {
+		return "", fmt.Errorf("%w：该磅单不是入厂方向，不能关联本趟原粮流转单。请核对磅单方向。", ErrConflict)
+	}
+	var differences []string
+	if ticket.SiteCode != t.SiteCode {
+		differences = append(differences, "厂区")
+	}
+	if ticket.Plate != t.Plate {
+		differences = append(differences, "车牌")
+	}
+	if ticket.MaterialCode != t.MaterialCode {
+		differences = append(differences, "货品")
+	}
+	if ticket.PartyCode != t.PartyCode {
+		differences = append(differences, "供应商")
+	}
+	if len(differences) > 0 {
+		return "", fmt.Errorf("%w：磅单与流转单的%s不一致，不能关联。请核对后重新选择，或先更正登记信息。", ErrConflict, strings.Join(differences, "、"))
 	}
 	if t.TicketID != nil && *t.TicketID != ticket.ID {
-		return "", fmt.Errorf("%w：本趟已关联其他磅单", ErrConflict)
+		return "", fmt.Errorf("%w：本趟已关联其他磅单，不能直接更换。如需更换，请先联系管理员处理原关联。", ErrConflict)
 	}
 	var n int64
 	if err := tx.Model(&Trip{}).Where("ticket_id=? AND id<>?", ticket.ID, t.ID).Count(&n).Error; err != nil {
 		return "", err
 	}
 	if n > 0 {
-		return "", fmt.Errorf("%w：磅单已关联其他流转单", ErrConflict)
+		return "", fmt.Errorf("%w：该磅单已关联其他流转单，不能重复关联。请核对磅单号，或联系管理员解除原关联。", ErrConflict)
 	}
 	var snap weighbridge.TicketSnapshot
 	if err := json.Unmarshal([]byte(ticket.Snapshot), &snap); err != nil {
 		return "", err
 	}
-	if ticketLinkReason(*t, i.ConfirmedAt, snap) != "" {
-		return "", fmt.Errorf("%w：化验生效、首磅、卸粮和回磅时间顺序不一致，需核查离线期间记录", ErrConflict)
+	if reason := ticketLinkReason(*t, i.ConfirmedAt, snap); reason != "" {
+		return "", ticketOrderConflict(reason)
 	}
 	t.TicketID = &ticket.ID
 	return "关联磅单 " + ticketSiteCode + " / " + ticketNo, nil
@@ -439,13 +495,30 @@ func (r *Repository) Command(ctx context.Context, id int64, action string, in Co
 		if err != nil {
 			return err
 		}
+		// A lost response can make the client retry the confirmation. Return the
+		// existing result before the version check and do not add another event or
+		// version bump.
+		if action == "confirm-ticket" && t.TicketConfirmedAt != nil {
+			if t.TicketID == nil {
+				return fmt.Errorf("%w：尚未关联过磅单", ErrConflict)
+			}
+			var ticket struct{ Status string }
+			if err := tx.Table("wb_cloud_ticket").Where("id=?", *t.TicketID).Take(&ticket).Error; err != nil {
+				return err
+			}
+			if ticket.Status != "valid" {
+				return fmt.Errorf("%w：关联的过磅单已作废，不能重复确认。请重新关联有效磅单；如已开证，请联系管理员核查。", ErrConflict)
+			}
+			value, err = detail(tx, id)
+			return err
+		}
 		// A repeated exit acknowledges the same historical basis without changing its time/person.
 		if action == "confirm-exit" && t.ExitedAt != nil {
 			if t.ExitBasis != in.Basis {
-				return ErrConflict
+				return fmt.Errorf("%w：本趟已按其他依据确认出厂，不能重复提交。请刷新查看最终记录。", ErrConflict)
 			}
 			if in.Basis == "rejection" && t.InspectionMethod != "visual" && (t.ExitInspectionID == nil || *t.ExitInspectionID != in.InspectionID) {
-				return ErrConflict
+				return fmt.Errorf("%w：本趟已按其他拒收依据确认出厂，请刷新查看最终记录。", ErrConflict)
 			}
 			if in.Basis == "permit" {
 				var p Permit
@@ -453,28 +526,40 @@ func (r *Repository) Command(ctx context.Context, id int64, action string, in Co
 					return err
 				}
 				if p.ID != in.PermitID {
-					return ErrConflict
+					return fmt.Errorf("%w：出门证已变化，请刷新查看最终出厂记录。", ErrConflict)
 				}
 			}
 			value, err = detail(tx, id)
 			return err
 		}
-		if t.ExitedAt != nil || t.Version != in.Version {
-			return ErrConflict
+		if t.ExitedAt != nil {
+			return fmt.Errorf("%w：本趟已确认出厂，不能再次办理。请刷新查看最终记录。", ErrConflict)
+		}
+		if t.Version != in.Version {
+			return fmt.Errorf("%w：该流转单已被其他人更新，您的页面不是最新状态。请刷新后重新核对再办理。", ErrConflict)
 		}
 		exists, err := hasPermit(tx, id)
 		if err != nil {
 			return err
 		}
 		if exists && (action == "confirm-unloading" || action == "link-ticket") {
-			return fmt.Errorf("%w：开证后不能更改依据", ErrConflict)
+			return fmt.Errorf("%w：本趟已开具出门证，不能再更改卸货或磅单依据。请按出门证流程继续办理。", ErrConflict)
 		}
 		now, actor := time.Now().UTC(), e.Metadata.ActorID
 		description := ""
 		switch action {
 		case "record-visual":
-			if t.InspectionMethod != "visual" || t.VisualInspectedAt != nil || t.UnloadedAt != nil || t.TicketID != nil || exists || t.PartyCode == "" {
-				return fmt.Errorf("%w：请核实供应商，目测结果只能登记一次", ErrConflict)
+			if t.InspectionMethod != "visual" {
+				return fmt.Errorf("%w：本趟检验方式是化验，不能记录目测结果。请由化验员录入化验单。", ErrConflict)
+			}
+			if t.VisualInspectedAt != nil {
+				return fmt.Errorf("%w：目测结果已经登记，不能重复记录。如需更正，请联系管理员核查。", ErrConflict)
+			}
+			if t.UnloadedAt != nil || t.TicketID != nil || exists {
+				return fmt.Errorf("%w：本趟已进入卸货、关联磅单或开证阶段，不能再补记目测结果。请按当前阶段继续办理。", ErrConflict)
+			}
+			if t.PartyCode == "" {
+				return fmt.Errorf("%w：尚未核实供应商，不能确认目测结果。请先在登记信息中选择供应商。", ErrConflict)
 			}
 			t.VisualConclusion, t.VisualReason, t.VisualInspectedAt, t.VisualInspectedBy = in.Conclusion, in.Reason, &now, &actor
 			description = "记录目测结果：" + in.Conclusion + "；" + in.Reason
@@ -484,15 +569,15 @@ func (r *Repository) Command(ctx context.Context, id int64, action string, in Co
 				return err
 			}
 			if i.Conclusion != "accept" {
-				return ErrConflict
+				return fmt.Errorf("%w：检验结论不是接收，不能确认卸货。请按拒收流程办理退厂。", ErrConflict)
 			}
 			if t.UnloadedAt != nil {
-				return fmt.Errorf("%w：卸粮已确认，不覆盖现场记录", ErrConflict)
+				return fmt.Errorf("%w：卸货已经确认，不能重复提交。请刷新查看已记录的实际卸货地点和时间。", ErrConflict)
 			}
 			t.UnloadingLocation = in.Location
 			t.UnloadedAt = &now
 			t.UnloadedBy = &actor
-			description = "确认卸粮，实际地点：" + in.Location
+			description = "确认卸货，实际地点：" + in.Location
 		case "link-ticket":
 			description, err = linkTicket(tx, &t, in.TicketSiteCode, in.TicketNo)
 			if err != nil {
@@ -502,32 +587,33 @@ func (r *Repository) Command(ctx context.Context, id int64, action string, in Co
 			t.TicketConfirmedBy = &actor
 		case "confirm-ticket":
 			if t.TicketID == nil {
-				return fmt.Errorf("%w：尚未关联过磅单", ErrConflict)
-			}
-			if t.TicketConfirmedAt != nil {
-				description = "重复确认过磅单关联"
-				break
+				return fmt.Errorf("%w：本趟尚未关联过磅单，无法确认。请等待过磅单同步并完成关联。", ErrConflict)
 			}
 			var ticket struct{ Status string }
 			if err := tx.Table("wb_cloud_ticket").Clauses(clause.Locking{Strength: "UPDATE"}).Where("id=?", *t.TicketID).Take(&ticket).Error; err != nil {
 				return err
 			}
 			if ticket.Status != "valid" {
-				return fmt.Errorf("%w：关联的过磅单已作废", ErrConflict)
+				return fmt.Errorf("%w：关联的过磅单已作废，不能确认。请重新关联有效磅单；如已开证，请联系管理员核查。", ErrConflict)
 			}
 			t.TicketConfirmedAt = &now
 			t.TicketConfirmedBy = &actor
 			description = "确认过磅单关联"
 		case "issue-permit":
 			if exists {
-				return fmt.Errorf("%w：本趟已开具出门证", ErrConflict)
+				return fmt.Errorf("%w：本趟已开具出门证，不能重复开证。请到出门证页继续审批或等待门卫放行。", ErrConflict)
 			}
 			if t.TicketConfirmedAt == nil {
-				return fmt.Errorf("%w：请先确认过磅单关联", ErrConflict)
+				return fmt.Errorf("%w：过磅单尚未确认关联，不能开证。请先在“卸货与磅单”页核对并确认过磅单关联。", ErrConflict)
 			}
 			_, err := ready(tx, t)
 			if err != nil {
 				return err
+			}
+			if reason, err := loadTicketOrderReason(tx, t); err != nil {
+				return err
+			} else if reason != "" {
+				return ticketOrderConflict(reason)
 			}
 			number, err := nextNumber(tx, "grain-permit", "CM")
 			if err != nil {
@@ -543,12 +629,23 @@ func (r *Repository) Command(ctx context.Context, id int64, action string, in Co
 			if err != nil {
 				return err
 			}
+			if reason, err := loadTicketOrderReason(tx, t); err != nil {
+				return err
+			} else if reason != "" {
+				return ticketOrderConflict(reason)
+			}
 			var p Permit
 			if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).Where("trip_id=?", id).Take(&p).Error; err != nil {
+				if errors.Is(err, gorm.ErrRecordNotFound) {
+					return fmt.Errorf("%w：本趟尚未开具出门证，无法审批。请先完成开证。", ErrConflict)
+				}
 				return err
 			}
-			if p.ID != in.PermitID || p.Status != "pending" || !sameInspection(p.InspectionID, t.EffectiveInspectionID) || p.TicketID != *t.TicketID {
-				return ErrConflict
+			if p.ID != in.PermitID || !sameInspection(p.InspectionID, t.EffectiveInspectionID) || p.TicketID != *t.TicketID {
+				return fmt.Errorf("%w：出门证依据已变化，无法审批。请刷新后重新核对出门证、化验单和磅单。", ErrConflict)
+			}
+			if p.Status != "pending" {
+				return fmt.Errorf("%w：该出门证已审批，不能重复审批。请刷新查看审批结果。", ErrConflict)
 			}
 			p.Status = "approved"
 			p.Version++
@@ -564,8 +661,20 @@ func (r *Repository) Command(ctx context.Context, id int64, action string, in Co
 				return err
 			}
 			if in.Basis == "rejection" {
-				if exists || t.TicketID != nil || t.UnloadedAt != nil || i.Conclusion != "reject" || i.Reason == "" || (t.InspectionMethod != "visual" && (i.ID != in.InspectionID || i.Version != in.InspectionVersion)) {
-					return ErrConflict
+				if exists {
+					return fmt.Errorf("%w：本趟已开具出门证，不能按拒收依据出厂。请按正常出门证流程办理。", ErrConflict)
+				}
+				if t.TicketID != nil || t.UnloadedAt != nil {
+					return fmt.Errorf("%w：本趟已关联磅单或确认卸货，不能按拒收依据出厂。请核对实际流程后联系管理员处理。", ErrConflict)
+				}
+				if i.Conclusion != "reject" {
+					return fmt.Errorf("%w：当前检验结论不是拒收，不能按拒收依据出厂。请核对检验结果。", ErrConflict)
+				}
+				if i.Reason == "" {
+					return fmt.Errorf("%w：拒收原因缺失，不能确认出厂。请联系化验员补录拒收原因。", ErrConflict)
+				}
+				if t.InspectionMethod != "visual" && (i.ID != in.InspectionID || i.Version != in.InspectionVersion) {
+					return fmt.Errorf("%w：拒收化验依据已变化，不能确认出厂。请刷新后重新核对生效化验单。", ErrConflict)
 				}
 				description = "核验拒收依据，确认出厂"
 			} else if in.Basis == "permit" {
@@ -574,10 +683,19 @@ func (r *Repository) Command(ctx context.Context, id int64, action string, in Co
 				}
 				var p Permit
 				if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).Where("trip_id=?", id).Take(&p).Error; err != nil {
+					if errors.Is(err, gorm.ErrRecordNotFound) {
+						return fmt.Errorf("%w：本趟尚未开具出门证，不能确认出厂。请先完成开证和审批。", ErrConflict)
+					}
 					return err
 				}
-				if p.Status != "approved" || p.ID != in.PermitID || !sameInspection(p.InspectionID, t.EffectiveInspectionID) || p.TicketID != *t.TicketID {
-					return ErrConflict
+				if p.Status != "approved" {
+					return fmt.Errorf("%w：出门证尚未审批，不能确认出厂。请先完成审批。", ErrConflict)
+				}
+				if p.ID != in.PermitID {
+					return fmt.Errorf("%w：出门证已变化，不能确认出厂。请刷新后重新核对。", ErrConflict)
+				}
+				if !sameInspection(p.InspectionID, t.EffectiveInspectionID) || p.TicketID != *t.TicketID {
+					return fmt.Errorf("%w：出门证依据与当前化验或磅单不一致，不能确认出厂。请刷新核查后重新开证。", ErrConflict)
 				}
 				description = "核验出门证 " + p.Number + "，确认出厂"
 			} else {
@@ -653,7 +771,7 @@ func (r *Repository) TicketCandidates(ctx context.Context, actor, tripID int64) 
 				SiteCode: row.SiteCode, TicketNo: row.TicketNo, Plate: row.Plate,
 				MaterialCode: row.MaterialCode, MaterialName: snap.MaterialName,
 				PartyCode: row.PartyCode, PartyName: snap.PartyName,
-				FinalGross: snap.FinalGross, FinalTare: snap.FinalTare, FinalNetMilliTonne: row.FinalNetMilliTonne,
+				FinalGross: snap.FinalGross, FinalTare: snap.FinalTare, FinalNet: snap.FinalNet, FinalNetMilliTonne: row.FinalNetMilliTonne,
 				FirstConfirmedAt: snap.FirstConfirmedAt, SecondConfirmedAt: snap.SecondConfirmedAt, IssuedAt: row.IssuedAt,
 				Linkable: true,
 			}
@@ -667,30 +785,89 @@ func (r *Repository) TicketCandidates(ctx context.Context, actor, tripID int64) 
 	return candidates, err
 }
 
-// ticketLinkReason returns an empty string when the weighing order satisfies
-// the same rules as link-ticket.
-func ticketLinkReason(t Trip, confirmedAt *time.Time, snap weighbridge.TicketSnapshot) string {
+// ticketOrderReason returns an empty string when the inspection and unloading
+// times satisfy the weighing order. It is shared by candidate listing,
+// confirm-ticket and issue-permit so the automatic association path cannot
+// accept a ticket that the authenticated link command would reject.
+func ticketOrderReason(t Trip, confirmedAt *time.Time, snap weighbridge.TicketSnapshot) string {
 	if t.InspectionMethod == "visual" {
-		if t.VisualConclusion != "accept" || t.VisualInspectedAt == nil {
-			return "尚未确认目测接收"
-		}
 		confirmedAt = t.VisualInspectedAt
-	} else if t.EffectiveInspectionID == nil || t.EffectiveSelectedAt == nil || confirmedAt == nil {
-		return "尚未选择生效化验单"
+	}
+	if reason := weighbridge.InspectionOrderReason(t.InspectionMethod, t.VisualConclusion == "accept", confirmedAt, t.EffectiveSelectedAt, snap.FirstConfirmedAt); reason != "" {
+		return reason
+	}
+	return weighbridge.UnloadOrderReason(t.UnloadedAt, snap.FirstConfirmedAt, snap.SecondConfirmedAt)
+}
+
+func isTicketTimeWarning(reason string) bool {
+	switch reason {
+	case "首磅早于化验生效", "首磅晚于卸粮", "回磅早于卸粮":
+		return true
+	}
+	return false
+}
+
+func ticketOrderGuidance(reason string) string {
+	switch reason {
+	case "首磅早于化验生效":
+		return "请核对化验或目测确认时间与首磅时间；若属离线补录，请先更正单据时间或联系管理员处理。"
+	case "首磅晚于卸粮":
+		return "请核对首磅时间与卸货确认时间，确认是否在首磅完成后再办理卸货确认。"
+	case "回磅早于卸粮":
+		return "请核对回磅时间与卸货确认时间，按先首磅、再确认卸货、最后回磅的顺序办理。"
+	case "尚未确认卸粮":
+		return "请先在“卸货与磅单”页确认实际卸货地点和卸货完成。"
+	case "尚未选择生效化验单":
+		return "请先在化验单页录入并确认化验结果。"
+	case "尚未确认目测接收":
+		return "请先完成目测接收确认。"
+	default:
+		return "请核对化验、首磅、卸货和回磅时间后再办理。"
+	}
+}
+
+func ticketOrderConflict(reason string) error {
+	return fmt.Errorf("%w：%s，无法继续办理。%s", ErrConflict, reason, ticketOrderGuidance(reason))
+}
+
+// ticketLinkReason is the stricter candidate/link rule: in addition to the
+// order checks it requires the store to have confirmed unloading.
+func ticketLinkReason(t Trip, confirmedAt *time.Time, snap weighbridge.TicketSnapshot) string {
+	if reason := ticketOrderReason(t, confirmedAt, snap); reason != "" {
+		return reason
 	}
 	if t.UnloadedAt == nil {
 		return "尚未确认卸粮"
 	}
-	if snap.FirstConfirmedAt.Before(*confirmedAt) || (t.InspectionMethod != "visual" && snap.FirstConfirmedAt.Before(*t.EffectiveSelectedAt)) {
-		return "首磅早于化验生效"
-	}
-	if snap.FirstConfirmedAt.After(*t.UnloadedAt) {
-		return "首磅晚于卸粮"
-	}
-	if snap.SecondConfirmedAt.Before(*t.UnloadedAt) {
-		return "回磅早于卸粮"
-	}
 	return ""
+}
+
+// loadTicketOrderReason re-reads the linked ticket snapshot and effective
+// inspection, then applies the same order rules. It returns an empty string
+// for a missing or non-valid ticket because ready/link paths report that
+// separately.
+func loadTicketOrderReason(tx *gorm.DB, t Trip) (string, error) {
+	if t.TicketID == nil {
+		return "", nil
+	}
+	var ticket struct {
+		Status, Snapshot string
+	}
+	if err := tx.Table("wb_cloud_ticket").Where("id=?", *t.TicketID).Take(&ticket).Error; err != nil {
+		return "", err
+	}
+	if ticket.Status != "valid" {
+		return "", nil
+	}
+	var snap weighbridge.TicketSnapshot
+	if err := json.Unmarshal([]byte(ticket.Snapshot), &snap); err != nil {
+		return "", err
+	}
+	i, err := effective(tx, t)
+	if err != nil {
+		return "", err
+	}
+	return ticketOrderReason(t, i.ConfirmedAt, snap), nil
 }
 
 func sameInspection(a, b *int64) bool {

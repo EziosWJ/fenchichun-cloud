@@ -178,7 +178,7 @@ test('页面控制器从登录、登记到跨岗位确认实际出厂', () => {
   app.select(0)
   call(simulation, 'lab', tap(id))
   call(detail, 'onShow')
-  assert.equal(detail.data.status, '待卸粮')
+  assert.equal(detail.data.status, '待卸货')
 
   const action = app.page('action')
   call(action, 'onLoad', { id, action: 'unload' })

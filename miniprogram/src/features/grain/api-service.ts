@@ -63,6 +63,7 @@ interface ServerTrip {
 
 interface ServerInspection {
   id: number
+  status: 'confirmed' | 'void'
   version: number
   conclusion: 'accept' | 'reject'
   reason: string
@@ -111,6 +112,7 @@ interface ServerCandidate {
   partyName: string
   finalGross: string
   finalTare: string
+  finalNet: string
   finalNetMilliTonne: number
   firstConfirmedAt: string
   secondConfirmedAt: string
@@ -125,6 +127,7 @@ interface ServerDetail {
   permit: ServerPermit | null
   ticket: ServerTicketRecord | null
   events: ServerEvent[]
+  ticketWarning?: string
 }
 
 interface ServerPage {
@@ -204,8 +207,9 @@ function inspectionsOf(trip: ServerTrip, detail?: ServerDetail): Inspection | nu
       values: '',
     }
   }
-  const inspection = detail?.inspections.find(item => item.id === trip.effectiveInspectionId)
-    ?? detail?.inspections[0]
+  const inspections = detail?.inspections.filter(item => item.status === 'confirmed') ?? []
+  const inspection = inspections.find(item => item.id === trip.effectiveInspectionId)
+    ?? inspections[0]
   if (inspection) {
     return {
       method: 'lab',
@@ -280,6 +284,7 @@ function adaptTrip(trip: ServerTrip, detail?: ServerDetail): Trip {
     ticket: ticketOf(detail),
     ticketAvailable: false,
     ticketConfirmedAt: formatTime(trip.ticketConfirmedAt),
+    ticketWarning: detail?.ticketWarning ?? '',
     permit: detail?.permit
       ? {
           id: detail.permit.number,
@@ -452,8 +457,8 @@ export const demo = {
     if (trip.stage === 'rejected') {
       data.basis = 'rejection'
       if (trip.inspectionMethod !== 'visual') {
-        const inspection = detail.inspections.find(item => item.id === trip.effectiveInspectionId)
-          ?? detail.inspections[0]
+        const inspection = detail.inspections.find(item => item.id === trip.effectiveInspectionId && item.status === 'confirmed')
+          ?? detail.inspections.find(item => item.status === 'confirmed')
         if (!inspection) {
           finish('未找到拒收化验依据')
         }
@@ -507,22 +512,22 @@ export const demo = {
     const list = await request<ServerCandidate[]>({
       path: `/grain-intake/trips/${id}/ticket-candidates`,
     })
-    return list
-      .filter(item => item.linkable)
-      .map(item => ({
-        id: item.ticketNo,
-        tripId: '',
-        site: siteName(item.siteCode),
-        plate: item.plate,
-        material: item.materialName,
-        supplier: item.partyName,
-        firstAt: formatTime(item.firstConfirmedAt),
-        secondAt: formatTime(item.secondConfirmedAt),
-        gross: item.finalGross,
-        tare: item.finalTare,
-        net: actualNet(item.finalGross, item.finalTare),
-        deducted: `${(item.finalNetMilliTonne / 1000).toFixed(3)} 吨`,
-      }))
+    return list.map(item => ({
+      id: item.ticketNo,
+      tripId: '',
+      site: siteName(item.siteCode),
+      plate: item.plate,
+      material: item.materialName,
+      supplier: item.partyName,
+      firstAt: formatTime(item.firstConfirmedAt),
+      secondAt: formatTime(item.secondConfirmedAt),
+      gross: item.finalGross,
+      tare: item.finalTare,
+      net: actualNet(item.finalGross, item.finalTare),
+      deducted: item.finalNet ?? '',
+      linkable: item.linkable,
+      reason: item.reason,
+    }))
   },
   async linkTicket(id: string, version: number, ticketNo: string) {
     const list = await request<ServerCandidate[]>({

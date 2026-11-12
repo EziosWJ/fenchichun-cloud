@@ -53,6 +53,14 @@ Page({
     if (!ticket) {
       return
     }
+    if (ticket.linkable === false) {
+      wx.showModal({
+        title: '暂不能关联',
+        content: `${ticket.reason || '时间顺序不一致'}。请核对化验、首磅、卸货和回磅时间后再关联。`,
+        showCancel: false,
+      })
+      return
+    }
     const trip = this.data.trip
     if (!trip || this.data.confirming) {
       return

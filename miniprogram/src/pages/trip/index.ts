@@ -1,5 +1,4 @@
 import type { EventRecord, Trip } from '@/features/grain/types'
-import { env } from '@/config/env'
 import { routes } from '@/config/routes'
 import { applyAsync, errorMessage, requireLogin } from '@/features/grain/page'
 import {
@@ -10,13 +9,13 @@ import {
 import { demo } from '@/features/grain/service'
 
 const actionLabels: Record<string, string> = {
-  edit: '补充供应商',
-  visual: '确认目测',
-  unload: '确认卸货',
-  ticket: '查看磅单候选',
+  'edit': '补充供应商',
+  'visual': '确认目测',
+  'unload': '确认卸货',
+  'ticket': '查看磅单候选',
   'confirm-ticket': '确认过磅单关联',
-  issue: '开具出门证',
-  approve: '审批出门证',
+  'issue': '开具出门证',
+  'approve': '审批出门证',
 }
 
 Page({
@@ -85,7 +84,7 @@ Page({
           waiting: status.waiting,
           action: status.action,
           actionLabel: actionLabels[status.action] || '',
-          editable: env.mock && canEdit(trip),
+          editable: canEdit(trip),
           inspection: inspectionText(trip),
           expanded,
         })

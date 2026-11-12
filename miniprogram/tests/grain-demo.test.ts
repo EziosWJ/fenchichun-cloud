@@ -53,7 +53,7 @@ test('登记至正常实际出厂，两个页面读取同一份状态', () => {
   let trip = warehouse.createTrip(registration())
   assert.equal(tripStatus(trip).label, '等待化验')
   trip = otherPage.simulateLab(trip.id, trip.version, 'accept', '')
-  assert.equal(tripStatus(otherPage.getTrip(trip.id)).label, '待卸粮')
+  assert.equal(tripStatus(otherPage.getTrip(trip.id)).label, '待卸货')
   trip = warehouse.confirmUnload(trip.id, trip.version, '1号仓')
   assert.equal(tripStatus(trip).label, '等待磅单同步')
   assert.deepEqual(warehouse.candidates(trip.id), [])
@@ -138,7 +138,7 @@ test('供应商、前置条件、版本和岗位限制在状态层生效', () =>
     () => warehouse.confirmUnload(trip.id, oldVersion, '一号'),
     /已变化/,
   )
-  assert.throws(() => warehouse.issuePermit(trip.id, trip.version), /卸粮/)
+  assert.throws(() => warehouse.issuePermit(trip.id, trip.version), /卸货/)
   otherPage.switchRole('guard')
   assert.throws(() => otherPage.confirmExit(trip.id, trip.version), /依据/)
   assert.throws(() => otherPage.createTrip(registration()), /库管/)
