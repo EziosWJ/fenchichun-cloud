@@ -20,12 +20,12 @@ export default function PermitsPage() {
   const refusal = useQuery({ queryKey: ['grain-intake', 'rejections', params], queryFn: () => rejections(params), enabled: rejected });
   const active = rejected ? refusal : normal;
   const columns: ColumnsType<Permit> = [
-    { title: '出门证号', dataIndex: 'number', render: (v: string, row) => <Link to={`/grain-intake/permits/${row.tripId}`}>{v}</Link> },
+    { title: '出门证号', dataIndex: 'number', render: (v: string, row) => <Link to={`/grain-intake/trips/${row.tripId}`}>{v}</Link> },
     { title: '流转单号', dataIndex: 'tripNumber' }, { title: '厂区', dataIndex: 'siteCode' }, { title: '车牌', dataIndex: 'plate' },
     { title: '当前阶段', dataIndex: 'stage', render: (v: string) => <Tag color={v === 'blocked' ? 'red' : 'blue'}>{stageLabel(v)}</Tag> },
     { title: '开具时间', dataIndex: 'createdAt', render: (v: string) => formatDateTime(v) }, { title: '审批时间', dataIndex: 'approvedAt', render: (v: string | null) => formatDateTime(v) },
     { title: '实际出厂', dataIndex: 'exitedAt', render: (v: string | null) => formatDateTime(v) },
-    { title: '操作', key: 'action', render: (_, row) => <Link to={`/grain-intake/permits/${row.tripId}`}>查看核验</Link> },
+    { title: '操作', key: 'action', render: (_, row) => <Link to={`/grain-intake/trips/${row.tripId}`}>查看流转单</Link> },
   ];
   const rejectionColumns: ColumnsType<Trip> = [
     { title: '流转单号', dataIndex: 'number' }, { title: '车牌', dataIndex: 'plate' }, { title: '货品', dataIndex: 'materialName' }, { title: '供应商', dataIndex: 'partyName' },
