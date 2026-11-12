@@ -67,6 +67,7 @@ interface ServerInspection {
   reason: string
   moisture: string
   impurity: string
+  bulkDensity?: string
   confirmedAt: string | null
   createdAt: string
 }
@@ -186,7 +187,7 @@ function siteName(code: string) {
 }
 
 function inspectionValues(value: ServerInspection) {
-  return `水分 ${value.moisture}% / 杂质 ${value.impurity}%`
+  return `水分 ${value.moisture}% / 容量 ${value.bulkDensity || '—'}${value.bulkDensity ? ' g/L' : ''}`
 }
 
 function inspectionsOf(trip: ServerTrip, detail?: ServerDetail): Inspection | null {

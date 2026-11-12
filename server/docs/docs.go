@@ -172,6 +172,47 @@ const docTemplate = `{
                 }
             }
         },
+        "/api/v1/grain-intake/deduction-preview": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "仅返回水分依据的扣减规则，供化验单录入水分后预览；容量不作为扣减依据，杂质在称重台二次称重时录入。",
+                "tags": [
+                    "原粮流转"
+                ],
+                "summary": "按物料和水分预览扣减规则",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "物料编码",
+                        "name": "materialCode",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "水分（%）",
+                        "name": "moisture",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/deduction.Evaluation"
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/api/v1/grain-intake/deduction-rules": {
             "get": {
                 "security": [
@@ -271,6 +312,28 @@ const docTemplate = `{
                         }
                     }
                 }
+            },
+            "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "删除指定版本及其区间；同编码的其他版本保留。",
+                "tags": [
+                    "原粮流转"
+                ],
+                "summary": "删除扣减规则版本",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "规则 ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {}
             }
         },
         "/api/v1/grain-intake/exit-basis/{id}": {
@@ -7072,6 +7135,9 @@ const docTemplate = `{
         "grainintake.SyncInspection": {
             "type": "object",
             "properties": {
+                "bulkDensity": {
+                    "type": "string"
+                },
                 "conclusion": {
                     "type": "string"
                 },
@@ -7365,6 +7431,9 @@ const docTemplate = `{
         "laboratory.Input": {
             "type": "object",
             "properties": {
+                "bulkDensity": {
+                    "type": "string"
+                },
                 "conclusion": {
                     "type": "string"
                 },
@@ -7409,6 +7478,9 @@ const docTemplate = `{
         "laboratory.Inspection": {
             "type": "object",
             "properties": {
+                "bulkDensity": {
+                    "type": "string"
+                },
                 "conclusion": {
                     "type": "string"
                 },

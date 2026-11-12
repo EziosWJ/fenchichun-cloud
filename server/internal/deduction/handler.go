@@ -18,9 +18,11 @@ func NewHandler(s *Service) *Handler { return &Handler{service: s} }
 func (h *Handler) Register(api gin.IRouter) {
 	g := api.Group("/grain-intake")
 	g.GET("/deduction-categories", h.categories)
+	g.GET("/deduction-preview", h.preview)
 	g.GET("/deduction-rules", h.list)
 	g.POST("/deduction-rules", h.create)
 	g.PUT("/deduction-rules/:id", h.update)
+	g.DELETE("/deduction-rules/:id", h.remove)
 }
 
 func respond(c *gin.Context, value any, err error) {
@@ -75,6 +77,20 @@ func key(c *gin.Context) (int64, bool) {
 // @Router /api/v1/grain-intake/deduction-categories [get]
 func (h *Handler) categories(c *gin.Context) {
 	value, err := h.service.Categories(c.Request.Context())
+	respond(c, value, err)
+}
+
+// preview godoc
+// @Summary 按物料和水分预览扣减规则
+// @Tags 原粮流转
+// @Security BearerAuth
+// @Description 仅返回水分依据的扣减规则，供化验单录入水分后预览；容量不作为扣减依据，杂质在称重台二次称重时录入。
+// @Param materialCode query string true "物料编码"
+// @Param moisture query string true "水分（%）"
+// @Success 200 {array} Evaluation
+// @Router /api/v1/grain-intake/deduction-preview [get]
+func (h *Handler) preview(c *gin.Context) {
+	value, err := h.service.PreviewMoisture(c.Request.Context(), c.Query("materialCode"), c.Query("moisture"))
 	respond(c, value, err)
 }
 
@@ -139,4 +155,24 @@ func (h *Handler) update(c *gin.Context) {
 	}
 	value, err := h.service.Save(c.Request.Context(), e.Metadata.ActorID, id, in, e)
 	respond(c, value, err)
+}
+
+// remove godoc
+// @Summary 删除扣减规则版本
+// @Tags 原粮流转
+// @Security BearerAuth
+// @Description 删除指定版本及其区间；同编码的其他版本保留。
+// @Param id path int true "规则 ID"
+// @Router /api/v1/grain-intake/deduction-rules/{id} [delete]
+func (h *Handler) remove(c *gin.Context) {
+	e, ok := actorEvent(c, "deduction-rule.delete")
+	if !ok {
+		return
+	}
+	id, ok := key(c)
+	if !ok {
+		return
+	}
+	err := h.service.Delete(c.Request.Context(), e.Metadata.ActorID, id, e)
+	respond(c, nil, err)
 }

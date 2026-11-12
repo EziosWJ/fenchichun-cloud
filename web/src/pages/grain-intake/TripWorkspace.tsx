@@ -89,7 +89,7 @@ export default function TripWorkspace({ gate = false }: { gate?: boolean }) {
       { key: 'conclusion', label: '结论', children: inspection.conclusion === 'accept' ? <Tag color="green">接收</Tag> : <Tag color="red">拒收</Tag> },
       { key: 'confirmed', label: '化验时间', children: formatDateTime(inspection.confirmedAt ?? inspection.createdAt) },
       { key: 'moisture', label: '水分（%）', children: inspection.moisture || '—' },
-      { key: 'impurity', label: '杂质（%）', children: inspection.impurity || '—' },
+      { key: 'bulkDensity', label: '容量（g/L）', children: inspection.bulkDensity || '—' },
       { key: 'reason', label: '拒收原因', children: inspection.reason || '—' },
     ]} /> : <span style={{ color: 'var(--ant-color-text-secondary)' }}>尚未录入化验结果</span>}
     {!gate && canInspect && !locked && !inspection && <Button type="primary" onClick={() => navigate(`/laboratory/inspections?keyword=${encodeURIComponent(trip.number)}`)}>去录入化验结果</Button>}
@@ -124,7 +124,7 @@ export default function TripWorkspace({ gate = false }: { gate?: boolean }) {
           { key: 'number', label: '生效化验单', children: effective.number },
           { key: 'conclusion', label: '化验结论', children: <Tag color={effective.conclusion === 'accept' ? 'green' : effective.conclusion === 'reject' ? 'red' : 'default'}>{conclusionText}</Tag> },
           { key: 'selected', label: '生效时间', children: formatDateTime(trip.effectiveSelectedAt) },
-          { key: 'moisture', label: '水分（%）', children: effective.moisture || '—' }, { key: 'impurity', label: '杂质（%）', children: effective.impurity || '—' },
+          { key: 'moisture', label: '水分（%）', children: effective.moisture || '—' }, { key: 'bulkDensity', label: '容量（g/L）', children: effective.bulkDensity || '—' },
           { key: 'reason', label: '原因', children: effective.reason || '—' },
         ]} />
           {query.data.deductions.length > 0 && <div style={{ marginTop: 8 }}>

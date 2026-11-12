@@ -21,7 +21,7 @@ const trip: Trip = {
 function evidence(): TripDetail {
   return {
     trip: { ...trip },
-    inspections: [{ id: 11, number: 'HY-000001', tripId: 1, siteCode: trip.siteCode, status: 'confirmed', version: 2, originalId: null, plate: trip.plate, materialCode: 'M1', materialName: '高粱', partyCode: 'P1', partyName: '供货方', moisture: '14.1', impurity: '0', conclusion: 'accept', reason: '', remark: '', driver: '', driverPhone: '', contractNo: '', createdBy: 1, createdAt: trip.createdAt, updatedAt: trip.updatedAt, confirmedBy: 1, confirmedAt: trip.createdAt, voidedBy: null, voidedAt: null, voidReason: '' }],
+    inspections: [{ id: 11, number: 'HY-000001', tripId: 1, siteCode: trip.siteCode, status: 'confirmed', version: 2, originalId: null, plate: trip.plate, materialCode: 'M1', materialName: '高粱', partyCode: 'P1', partyName: '供货方', moisture: '14.1', impurity: '', bulkDensity: '750', conclusion: 'accept', reason: '', remark: '', driver: '', driverPhone: '', contractNo: '', createdBy: 1, createdAt: trip.createdAt, updatedAt: trip.updatedAt, confirmedBy: 1, confirmedAt: trip.createdAt, voidedBy: null, voidedAt: null, voidReason: '' }],
     permit: { id: 31, number: 'CM-000001', tripId: 1, version: 2, status: 'approved', inspectionId: 11, ticketId: 21, createdBy: 1, createdAt: trip.createdAt, approvedBy: 1, approvedAt: trip.updatedAt, tripNumber: trip.number, plate: trip.plate, siteCode: trip.siteCode, exitedAt: null, stage: 'permit_approved' },
     ticket: null, events: [], deductions: [],
   };
@@ -67,8 +67,8 @@ describe('exit evidence', () => {
     value.trip.ticketId = null;
     api.tripDetail.mockResolvedValue(value);
     renderWithProviders(<TripWorkspace />, { route: '/grain-intake/trips/1', path: '/grain-intake/trips/:id' });
-    await screen.findByText('下一步：确认现场卸粮');
-    const weighingTab = screen.getByRole('tab', { name: '卸粮与磅单' });
+    await screen.findByText('下一步：确认现场卸货');
+    const weighingTab = screen.getByRole('tab', { name: '卸货与磅单' });
     expect(screen.getByRole('tab', { name: '化验结果' })).toHaveAttribute('aria-selected', 'true');
     await userEvent.click(screen.getByRole('button', { name: '去办理' }));
     await waitFor(() => expect(weighingTab).toHaveAttribute('aria-selected', 'true'));

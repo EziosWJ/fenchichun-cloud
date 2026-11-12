@@ -1,4 +1,4 @@
-import { get, post, put } from '../../lib/api/client';
+import { get, post, put, del } from '../../lib/api/client';
 
 export interface DeductionCategory {
   code: string;
@@ -22,7 +22,7 @@ export interface DeductionRule {
   categoryCode: string;
   categoryName: string;
   mode: 'amount' | 'percent';
-  basisField: '' | 'moisture' | 'impurity';
+  basisField: '' | 'moisture';
   amountMilliTonne: number;
   version: number;
   effectiveFrom: string;
@@ -56,7 +56,7 @@ export interface DeductionRuleInput {
   materialCode: string;
   categoryCode: string;
   mode: 'amount' | 'percent';
-  basisField: '' | 'moisture' | 'impurity';
+  basisField: '' | 'moisture';
   amountMilliTonne: number;
   effectiveFrom: string;
   enabled: boolean;
@@ -67,7 +67,10 @@ export interface DeductionRuleInput {
 const base = '/grain-intake';
 
 export const deductionCategories = () => get<DeductionCategory[]>(`${base}/deduction-categories`);
+export const deductionPreview = (materialCode: string, moisture: string) =>
+  get<DeductionEvaluation[]>(`${base}/deduction-preview`, { materialCode, moisture });
 export const deductionRules = (materialCode?: string) => get<DeductionRule[]>(`${base}/deduction-rules`, materialCode ? { materialCode } : undefined);
 export const saveDeductionRule = (input: DeductionRuleInput, id?: number) => id
   ? put<DeductionRule>(`${base}/deduction-rules/${id}`, input)
   : post<DeductionRule>(`${base}/deduction-rules`, input);
+export const deleteDeductionRule = (id: number) => del<void>(`${base}/deduction-rules/${id}`);

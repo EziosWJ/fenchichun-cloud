@@ -8,6 +8,7 @@ import { usePermissions } from '../../hooks/usePermissions';
 import {
   deductionCategories,
   deductionRules,
+  deleteDeductionRule,
   saveDeductionRule,
   type DeductionCategory,
   type DeductionRangeInput,
@@ -16,6 +17,7 @@ import {
 } from '../../features/deduction/api';
 import { materials } from '../../features/weighbridge/api';
 import { getApiErrorMessage } from '../../lib/api/errors';
+import styles from './DeductionRulesPage.module.css';
 
 interface RangeValues {
   minValue: string;
@@ -28,7 +30,7 @@ interface Values {
   materialCode: string;
   categoryCode: string;
   mode: 'amount' | 'percent';
-  basisField: '' | 'moisture' | 'impurity';
+  basisField: '' | 'moisture';
   amountTonnes: number;
   effectiveFrom: string;
   enabled: boolean;
@@ -43,7 +45,7 @@ const blank: Values = {
 };
 
 const modeLabel = { amount: '按吨扣减', percent: '按比例扣减' } as const;
-const basisLabel: Record<string, string> = { moisture: '水分', impurity: '杂质' };
+const basisLabel: Record<string, string> = { moisture: '水分' };
 
 function rangeText(rule: DeductionRule): string {
   if (rule.mode === 'amount') return `${(rule.amountMilliTonne / 1000).toFixed(3)} 吨`;
@@ -73,7 +75,7 @@ function toInput(values: Values): DeductionRuleInput {
 }
 
 export default function DeductionRulesPage() {
-  const { message } = App.useApp();
+  const { message, modal } = App.useApp();
   const client = useQueryClient();
   const { has } = usePermissions();
   const canManage = has('grain-intake:deduction-rules');
@@ -101,13 +103,33 @@ export default function DeductionRulesPage() {
     setEditing(rule);
     form.setFieldsValue({
       code: rule.code, materialCode: rule.materialCode, categoryCode: rule.categoryCode,
-      mode: rule.mode, basisField: rule.basisField, amountTonnes: rule.amountMilliTonne / 1000,
+      mode: rule.mode, basisField: rule.basisField === 'moisture' ? 'moisture' : '', amountTonnes: rule.amountMilliTonne / 1000,
       effectiveFrom: rule.effectiveFrom ? rule.effectiveFrom.slice(0, 10) : '', enabled: rule.enabled, remark: rule.remark,
       ranges: rule.ranges.length > 0
         ? rule.ranges.map((item) => ({ minValue: item.minValue, maxValue: item.maxValue ?? '', ratePercent: item.rateBp / 100 }))
         : [{ minValue: '', maxValue: '', ratePercent: 0 }],
     });
     setOpen(true);
+  };
+
+  const remove = (rule: DeductionRule) => {
+    modal.confirm({
+      title: '删除扣减规则',
+      content: `确认删除“${rule.materialName} / ${rule.categoryName} / 版本 ${rule.version}”？同编码的其他版本不受影响，删除后不可恢复。`,
+      okText: '删除',
+      okButtonProps: { danger: true },
+      cancelText: '取消',
+      onOk: async () => {
+        try {
+          await deleteDeductionRule(rule.id);
+          message.success('扣减规则已删除');
+          refresh();
+        } catch (error) {
+          message.error(getApiErrorMessage(error));
+          throw error;
+        }
+      },
+    });
   };
 
   const columns: ColumnsType<DeductionRule> = [
@@ -120,13 +142,16 @@ export default function DeductionRulesPage() {
     { title: '生效日期', dataIndex: 'effectiveFrom', key: 'effectiveFrom', width: 120, render: (value: string) => value ? value.slice(0, 10) : '立即' },
     { title: '状态', dataIndex: 'enabled', key: 'enabled', width: 90, render: (value: boolean) => value ? <Tag color="green">启用</Tag> : <Tag>停用</Tag> },
     ...(canManage ? [{
-      title: '操作', key: 'actions', width: 90,
-      render: (_: unknown, row: DeductionRule) => <Button type="link" size="small" onClick={() => edit(row)}>编辑</Button>,
+      title: '操作', key: 'actions', width: 130,
+      render: (_: unknown, row: DeductionRule) => <Space size={4}>
+        <Button type="link" size="small" onClick={() => edit(row)}>编辑</Button>
+        <Button type="link" size="small" danger onClick={() => remove(row)}>删除</Button>
+      </Space>,
     }] : []),
   ];
 
   return <>
-    <PageHeader title="扣减规则" description="按物料配置水分、杂质等扣减类别。比例规则由云端给出比例，磅房按最终净重折算吨数；编辑生成新版本，未来生效的版本不覆盖当前版本。" />
+    <PageHeader title="扣减规则" />
     <Space orientation="vertical" size="middle" style={{ width: '100%', marginTop: 20 }}>
       <Space wrap align="end" style={{ width: '100%', justifyContent: 'space-between' }}>
         <Select allowClear placeholder="按物料筛选" style={{ width: 260 }} options={materialOptions} value={materialFilter} onChange={setMaterialFilter} />
@@ -147,68 +172,103 @@ export default function DeductionRulesPage() {
     <Modal
       title={editing ? '编辑扣减规则' : '新增扣减规则'}
       open={open}
-      width={760}
+      width={820}
       onCancel={() => setOpen(false)}
-      onOk={() => void form.validateFields().then((values) => save.mutate(values))}
+      onOk={() => {
+        void form.validateFields().then((values) => save.mutate(values)).catch(() => {});
+      }}
       confirmLoading={save.isPending}
+      okText="保存"
+      cancelText="取消"
       destroyOnHidden
     >
-      <Form form={form} layout="vertical" initialValues={blank}>
-        <Space wrap align="start">
-          <Form.Item name="materialCode" label="物料" rules={[{ required: true, message: '请选择物料' }]} style={{ width: 280 }}>
-            <Select showSearch optionFilterProp="label" options={materialOptions} />
-          </Form.Item>
-          <Form.Item name="categoryCode" label="扣减类别" rules={[{ required: true, message: '请选择扣减类别' }]} style={{ width: 180 }}>
-            <Select options={categoryOptions} />
-          </Form.Item>
-          <Form.Item name="code" label="规则编码" style={{ width: 180 }}>
-            <Input maxLength={40} placeholder="留空自动生成" disabled={!!editing} />
-          </Form.Item>
-        </Space>
-        <Form.Item name="mode" label="扣减方式" rules={[{ required: true }]}>
-          <Radio.Group options={[{ value: 'amount', label: '按吨直接扣减' }, { value: 'percent', label: '按检测值比例扣减' }]} />
-        </Form.Item>
-        {mode === 'amount'
-          ? <Form.Item name="amountTonnes" label="每车扣减重量（吨）" rules={[{ required: true, message: '请填写扣减重量' }]}>
-            <InputNumber min={0.001} step={0.001} precision={3} style={{ width: 200 }} />
-          </Form.Item>
-          : <>
-            <Form.Item name="basisField" label="检测值依据" rules={[{ required: true, message: '请选择依据' }]}>
-              <Select style={{ width: 200 }} options={[
-                { value: 'moisture', label: '水分（%）' },
-                { value: 'impurity', label: '杂质（%）' },
-              ]} />
+      <Form form={form} layout="vertical" initialValues={blank} className={styles.ruleForm}>
+        <section className={styles.formSection}>
+          <div className={styles.sectionTitle}>基本信息</div>
+          <div className={styles.grid3}>
+            <Form.Item name="materialCode" label="物料" rules={[{ required: true, message: '请选择物料' }]}>
+              <Select showSearch optionFilterProp="label" options={materialOptions} />
             </Form.Item>
-            <Form.List name="ranges" rules={[{
-              validator: async (_, value: RangeValues[]) => {
-                if (!value || value.length === 0) throw new Error('至少配置一个区间');
-              },
-            }]}>
-              {(fields, { add, remove }) => <Space orientation="vertical" style={{ width: '100%' }}>
-                <Typography.Text strong>扣减区间</Typography.Text>
-                {fields.map((field, index) => <Space key={field.key} align="baseline" wrap>
-                  <Form.Item label={index === 0 ? '起点（含）' : '起点'} name={[field.name, 'minValue']} rules={[{ required: true, message: '必填' }]}>
-                    <Input style={{ width: 120 }} placeholder="例如 13.0" />
-                  </Form.Item>
-                  <Form.Item label="终点（不含）" name={[field.name, 'maxValue']}>
-                    <Input style={{ width: 120 }} placeholder="留空表示不限" />
-                  </Form.Item>
-                  <Form.Item label="扣减比例（%）" name={[field.name, 'ratePercent']} rules={[{ required: true, message: '必填' }]}>
-                    <InputNumber min={0} max={100} step={0.01} precision={2} style={{ width: 140 }} />
-                  </Form.Item>
-                  <Button type="link" danger onClick={() => remove(field.name)}>删除</Button>
-                </Space>)}
-                <Button type="dashed" onClick={() => add({ minValue: '', maxValue: '', ratePercent: 0 })}>添加区间</Button>
-              </Space>}
-            </Form.List>
-          </>}
-        <Space wrap align="start">
-          <Form.Item name="effectiveFrom" label="生效日期" style={{ width: 180 }}>
-            <Input placeholder="2026-01-01，留空立即" />
+            <Form.Item name="categoryCode" label="扣减类别" rules={[{ required: true, message: '请选择扣减类别' }]}>
+              <Select options={categoryOptions} />
+            </Form.Item>
+            <Form.Item name="code" label="规则编码" extra="留空自动生成">
+              <Input maxLength={40} placeholder="留空自动生成" disabled={!!editing} />
+            </Form.Item>
+          </div>
+        </section>
+        <section className={styles.formSection}>
+          <div className={styles.sectionTitle}>扣减方式</div>
+          <Form.Item name="mode" rules={[{ required: true }]}>
+            <Radio.Group
+              optionType="button"
+              buttonStyle="solid"
+              options={[
+                { value: 'amount', label: '按吨直接扣减' },
+                { value: 'percent', label: '按水分比例扣减' },
+              ]}
+            />
           </Form.Item>
-          <Form.Item name="enabled" label="启用" valuePropName="checked"><Switch /></Form.Item>
-        </Space>
-        <Form.Item name="remark" label="备注"><Input.TextArea rows={3} maxLength={500} /></Form.Item>
+          {mode === 'amount'
+            ? <div className={styles.grid2}>
+              <Form.Item name="amountTonnes" label="每车扣减重量" rules={[{ required: true, message: '请填写扣减重量' }]}>
+                <InputNumber min={0.001} step={0.001} precision={3} suffix="吨/车" style={{ width: '100%' }} />
+              </Form.Item>
+              <div className={styles.fieldHint}>按固定重量扣减，不依赖化验检测值。</div>
+            </div>
+            : <>
+              <div className={styles.grid2}>
+                <Form.Item name="basisField" label="检测值依据" rules={[{ required: true, message: '请选择依据' }]}>
+                  <Select options={[{ value: 'moisture', label: '水分（%）' }]} />
+                </Form.Item>
+                <div className={styles.fieldHint}>按化验水分落入的区间比例扣减；比例由磅房按最终净重折算吨数。</div>
+              </div>
+              <Form.List name="ranges" rules={[{
+                validator: async (_, value: RangeValues[]) => {
+                  if (!value || value.length === 0) throw new Error('至少配置一个区间');
+                },
+              }]}>
+                {(fields, { add, remove: removeRange }) => <div className={styles.ranges}>
+                  <div className={styles.rangeHeader}>
+                    <Typography.Text strong>扣减区间</Typography.Text>
+                    <Button type="dashed" size="small" onClick={() => add({ minValue: '', maxValue: '', ratePercent: 0 })}>添加区间</Button>
+                  </div>
+                  {fields.map((field, index) => <div key={field.key} className={styles.rangeCard}>
+                    <div className={styles.rangeCardHead}>
+                      <span>区间 {index + 1}</span>
+                      {fields.length > 1 && <Button type="text" size="small" danger onClick={() => removeRange(field.name)}>删除</Button>}
+                    </div>
+                    <div className={styles.rangeGrid}>
+                      <Form.Item label="起点（含）" name={[field.name, 'minValue']} rules={[{ required: true, message: '必填' }]}>
+                        <InputNumber stringMode min="0" precision={6} placeholder="例如 13.0" style={{ width: '100%' }} />
+                      </Form.Item>
+                      <Form.Item label="终点（不含）" name={[field.name, 'maxValue']}>
+                        <InputNumber stringMode min="0" precision={6} placeholder="留空表示不限" style={{ width: '100%' }} />
+                      </Form.Item>
+                      <Form.Item label="扣减比例（%）" name={[field.name, 'ratePercent']} rules={[{ required: true, message: '必填' }]}>
+                        <InputNumber min={0} max={100} step={0.01} precision={2} suffix="%" style={{ width: '100%' }} />
+                      </Form.Item>
+                    </div>
+                  </div>)}
+                </div>}
+              </Form.List>
+            </>}
+        </section>
+        <section className={styles.formSection}>
+          <div className={styles.sectionTitle}>生效与备注</div>
+          <div className={styles.grid3}>
+            <Form.Item name="effectiveFrom" label="生效日期" extra="留空表示立即生效">
+              <Input placeholder="2026-01-01" />
+            </Form.Item>
+            <Form.Item name="enabled" label="启用" valuePropName="checked">
+              <Switch />
+            </Form.Item>
+            <div />
+          </div>
+          <Form.Item name="remark" label="备注" style={{ marginBottom: 0 }}>
+            <Input.TextArea rows={3} maxLength={500} showCount placeholder="选填，说明规则来源或适用范围" />
+          </Form.Item>
+        </section>
       </Form>
     </Modal>
   </>;

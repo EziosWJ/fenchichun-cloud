@@ -148,7 +148,7 @@ export default function InspectionsPage() {
           <h3>检测结果</h3>
           <Descriptions size="small" layout="vertical" column={{ xs: 1, sm: 2 }} items={[
             { key: 'moisture', label: '水分（%）', children: value.moisture || '—' },
-            ...(value.impurity ? [{ key: 'impurity', label: '杂质（%）', children: value.impurity }] : []),
+            { key: 'bulkDensity', label: '容量（g/L）', children: value.bulkDensity || '—' },
             { key: 'reason', label: '拒收原因', children: value.reason || '—' },
           ]} />
         </section>

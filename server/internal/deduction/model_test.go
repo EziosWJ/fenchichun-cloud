@@ -17,6 +17,11 @@ func TestInputValidate(t *testing.T) {
 	if err := missingBasis.validate(); err == nil {
 		t.Fatal("percent rule without basis accepted")
 	}
+	impurityBasis := base
+	impurityBasis.BasisField = BasisImpurity
+	if err := impurityBasis.validate(); err == nil {
+		t.Fatal("percent rule with impurity basis accepted")
+	}
 	amountWithRanges := Input{MaterialCode: "C-M-0010", CategoryCode: "IMPURITY", Mode: ModeAmount, AmountMilliTonne: 50, Enabled: true, Ranges: []RangeInput{{MinValue: "0", MaxValue: "1", RateBP: 100}}}
 	if err := amountWithRanges.validate(); err == nil {
 		t.Fatal("amount rule with ranges accepted")

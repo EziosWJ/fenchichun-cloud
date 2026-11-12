@@ -230,6 +230,36 @@ func (r *Repository) Save(ctx context.Context, actor, id int64, in Input, e audi
 	return result, err
 }
 
+// Delete removes one rule version and its ranges. Other versions of the same
+// rule code remain; if the deleted row was the effective version, the previous
+// version becomes effective again according to its date and enabled state.
+func (r *Repository) Delete(ctx context.Context, actor, id int64, e audit.Event) error {
+	if id <= 0 {
+		return ErrInvalid
+	}
+	return r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		if err := requireManage(tx, actor); err != nil {
+			return err
+		}
+		var rule Rule
+		if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).Where("id=?", id).Take(&rule).Error; err != nil {
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				return ErrNotFound
+			}
+			return err
+		}
+		if err := tx.Where("rule_id=?", id).Delete(&Range{}).Error; err != nil {
+			return err
+		}
+		if err := tx.Where("id=?", id).Delete(&Rule{}).Error; err != nil {
+			return err
+		}
+		e.Resource = "grain-deduction-rule"
+		e.ResourceID = id
+		return audit.RecordOn(ctx, tx, e)
+	})
+}
+
 // Evaluate resolves every active rule for the material against the inspection
 // values. Percent rules return their band rate; the weighing client converts
 // that rate to tonnes against the final net weight.

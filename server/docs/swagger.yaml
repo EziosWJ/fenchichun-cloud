@@ -540,6 +540,8 @@ definitions:
     type: object
   grainintake.SyncInspection:
     properties:
+      bulkDensity:
+        type: string
       conclusion:
         type: string
       confirmedAt:
@@ -733,6 +735,8 @@ definitions:
     type: object
   laboratory.Input:
     properties:
+      bulkDensity:
+        type: string
       conclusion:
         type: string
       contractNo:
@@ -762,6 +766,8 @@ definitions:
     type: object
   laboratory.Inspection:
     properties:
+      bulkDensity:
+        type: string
       conclusion:
         type: string
       confirmedAt:
@@ -2057,6 +2063,32 @@ paths:
       summary: 查询扣减类别字典
       tags:
       - 原粮流转
+  /api/v1/grain-intake/deduction-preview:
+    get:
+      description: 仅返回水分依据的扣减规则，供化验单录入水分后预览；容量不作为扣减依据，杂质在称重台二次称重时录入。
+      parameters:
+      - description: 物料编码
+        in: query
+        name: materialCode
+        required: true
+        type: string
+      - description: 水分（%）
+        in: query
+        name: moisture
+        required: true
+        type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/deduction.Evaluation'
+            type: array
+      security:
+      - BearerAuth: []
+      summary: 按物料和水分预览扣减规则
+      tags:
+      - 原粮流转
   /api/v1/grain-intake/deduction-rules:
     get:
       parameters:
@@ -2095,6 +2127,20 @@ paths:
       tags:
       - 原粮流转
   /api/v1/grain-intake/deduction-rules/{id}:
+    delete:
+      description: 删除指定版本及其区间；同编码的其他版本保留。
+      parameters:
+      - description: 规则 ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      responses: {}
+      security:
+      - BearerAuth: []
+      summary: 删除扣减规则版本
+      tags:
+      - 原粮流转
     put:
       parameters:
       - description: 规则 ID

@@ -33,7 +33,7 @@ func TestPostgresLaboratoryLifecycle(t *testing.T) {
 	if _, err := service.Transition(ctx, draft.ID, draft.Version, "confirm", "", e); !errors.Is(err, laboratory.ErrInvalid) {
 		t.Fatalf("empty confirm: %v", err)
 	}
-	input := laboratory.Input{SiteCode: "LAB", Plate: "晋A12345", MaterialCode: "C-M-0010", PartyCode: "C-P-0001", Moisture: "14.1", Impurity: "1", Conclusion: "reject", Reason: "水分偏高"}
+	input := laboratory.Input{SiteCode: "LAB", Plate: "晋A12345", MaterialCode: "C-M-0010", PartyCode: "C-P-0001", Moisture: "14.1", BulkDensity: "750", Conclusion: "reject", Reason: "水分偏高"}
 	updated, err := service.Save(ctx, draft.ID, draft.Version, input, e)
 	if err != nil {
 		t.Fatal(err)

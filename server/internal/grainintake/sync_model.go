@@ -15,6 +15,7 @@ type SyncInspection struct {
 	Conclusion  string     `json:"conclusion"`
 	Moisture    string     `json:"moisture"`
 	Impurity    string     `json:"impurity"`
+	BulkDensity string     `json:"bulkDensity,omitempty"`
 	Reason      string     `json:"reason,omitempty"`
 	ConfirmedAt *time.Time `json:"confirmedAt,omitempty"`
 }

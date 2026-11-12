@@ -85,7 +85,7 @@ func (r *Repository) syncTrips(ctx context.Context, siteCode, plate, tripNo stri
 				if value, ok := inspections[*row.EffectiveInspectionID]; ok {
 					trip.Inspection = &SyncInspection{
 						ID: value.ID, Version: value.Version, Status: value.Status,
-						Conclusion: value.Conclusion, Moisture: value.Moisture, Impurity: value.Impurity,
+						Conclusion: value.Conclusion, Moisture: value.Moisture, Impurity: value.Impurity, BulkDensity: value.BulkDensity,
 						Reason: value.Reason, ConfirmedAt: value.ConfirmedAt,
 					}
 				}

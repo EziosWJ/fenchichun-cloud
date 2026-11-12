@@ -1,4 +1,6 @@
-// Package deduction manages grain-specific moisture/impurity deduction rules.
+// Package deduction manages material-specific deduction rules: moisture-based
+// percentage bands and fixed-amount categories. Impurity is entered by the
+// weighing site during the second weigh and is not configured here.
 package deduction
 
 import (
@@ -52,8 +54,8 @@ type Range struct {
 func (Range) TableName() string { return "grain_deduction_rule_range" }
 
 // Rule is one deduction reason for a material. Several rules may apply to the
-// same material, which is how percentage moisture and fixed-amount impurity
-// deductions are combined.
+// same material, combining moisture percentage bands with fixed-amount
+// categories.
 type Rule struct {
 	ID               int64     `json:"id"`
 	Code             string    `json:"code"`
@@ -151,9 +153,9 @@ func (in Input) validate() error {
 			return fmt.Errorf("%w：按比例扣减不能填写固定扣减重量", ErrInvalid)
 		}
 		switch in.BasisField {
-		case BasisMoisture, BasisImpurity:
+		case BasisMoisture:
 		default:
-			return fmt.Errorf("%w：按比例扣减须选择水分或杂质依据", ErrInvalid)
+			return fmt.Errorf("%w：按比例扣减须选择水分依据", ErrInvalid)
 		}
 		if len(in.Ranges) == 0 {
 			return fmt.Errorf("%w：按比例扣减至少配置一个区间", ErrInvalid)
