@@ -72,7 +72,11 @@ func key(c *gin.Context) (int64, bool) {
 func query(c *gin.Context) Query {
 	page, _ := strconv.Atoi(c.Query("page"))
 	size, _ := strconv.Atoi(c.Query("pageSize"))
-	return Query{Page: page, PageSize: size, Keyword: c.Query("keyword"), Stage: c.Query("stage"), Order: c.Query("order"), Method: c.Query("method")}
+	return Query{
+		Page: page, PageSize: size, Keyword: c.Query("keyword"), Stage: c.Query("stage"),
+		Order: c.Query("order"), Method: c.Query("method"), SiteCode: c.Query("siteCode"),
+		MaterialCode: c.Query("materialCode"), Result: c.Query("result"), DateFrom: c.Query("dateFrom"), DateTo: c.Query("dateTo"),
+	}
 }
 
 // defaults godoc
@@ -117,6 +121,11 @@ type PermitPageResponse struct {
 // @Param page query int false "页码"
 // @Param pageSize query int false "每页条数"
 // @Param keyword query string false "流转单号、车牌或供应商"
+// @Param siteCode query string false "厂区编码"
+// @Param materialCode query string false "物料编码"
+// @Param result query string false "化验结果：pending/accept/reject"
+// @Param dateFrom query string false "登记开始日期，格式 YYYY-MM-DD"
+// @Param dateTo query string false "登记结束日期，格式 YYYY-MM-DD"
 // @Param stage query string false "办理阶段"
 // @Success 200 {object} TripPageResponse
 // @Router /api/v1/grain-intake/trips [get]

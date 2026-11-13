@@ -4,6 +4,7 @@ import (
 	"context"
 	"fenchichun.local/server/internal/audit"
 	"strings"
+	"time"
 	"unicode/utf8"
 )
 
@@ -45,6 +46,40 @@ func normalizeQuery(q Query) (Query, error) {
 	switch q.Method {
 	case "", "lab", "visual":
 	default:
+		return q, ErrInvalid
+	}
+	q.SiteCode = strings.TrimSpace(q.SiteCode)
+	if utf8.RuneCountInString(q.SiteCode) > 80 {
+		return q, ErrInvalid
+	}
+	q.MaterialCode = strings.TrimSpace(q.MaterialCode)
+	if utf8.RuneCountInString(q.MaterialCode) > 80 {
+		return q, ErrInvalid
+	}
+	q.Result = strings.TrimSpace(q.Result)
+	switch q.Result {
+	case "", "pending", "accept", "reject":
+	default:
+		return q, ErrInvalid
+	}
+	q.DateFrom = strings.TrimSpace(q.DateFrom)
+	q.DateTo = strings.TrimSpace(q.DateTo)
+	zone := time.FixedZone("Asia/Shanghai", 8*60*60)
+	if q.DateFrom != "" {
+		parsed, err := time.ParseInLocation("2006-01-02", q.DateFrom, zone)
+		if err != nil {
+			return q, ErrInvalid
+		}
+		q.DateFromAt = &parsed
+	}
+	if q.DateTo != "" {
+		parsed, err := time.ParseInLocation("2006-01-02", q.DateTo, zone)
+		if err != nil {
+			return q, ErrInvalid
+		}
+		q.DateToAt = &parsed
+	}
+	if q.DateFromAt != nil && q.DateToAt != nil && q.DateFromAt.After(*q.DateToAt) {
 		return q, ErrInvalid
 	}
 	return q, nil

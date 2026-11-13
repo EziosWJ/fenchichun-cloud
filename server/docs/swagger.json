@@ -502,6 +502,36 @@
                     },
                     {
                         "type": "string",
+                        "description": "厂区编码",
+                        "name": "siteCode",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "物料编码",
+                        "name": "materialCode",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "化验结果：pending/accept/reject",
+                        "name": "result",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "登记开始日期，格式 YYYY-MM-DD",
+                        "name": "dateFrom",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "登记结束日期，格式 YYYY-MM-DD",
+                        "name": "dateTo",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
                         "description": "办理阶段",
                         "name": "stage",
                         "in": "query"

@@ -40,9 +40,22 @@ func TestQueryRejectsUnknownStage(t *testing.T) {
 	if _, err := normalizeQuery(Query{Method: "any-method"}); err == nil {
 		t.Fatal("unknown method accepted")
 	}
+	if _, err := normalizeQuery(Query{Result: "any-result"}); err == nil {
+		t.Fatal("unknown inspection result accepted")
+	}
+	if _, err := normalizeQuery(Query{DateFrom: "2026-13-01"}); err == nil {
+		t.Fatal("invalid start date accepted")
+	}
+	if _, err := normalizeQuery(Query{DateFrom: "2026-11-02", DateTo: "2026-11-01"}); err == nil {
+		t.Fatal("reversed date range accepted")
+	}
 	q, err := normalizeQuery(Query{Page: -1, PageSize: 1000})
 	if err != nil || q.Page != 1 || q.PageSize != 100 {
 		t.Fatalf("pagination: %+v %v", q, err)
+	}
+	q, err = normalizeQuery(Query{SiteCode: " SITE01 ", Result: "pending", DateFrom: "2026-11-01", DateTo: "2026-11-02"})
+	if err != nil || q.SiteCode != "SITE01" || q.Result != "pending" || q.DateFromAt == nil || q.DateToAt == nil {
+		t.Fatalf("query filters: %+v %v", q, err)
 	}
 }
 

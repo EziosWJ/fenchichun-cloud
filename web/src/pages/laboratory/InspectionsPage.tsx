@@ -1,11 +1,13 @@
 import { useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Alert, App, Button, Descriptions, Input, Modal, Space, Tag, Tooltip, Typography } from 'antd';
+import { Alert, App, Button, DatePicker, Descriptions, Input, Modal, Select, Space, Tag, Tooltip, Typography } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import dayjs from 'dayjs';
 import { DataTable } from '../../components/DataTable';
 import { PageHeader } from '../../components/PageHeader';
 import { trips, type Trip } from '../../features/grain-intake/api';
+import { sites } from '../../features/weighbridge/api';
 import { inspection as fetchInspection, voidInspection, type Inspection } from '../../features/laboratory/api';
 import { getApiErrorMessage } from '../../lib/api/errors';
 import { formatDateTime } from '../../utils/format';
@@ -27,6 +29,9 @@ export default function InspectionsPage() {
   const initialKeyword = urlParams.get('keyword') ?? '';
   const [keyword, setKeyword] = useState(initialKeyword);
   const [search, setSearch] = useState(initialKeyword);
+  const [siteCode, setSiteCode] = useState<string>();
+  const [result, setResult] = useState<string>();
+  const [dateRange, setDateRange] = useState<[string, string] | null>(null);
   const [selected, setSelected] = useState<Trip>();
   const [viewingTrip, setViewingTrip] = useState<Trip>();
   const [viewId, setViewId] = useState<number>();
@@ -35,8 +40,18 @@ export default function InspectionsPage() {
   const [voidSubmitting, setVoidSubmitting] = useState(false);
   const { has } = usePermissions();
   const canInspect = has('laboratory:inspect');
-  const params = { page, pageSize, keyword: search || undefined, order: 'inspection_first', method: 'lab' };
+  const params = {
+    page, pageSize, keyword: search || undefined, order: 'inspection_first', method: 'lab',
+    siteCode: siteCode || undefined, result: result || undefined,
+    dateFrom: dateRange?.[0], dateTo: dateRange?.[1],
+  };
   const list = useQuery({ queryKey: ['laboratory', 'trips', params], queryFn: () => trips(params) });
+  const siteList = useQuery({ queryKey: ['weighbridge-sites'], queryFn: sites });
+  const siteOptions = (siteList.data ?? []).map((item) => ({ value: item.code, label: `${item.name}（${item.code}）` }));
+  const hasFilters = !!(siteCode || result || dateRange || search);
+  const resetFilters = () => {
+    setKeyword(''); setSearch(''); setSiteCode(undefined); setResult(undefined); setDateRange(null); setPage(1);
+  };
   const detail = useQuery({
     queryKey: ['laboratory', 'inspection', viewId],
     queryFn: () => fetchInspection(viewId!),
@@ -88,15 +103,48 @@ export default function InspectionsPage() {
   return <>
     <PageHeader title="化验单" />
     <Space orientation="vertical" size="middle" style={{ width: '100%', marginTop: 20 }}>
-      <Input.Search
-        aria-label="单号、车牌或供应商"
-        placeholder="单号、车牌或供应商"
-        value={keyword}
-        allowClear
-        onChange={(e) => setKeyword(e.target.value)}
-        onSearch={(value) => { setSearch(value); setPage(1); }}
-        style={{ maxWidth: 360 }}
-      />
+      <Space wrap align="center" style={{ width: '100%' }}>
+        <Input.Search
+          aria-label="单号、车牌或供应商"
+          placeholder="单号、车牌或供应商"
+          value={keyword}
+          allowClear
+          onChange={(e) => { setKeyword(e.target.value); if (!e.target.value) { setSearch(''); setPage(1); } }}
+          onSearch={(value) => { setSearch(value); setPage(1); }}
+          style={{ width: 300 }}
+        />
+        <Select
+          allowClear
+          placeholder="全部厂区"
+          style={{ width: 190 }}
+          loading={siteList.isLoading}
+          options={siteOptions}
+          value={siteCode}
+          onChange={(value) => { setSiteCode(value); setPage(1); }}
+        />
+        <Select
+          allowClear
+          placeholder="全部化验结果"
+          style={{ width: 150 }}
+          options={[
+            { value: 'pending', label: '待化验' },
+            { value: 'accept', label: '接收' },
+            { value: 'reject', label: '拒收' },
+          ]}
+          value={result}
+          onChange={(value) => { setResult(value); setPage(1); }}
+        />
+        <DatePicker.RangePicker
+          allowClear
+          placeholder={['登记开始', '登记结束']}
+          value={dateRange ? [dayjs(dateRange[0]), dayjs(dateRange[1])] : null}
+          onChange={(dates) => {
+            setDateRange(dates?.[0] && dates[1] ? [dates[0].format('YYYY-MM-DD'), dates[1].format('YYYY-MM-DD')] : null);
+            setPage(1);
+          }}
+        />
+        {hasFilters && <Button onClick={resetFilters}>重置筛选</Button>}
+      </Space>
       {list.isError && <Alert type="error" title={getApiErrorMessage(list.error)} action={<Button onClick={() => void list.refetch()}>重试</Button>} />}
       <DataTable
         tableKey="laboratory-trips"

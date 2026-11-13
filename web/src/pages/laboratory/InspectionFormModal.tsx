@@ -100,31 +100,25 @@ export default function InspectionFormModal({ trip, open, onClose, onSaved }: {
     <Form form={form} layout="vertical" initialValues={blank}>
       <div className={styles.detail}>
         <div className={styles.identity}>
-          <div className={styles.identityTop}>
-            <div className={styles.tripLine} title="流转单号 / 车次">
-              <FileText size={14} aria-hidden />
-              <Typography.Text className={styles.tripNo} copyable={{ text: trip.number }}>{trip.number}</Typography.Text>
-            </div>
-            <div className={styles.siteLine} title="厂区">
-              <Building2 size={13} aria-hidden />
-              <span>{trip.siteCode}</span>
-            </div>
+          <div className={styles.identityItem} title="流转单号 / 车次">
+            <span className={styles.identityIcon} aria-hidden><FileText size={15} /></span>
+            <div className={styles.identityValue}><Typography.Text copyable={{ text: trip.number }}>{trip.number}</Typography.Text></div>
           </div>
-          <div className={styles.identityMain}>
-            <div className={styles.plateLine} title="车牌">
-              <Truck size={16} aria-hidden />
-              <strong className={styles.plateBadge}>{trip.plate}</strong>
-            </div>
-            <div className={styles.identityText}>
-              <div className={styles.materialLine} title="粮种">
-                <Wheat size={15} aria-hidden />
-                <span className={styles.materialName}>{trip.materialName}</span>
-              </div>
-              <div className={styles.supplierLine} title="供应商">
-                <Users size={13} aria-hidden />
-                <span className={styles.supplierName}>{trip.partyName || '—'}</span>
-              </div>
-            </div>
+          <div className={styles.identityItem} title="粮种">
+            <span className={styles.identityIcon} aria-hidden><Wheat size={15} /></span>
+            <strong className={`${styles.identityValue} ${styles.identityMaterial}`}>{trip.materialName}</strong>
+          </div>
+          <div className={styles.identityItem} title="车牌">
+            <span className={styles.identityIcon} aria-hidden><Truck size={15} /></span>
+            <strong className={`${styles.identityValue} ${styles.identityPlate}`}>{trip.plate}</strong>
+          </div>
+          <div className={`${styles.identityItem} ${styles.identitySupplier}`} title="供应商">
+            <span className={styles.identityIcon} aria-hidden><Users size={15} /></span>
+            <strong className={styles.identityValue} title={trip.partyName}>{trip.partyName || '—'}</strong>
+          </div>
+          <div className={styles.identityItem} title="厂区">
+            <span className={styles.identityIcon} aria-hidden><Building2 size={15} /></span>
+            <strong className={styles.identityValue}>{trip.siteCode}</strong>
           </div>
         </div>
         <section className={styles.resultCard}>

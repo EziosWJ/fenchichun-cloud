@@ -171,6 +171,13 @@ type Query struct {
 	Keyword, Stage string
 	Order          string
 	Method         string
+	SiteCode       string
+	MaterialCode   string
+	Result         string
+	DateFrom       string
+	DateTo         string
+	DateFromAt     *time.Time
+	DateToAt       *time.Time
 	Gate           bool
 }
 type TripPage struct {

@@ -7,7 +7,9 @@ import { useAuthStore } from '../../src/stores/useAuthStore';
 import type { Trip } from '../../src/features/grain-intake/api';
 
 const api = vi.hoisted(() => ({ trips: vi.fn(), tripDefaults: vi.fn() }));
+const wb = vi.hoisted(() => ({ sites: vi.fn() }));
 vi.mock('../../src/features/grain-intake/api', () => api);
+vi.mock('../../src/features/weighbridge/api', () => wb);
 vi.mock('../../src/pages/laboratory/InspectionFormModal', () => ({ default: ({ trip }: { trip: Trip }) => <div>化验录入 {trip.number}</div> }));
 
 const base: Trip = {
@@ -23,6 +25,7 @@ beforeEach(() => {
   vi.clearAllMocks();
   useAuthStore.setState({ permissions: ['laboratory:inspect'] });
   api.trips.mockResolvedValue({ items: [], total: 0, page: 1, pageSize: 10 });
+  wb.sites.mockResolvedValue([{ code: 'F001', name: '测试厂', enabled: true }]);
 });
 
 describe('laboratory workbench', () => {
@@ -48,5 +51,13 @@ describe('laboratory workbench', () => {
     renderWithProviders(<InspectionsPage />);
     await screen.findByText('LZ-000001').catch(() => undefined);
     expect(api.trips).toHaveBeenCalledWith(expect.objectContaining({ order: 'inspection_first' }));
+  });
+
+  it('renders site, result and registration date filters', async () => {
+    renderWithProviders(<InspectionsPage />);
+    expect(await screen.findByText('全部厂区')).toBeInTheDocument();
+    expect(screen.getByText('全部化验结果')).toBeInTheDocument();
+    expect(screen.getByPlaceholderText('登记开始')).toBeInTheDocument();
+    expect(screen.getByPlaceholderText('登记结束')).toBeInTheDocument();
   });
 });

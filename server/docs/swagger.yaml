@@ -2273,6 +2273,26 @@ paths:
         in: query
         name: keyword
         type: string
+      - description: 厂区编码
+        in: query
+        name: siteCode
+        type: string
+      - description: 物料编码
+        in: query
+        name: materialCode
+        type: string
+      - description: 化验结果：pending/accept/reject
+        in: query
+        name: result
+        type: string
+      - description: 登记开始日期，格式 YYYY-MM-DD
+        in: query
+        name: dateFrom
+        type: string
+      - description: 登记结束日期，格式 YYYY-MM-DD
+        in: query
+        name: dateTo
+        type: string
       - description: 办理阶段
         in: query
         name: stage

@@ -70,6 +70,26 @@ func (r *Repository) Trips(ctx context.Context, actor int64, q Query) (TripPage,
 		if q.Method != "" {
 			query = query.Where("t.inspection_method=?", q.Method)
 		}
+		if q.SiteCode != "" {
+			query = query.Where("t.site_code=?", q.SiteCode)
+		}
+		if q.MaterialCode != "" {
+			query = query.Where("t.material_code=?", q.MaterialCode)
+		}
+		switch q.Result {
+		case "pending":
+			query = query.Where("ti.id IS NULL")
+		case "accept":
+			query = query.Where("ti.conclusion='accept'")
+		case "reject":
+			query = query.Where("ti.conclusion='reject'")
+		}
+		if q.DateFromAt != nil {
+			query = query.Where("t.created_at >= ?", *q.DateFromAt)
+		}
+		if q.DateToAt != nil {
+			query = query.Where("t.created_at < ?", q.DateToAt.AddDate(0, 0, 1))
+		}
 		if q.Keyword != "" {
 			term := "%" + q.Keyword + "%"
 			query = query.Where("t.number LIKE ? OR t.plate LIKE ? OR t.party_name LIKE ?", term, term, term)
