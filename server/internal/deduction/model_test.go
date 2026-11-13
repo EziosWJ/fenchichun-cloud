@@ -1,6 +1,9 @@
 package deduction
 
-import "testing"
+import (
+	"errors"
+	"testing"
+)
 
 func TestInputValidate(t *testing.T) {
 	base := Input{MaterialCode: "C-M-0010", CategoryCode: "WATER", Mode: ModePercent, BasisField: BasisMoisture, Enabled: true, Ranges: []RangeInput{{MinValue: "13", MaxValue: "14", RateBP: 100}}}
@@ -36,5 +39,17 @@ func TestValidateRangesAdjacent(t *testing.T) {
 	ranges := []RangeInput{{MinValue: "0", MaxValue: "13", RateBP: 0}, {MinValue: "13", MaxValue: "14", RateBP: 100}, {MinValue: "14", MaxValue: "", RateBP: 150}}
 	if err := validateRanges(ranges); err != nil {
 		t.Fatalf("adjacent ranges rejected: %v", err)
+	}
+}
+
+func TestValidateRuleMaterial(t *testing.T) {
+	if err := validateRuleMaterial(MaterialInspectionLab, true); err != nil {
+		t.Fatalf("lab material rejected: %v", err)
+	}
+	if err := validateRuleMaterial("visual", false); err != nil {
+		t.Fatalf("disabled visual-material rule rejected: %v", err)
+	}
+	if err := validateRuleMaterial("visual", true); !errors.Is(err, ErrInvalid) {
+		t.Fatalf("enabled visual-material rule error = %v, want ErrInvalid", err)
 	}
 }

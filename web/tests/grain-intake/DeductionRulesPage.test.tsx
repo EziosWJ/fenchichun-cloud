@@ -21,6 +21,9 @@ const rule = {
   amountMilliTonne: 0, version: 1, effectiveFrom: '2026-01-01T00:00:00Z', enabled: true, remark: '',
   ranges: [{ minValue: '13', maxValue: '14', rateBp: 100, sortOrder: 1 }],
 };
+const visualRule = {
+  ...rule, id: 8, code: 'DR-LOCAL-WOOD-WATER', materialCode: 'C-M-0020', materialName: '木板',
+};
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -31,7 +34,10 @@ beforeEach(() => {
   ]);
   api.deductionRules.mockResolvedValue([rule]);
   api.deleteDeductionRule.mockResolvedValue(undefined);
-  wb.materials.mockResolvedValue([{ code: 'C-M-0010', name: '高粱', spec: '', categoryCode: null, inspectionMethod: 'lab', remark: '', enabled: true }]);
+  wb.materials.mockResolvedValue([
+    { code: 'C-M-0010', name: '高粱', spec: '', categoryCode: null, inspectionMethod: 'lab', remark: '', enabled: true },
+    { code: 'C-M-0020', name: '木板', spec: '', categoryCode: null, inspectionMethod: 'visual', remark: '', enabled: true },
+  ]);
 });
 
 describe('deduction rules page', () => {
@@ -56,5 +62,18 @@ describe('deduction rules page', () => {
     expect(within(dialog).queryByText('生效日期')).not.toBeInTheDocument();
     expect(within(dialog).getByText('按百分比扣减')).toBeInTheDocument();
     expect(within(dialog).getByText('启用')).toBeInTheDocument();
+  });
+
+  it('marks rules for visual-inspection materials as inactive', async () => {
+    api.deductionRules.mockResolvedValue([rule, visualRule]);
+    const user = userEvent.setup();
+    renderWithProviders(<DeductionRulesPage />);
+    await screen.findByText('木板');
+    expect(screen.getByText('启用 · 不生效')).toBeInTheDocument();
+    const visualRow = screen.getByText('木板').closest('tr');
+    expect(visualRow).not.toBeNull();
+    await user.click(within(visualRow!).getByRole('button', { name: '编辑' }));
+    const dialog = await screen.findByRole('dialog');
+    expect(within(dialog).getByText('该物料的扣减规则不会生效')).toBeInTheDocument();
   });
 });

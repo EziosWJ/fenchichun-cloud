@@ -123,10 +123,11 @@ func (r *Repository) Save(ctx context.Context, actor, id int64, in Input, e audi
 			return err
 		}
 		var material struct {
-			Name    string
-			Enabled bool
+			Name             string
+			Enabled          bool
+			InspectionMethod string `gorm:"column:inspection_method"`
 		}
-		if err := tx.Table("wb_cloud_material").Select("name, enabled").Where("code=?", in.MaterialCode).Take(&material).Error; err != nil {
+		if err := tx.Table("wb_cloud_material").Select("name, enabled, inspection_method").Where("code=?", in.MaterialCode).Take(&material).Error; err != nil {
 			if errors.Is(err, gorm.ErrRecordNotFound) {
 				return fmt.Errorf("%w：物料不存在", ErrInvalid)
 			}
@@ -134,6 +135,9 @@ func (r *Repository) Save(ctx context.Context, actor, id int64, in Input, e audi
 		}
 		if !material.Enabled {
 			return fmt.Errorf("%w：物料已停用", ErrInvalid)
+		}
+		if err := validateRuleMaterial(material.InspectionMethod, in.Enabled); err != nil {
+			return err
 		}
 		var category Category
 		if err := tx.Where("code=?", in.CategoryCode).Take(&category).Error; err != nil {

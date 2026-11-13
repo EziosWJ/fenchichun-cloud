@@ -28,6 +28,8 @@ const (
 
 	BasisMoisture = "moisture"
 	BasisImpurity = "impurity"
+
+	MaterialInspectionLab = "lab"
 )
 
 var decimal = regexp.MustCompile(`^(0|[1-9][0-9]{0,5})(\.[0-9]{1,6})?$`)
@@ -170,6 +172,13 @@ func (in Input) validate() error {
 		if _, err := parseTime(in.EffectiveFrom); err != nil {
 			return fmt.Errorf("%w：生效时间格式不正确", ErrInvalid)
 		}
+	}
+	return nil
+}
+
+func validateRuleMaterial(inspectionMethod string, enabled bool) error {
+	if enabled && inspectionMethod != MaterialInspectionLab {
+		return fmt.Errorf("%w：该物料为目测检验，不会生成化验单，扣减规则不会生效；请先将物料检验方式改为化验，或保存为停用", ErrInvalid)
 	}
 	return nil
 }

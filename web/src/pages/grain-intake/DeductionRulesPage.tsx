@@ -81,6 +81,7 @@ export default function DeductionRulesPage() {
   const [materialFilter, setMaterialFilter] = useState<string>();
   const [form] = Form.useForm<Values>();
   const mode = Form.useWatch('mode', form) ?? 'percent';
+  const materialCode = Form.useWatch('materialCode', form);
 
   const categories = useQuery({ queryKey: ['deduction-categories'], queryFn: deductionCategories });
   const materialList = useQuery({ queryKey: ['weighbridge-materials'], queryFn: materials });
@@ -93,8 +94,18 @@ export default function DeductionRulesPage() {
     onError: (error) => message.error(getApiErrorMessage(error)),
   });
 
-  const materialOptions = (materialList.data ?? []).filter((item) => item.enabled).map((item) => ({ value: item.code, label: `${item.name}（${item.code}）` }));
+  const materialsByCode = new Map((materialList.data ?? []).map((item) => [item.code, item]));
+  const filterMaterialOptions = (materialList.data ?? []).map((item) => ({ value: item.code, label: `${item.name}（${item.code}）` }));
+  const ruleMaterialOptions = (materialList.data ?? [])
+    .filter((item) => item.enabled || item.code === editing?.materialCode)
+    .map((item) => ({
+      value: item.code,
+      label: `${item.name}（${item.code}）${item.inspectionMethod === 'visual' ? ' · 目测检验，不适用扣减规则' : ''}`,
+      disabled: item.inspectionMethod === 'visual' && item.code !== editing?.materialCode,
+    }));
   const categoryOptions = (categories.data ?? []).filter((item: DeductionCategory) => item.enabled).map((item) => ({ value: item.code, label: item.name }));
+  const selectedMaterial = materialCode ? materialsByCode.get(materialCode) : undefined;
+  const selectedIsVisual = selectedMaterial?.inspectionMethod === 'visual';
 
   const edit = (rule: DeductionRule) => {
     setEditing(rule);
@@ -130,12 +141,24 @@ export default function DeductionRulesPage() {
   };
 
   const columns: ColumnsType<DeductionRule> = [
-    { title: '物料', dataIndex: 'materialName', key: 'materialName', width: 180 },
+    {
+      title: '物料', dataIndex: 'materialName', key: 'materialName', width: 200,
+      render: (value: string, row) => <Space size={4}><span>{value}</span>{materialsByCode.get(row.materialCode)?.inspectionMethod === 'visual' && <Tag color="orange">目测</Tag>}</Space>,
+    },
     { title: '扣减类别', dataIndex: 'categoryName', key: 'categoryName', width: 110 },
     { title: '方式', dataIndex: 'mode', key: 'mode', width: 120, render: (value: 'amount' | 'percent') => modeLabel[value] },
     { title: '规则', key: 'rule', ellipsis: { showTitle: false }, render: (_: unknown, row) => <Tooltip title={rangeText(row)}><span>{rangeText(row)}</span></Tooltip> },
     { title: '版本', dataIndex: 'version', key: 'version', width: 70 },
-    { title: '状态', dataIndex: 'enabled', key: 'enabled', width: 90, render: (value: boolean) => value ? <Tag color="green">启用</Tag> : <Tag>停用</Tag> },
+    {
+      title: '状态', dataIndex: 'enabled', key: 'enabled', width: 120,
+      render: (value: boolean, row) => {
+        if (!value) return <Tag>停用</Tag>;
+        if (materialsByCode.get(row.materialCode)?.inspectionMethod === 'visual') {
+          return <Tooltip title="物料为目测检验，不会生成化验单，规则不会生效"><Tag color="orange">启用 · 不生效</Tag></Tooltip>;
+        }
+        return <Tag color="green">启用</Tag>;
+      },
+    },
     ...(canManage ? [{
       title: '操作', key: 'actions', width: 130,
       render: (_: unknown, row: DeductionRule) => <Space size={4}>
@@ -149,7 +172,7 @@ export default function DeductionRulesPage() {
     <PageHeader title="扣减规则" />
     <Space orientation="vertical" size="middle" style={{ width: '100%', marginTop: 20 }}>
       <Space wrap align="end" style={{ width: '100%', justifyContent: 'space-between' }}>
-        <Select allowClear placeholder="按物料筛选" style={{ width: 260 }} options={materialOptions} value={materialFilter} onChange={setMaterialFilter} />
+        <Select allowClear placeholder="按物料筛选" style={{ width: 260 }} options={filterMaterialOptions} value={materialFilter} onChange={setMaterialFilter} />
         {canManage && <Button type="primary" icon={<Plus size={16} />} onClick={() => {
           setEditing(null); form.resetFields(); form.setFieldsValue(blank); setOpen(true);
         }}>新增规则</Button>}
@@ -170,19 +193,33 @@ export default function DeductionRulesPage() {
       width={820}
       onCancel={() => setOpen(false)}
       onOk={() => {
-        void form.validateFields().then((values) => save.mutate(values)).catch(() => {});
+        void form.validateFields().then((values) => {
+          const material = materialsByCode.get(values.materialCode);
+          if (material?.inspectionMethod === 'visual' && values.enabled) {
+            message.error('目测检验物料不能启用扣减规则，请先停用规则或调整物料检验方式');
+            return;
+          }
+          save.mutate(values);
+        }).catch(() => {});
       }}
       confirmLoading={save.isPending}
       okText="保存"
       cancelText="取消"
       destroyOnHidden
     >
+      {selectedIsVisual && <Alert
+        type="warning"
+        showIcon
+        title="该物料的扣减规则不会生效"
+        description="物料为目测检验，云端不会生成化验单。可以保存为停用以便后续清理；如需启用，请先在物料维护中改为化验检验。"
+        style={{ marginBottom: 16 }}
+      />}
       <Form form={form} layout="vertical" initialValues={blank} className={styles.ruleForm}>
         <section className={styles.formSection}>
           <div className={styles.sectionTitle}>基本信息</div>
           <div className={styles.grid3}>
             <Form.Item name="materialCode" label="物料" rules={[{ required: true, message: '请选择物料' }]}>
-              <Select showSearch optionFilterProp="label" options={materialOptions} />
+              <Select showSearch optionFilterProp="label" options={ruleMaterialOptions} />
             </Form.Item>
             <Form.Item name="categoryCode" label="扣减类别" rules={[{ required: true, message: '请选择扣减类别' }]}>
               <Select options={categoryOptions} />
