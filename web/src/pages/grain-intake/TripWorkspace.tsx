@@ -1,6 +1,20 @@
 import { useState } from 'react';
-import { Alert, App, Button, Card, Descriptions, Divider, Empty, Input, Select, Space, Table, Tabs, Tag } from 'antd';
+import { Alert, App, Button, Card, Descriptions, Empty, Input, Select, Space, Table, Tabs, Tag, Typography } from 'antd';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import {
+  Building2,
+  CalendarClock,
+  ClipboardList,
+  Droplets,
+  FileSignature,
+  FlaskConical,
+  Gauge,
+  Phone,
+  StickyNote,
+  UserRound,
+  Users,
+  Wheat,
+} from 'lucide-react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { ticketCandidates, tripAction, tripDetail, stageLabel, type TripAction, type TripCommand } from '../../features/grain-intake/api';
 import { granaries } from '../../features/granary/api';
@@ -10,8 +24,15 @@ import { usePermissions } from '../../hooks/usePermissions';
 import { formatDateTime } from '../../utils/format';
 import { formatTonnes, subtractTonnes } from '../../utils/weight';
 import TripEditor from './TripEditor';
+import styles from './TripWorkspace.module.css';
 
 type NextStep = { tab?: 'inspections' | 'weighing' | 'exit'; title: string; description: string };
+
+function formatMetric(value: string): string {
+  if (!value) return '—';
+  const number = Number(value);
+  return Number.isFinite(number) ? number.toLocaleString('zh-CN', { maximumFractionDigits: 6 }) : value;
+}
 
 export default function TripWorkspace({ gate = false }: { gate?: boolean }) {
   const { id } = useParams();
@@ -98,7 +119,7 @@ export default function TripWorkspace({ gate = false }: { gate?: boolean }) {
   </Space>;
   return <>
     <PageHeader
-      title={gate ? `出厂核验 · ${trip.number}` : trip.number}
+      title={<Typography.Text copyable={{ text: trip.number, tooltips: ['复制流转单号', '已复制'] }}>{gate ? `出厂核验 · ${trip.number}` : trip.number}</Typography.Text>}
       meta={<Tag color={trip.stage === 'blocked' ? 'red' : trip.exitedAt ? 'green' : 'blue'}>{stageLabel(trip.stage, trip.inspectionMethod)}</Tag>}
       onBack={() => navigate(gate ? '/grain-intake/permits' : '/grain-intake/trips')}
     />
@@ -108,39 +129,118 @@ export default function TripWorkspace({ gate = false }: { gate?: boolean }) {
       {trip.stage === 'blocked' && <Alert type="error" title="当前依据已失效或存在冲突，暂停开证和放行，请核查磅单与化验记录。" />}
       {trip.exitedAt && <Alert type="success" title={`已于 ${formatDateTime(trip.exitedAt)} 确认出厂，本趟凭据不能再次使用。`} />}
       {nextStep && <Alert type={trip.stage === 'pending_unload' || trip.stage === 'pending_ticket' ? 'warning' : 'info'} showIcon title={nextStep.title} description={nextStep.description} action={nextStep.tab ? <Button size="small" onClick={() => { if (nextStep.tab) setTab(nextStep.tab); }}>去办理</Button> : undefined} />}
-      <Card title="本趟摘要" extra={!gate && canEditTrip && !permit && !trip.exitedAt ? <Button onClick={() => setEditing(true)}>更正登记</Button> : undefined}>
-        <Descriptions size="small" column={{ xs: 1, sm: 2, lg: 3 }} items={[
-          { key: 'site', label: '厂区', children: trip.siteCode || '—' }, { key: 'plate', label: '车牌', children: trip.plate }, { key: 'grain', label: '货品', children: trip.materialName },
-          { key: 'party', label: '供应商', children: trip.partyName || '待核实' }, { key: 'driver', label: '司机', children: `${trip.driver || '—'}${trip.driverPhone ? ` ${trip.driverPhone}` : ''}` }, { key: 'contract', label: '合同编号', children: trip.contractNo || '—' },
-          { key: 'method', label: '检验方式', children: visual ? '目测' : '化验' }, { key: 'created', label: '登记时间', children: formatDateTime(trip.createdAt) }, { key: 'remark', label: '备注', children: trip.remark || '—' },
-        ]} />
-        <Divider style={{ margin: '8px 0' }} />
-        {visual ? (trip.visualInspectedAt ? <Descriptions size="small" column={{ xs: 1, sm: 2, lg: 3 }} items={[
-          { key: 'result', label: '目测结论', children: <Tag color={trip.visualConclusion === 'accept' ? 'green' : 'red'}>{trip.visualConclusion === 'accept' ? '接收' : '拒收'}</Tag> },
-          { key: 'reason', label: '说明', children: trip.visualReason || '—' },
-          { key: 'time', label: '检查时间', children: formatDateTime(trip.visualInspectedAt) }, { key: 'actor', label: '检查人', children: trip.visualInspectedBy },
-        ]} /> : !gate && canVisual ? <Space wrap>
-          <Select aria-label="目测结论" value={visualConclusion} onChange={setVisualConclusion} options={[{ value: 'accept', label: '接收' }, { value: 'reject', label: '拒收' }]} />
-          <Input aria-label="目测说明" placeholder={visualConclusion === 'reject' ? '请输入拒收原因' : '目测说明（选填）'} maxLength={2000} value={visualReason} onChange={(e) => setVisualReason(e.target.value)} style={{ minWidth: 320 }} />
-          <Button type="primary" disabled={action.isPending || !trip.partyCode || (visualConclusion === 'reject' && !visualReason.trim())} onClick={() => ask('确认记录目测结果？', 'record-visual', { conclusion: visualConclusion, reason: visualReason }, '确认后不能修改，请核对货品与检查结论。')}>确认目测</Button>
-          {!trip.partyCode && <span>请先核实供应商</span>}
-        </Space> : <Empty description="尚未记录目测结果" />) : (effective ? <><Descriptions size="small" column={{ xs: 1, sm: 2, lg: 3 }} items={[
-          { key: 'number', label: '生效化验单', children: effective.number },
-          { key: 'conclusion', label: '化验结论', children: <Tag color={effective.conclusion === 'accept' ? 'green' : effective.conclusion === 'reject' ? 'red' : 'default'}>{conclusionText}</Tag> },
-          { key: 'selected', label: '生效时间', children: formatDateTime(trip.effectiveSelectedAt) },
-          { key: 'moisture', label: '水分（%）', children: effective.moisture || '—' }, { key: 'bulkDensity', label: '容量（g/L）', children: effective.bulkDensity || '—' },
-          { key: 'reason', label: '原因', children: effective.reason || '—' },
-        ]} />
-          {query.data.deductions.length > 0 && <div style={{ marginTop: 8 }}>
-            <Tag color="blue">扣减规则</Tag>
-            {query.data.deductions.map((item) => <Tag key={`${item.ruleCode}-${item.ruleVersion}`}>
-              {item.categoryName}：{item.mode === 'amount' ? `${(item.amountMilliTonne / 1000).toFixed(3)} 吨` : `${((item.rateBp ?? 0) / 100).toFixed(2)}%`}
-              {item.basisValue ? `（${item.basisValue}）` : ''}
-            </Tag>)}
+      <Card
+        className={styles.summaryCard}
+        title={<span className={styles.cardTitle}><ClipboardList size={16} aria-hidden />本趟摘要</span>}
+        extra={!gate && canEditTrip && !permit && !trip.exitedAt ? <Button onClick={() => setEditing(true)}>更正登记</Button> : undefined}
+      >
+        <div className={styles.summary}>
+          <div className={styles.identity}>
+            <div className={styles.identityMain}>
+              <span className={styles.materialIcon} aria-hidden><Wheat size={18} /></span>
+              <div className={styles.identityText}>
+                <strong className={styles.material}>{trip.materialName}</strong>
+                <span className={styles.supplier}>
+                  <Users size={13} aria-hidden />
+                  <span className={styles.supplierLabel}>供应商</span>
+                  {trip.partyName || <Tag color="orange">待核实</Tag>}
+                </span>
+              </div>
+            </div>
+            <div className={styles.identityMeta}>
+              <span className={styles.metaItem}><Building2 size={14} aria-hidden />厂区 {trip.siteCode || '未配置'}</span>
+              <span className={styles.metaItem}><CalendarClock size={14} aria-hidden />登记 {formatDateTime(trip.createdAt)}</span>
+            </div>
+          </div>
+          <div className={styles.infoGrid}>
+            <div className={styles.infoItem}>
+              <span className={styles.infoIcon} aria-hidden><UserRound size={15} /></span>
+              <div className={styles.infoBody}>
+                <span className={styles.infoLabel}>司机 / 车牌</span>
+                <div className={styles.driverLine}>
+                  <strong className={styles.infoValue}>{trip.driver || '—'}</strong>
+                  <span className={styles.plateSmall}>{trip.plate}</span>
+                </div>
+              </div>
+            </div>
+            <div className={styles.infoItem}>
+              <span className={styles.infoIcon} aria-hidden><Phone size={15} /></span>
+              <div className={styles.infoBody}><span className={styles.infoLabel}>联系电话</span><strong className={styles.infoValue}>{trip.driverPhone || '—'}</strong></div>
+            </div>
+            <div className={styles.infoItem}>
+              <span className={styles.infoIcon} aria-hidden><FileSignature size={15} /></span>
+              <div className={styles.infoBody}><span className={styles.infoLabel}>合同编号</span><strong className={styles.infoValue}>{trip.contractNo || '—'}</strong></div>
+            </div>
+            <div className={styles.infoItem}>
+              <span className={styles.infoIcon} aria-hidden><FlaskConical size={15} /></span>
+              <div className={styles.infoBody}><span className={styles.infoLabel}>检验方式</span><strong className={styles.infoValue}>{visual ? '目测' : '化验'}</strong></div>
+            </div>
+          </div>
+          {trip.remark && <div className={styles.remarkCard}>
+            <span className={styles.remarkIcon} aria-hidden><StickyNote size={15} /></span>
+            <div className={styles.remarkBody}>
+              <span className={styles.remarkLabel}>备注</span>
+              <p className={styles.remarkText}>{trip.remark}</p>
+            </div>
           </div>}
-        </> : <span style={{ color: 'var(--ant-color-text-secondary)' }}>尚未录入化验结果</span>)}
-      </Card>
-      <Tabs activeKey={activeTab} onChange={setTab} items={[
+          <section className={styles.resultSection}>
+            <div className={styles.resultSectionHead}>
+              <span className={styles.resultSectionTitle}>{visual ? '目测结果' : '化验结果'}</span>
+            </div>
+            {visual ? (trip.visualInspectedAt ? <div className={`${styles.resultCard} ${trip.visualConclusion === 'accept' ? styles.resultAccept : styles.resultReject}`}>
+              <div className={styles.resultTop}>
+                <Tag color={trip.visualConclusion === 'accept' ? 'green' : 'red'}>{trip.visualConclusion === 'accept' ? '接收' : '拒收'}</Tag>
+                <span className={styles.resultTime}><CalendarClock size={13} aria-hidden />{formatDateTime(trip.visualInspectedAt)}</span>
+              </div>
+              <p className={styles.resultReason}>{trip.visualReason || '未填写说明'}</p>
+              <div className={styles.resultFacts}>
+                <div className={styles.fact}><span>检查人</span><strong>{trip.visualInspectedBy ?? '—'}</strong></div>
+              </div>
+            </div> : !gate && canVisual ? <div className={styles.actionPanel}>
+              <Space wrap>
+                <Select aria-label="目测结论" value={visualConclusion} onChange={setVisualConclusion} options={[{ value: 'accept', label: '接收' }, { value: 'reject', label: '拒收' }]} />
+                <Input aria-label="目测说明" placeholder={visualConclusion === 'reject' ? '请输入拒收原因' : '目测说明（选填）'} maxLength={2000} value={visualReason} onChange={(e) => setVisualReason(e.target.value)} style={{ minWidth: 320 }} />
+                <Button type="primary" disabled={action.isPending || !trip.partyCode || (visualConclusion === 'reject' && !visualReason.trim())} onClick={() => ask('确认记录目测结果？', 'record-visual', { conclusion: visualConclusion, reason: visualReason }, '确认后不能修改，请核对货品与检查结论。')}>确认目测</Button>
+                {!trip.partyCode && <span>请先核实供应商</span>}
+              </Space>
+            </div> : <Empty description="尚未记录目测结果" />) : (effective ? <div className={`${styles.resultCard} ${effective.conclusion === 'accept' ? styles.resultAccept : effective.conclusion === 'reject' ? styles.resultReject : ''}`}>
+              <div className={styles.resultTop}>
+                <div className={styles.resultHeadline}>
+                  <Tag color={effective.conclusion === 'accept' ? 'green' : effective.conclusion === 'reject' ? 'red' : 'default'}>{conclusionText}</Tag>
+                  <Typography.Text className={styles.resultNumber} copyable={{ text: effective.number, tooltips: ['复制化验单号', '已复制'] }}>{effective.number}</Typography.Text>
+                </div>
+                <span className={styles.resultTime}><CalendarClock size={13} aria-hidden />生效 {formatDateTime(trip.effectiveSelectedAt)}</span>
+              </div>
+              <div className={styles.metricGrid}>
+                <div className={styles.metric}>
+                  <span className={styles.metricLabel}><Droplets size={14} aria-hidden />水分</span>
+                  <strong className={styles.metricValue}>{formatMetric(effective.moisture)}<small>%</small></strong>
+                </div>
+                <div className={styles.metric}>
+                  <span className={styles.metricLabel}><Gauge size={14} aria-hidden />容量</span>
+                  <strong className={styles.metricValue}>{formatMetric(effective.bulkDensity)}<small>g/L</small></strong>
+                </div>
+              </div>
+              {effective.reason && <div className={styles.reasonBox}>
+                <span>{effective.conclusion === 'reject' ? '拒收原因' : '说明'}</span>
+                <p>{effective.reason}</p>
+              </div>}
+              {query.data.deductions.length > 0 && <div className={styles.deductions}>
+                <span className={styles.deductionsLabel}>扣减规则</span>
+                <div className={styles.deductionTags}>
+                  {query.data.deductions.map((item) => <Tag key={`${item.ruleCode}-${item.ruleVersion}`}>
+                    {item.categoryName}：{item.mode === 'amount' ? `${(item.amountMilliTonne / 1000).toFixed(3)} 吨` : `${((item.rateBp ?? 0) / 100).toFixed(2)}%`}
+                    {item.basisValue ? `（${item.basisValue}）` : ''}
+                  </Tag>)}
+                </div>
+              </div>}
+            </div> : <div className={styles.resultEmpty}>
+              <FlaskConical size={18} aria-hidden />
+              <span>尚未录入化验结果</span>
+            </div>)}
+          </section>
+        </div>
+        <Tabs className={styles.tabs} activeKey={activeTab} onChange={setTab} items={[
         ...(visual ? [] : [{ key: 'inspections', label: '化验结果', children: <Space orientation="vertical" size="small" style={{ width: '100%' }}>
           {labView}
         </Space> }]),
@@ -204,6 +304,7 @@ export default function TripWorkspace({ gate = false }: { gate?: boolean }) {
         </Card> },
         { key: 'events', label: '过程记录', children: <Table rowKey="id" dataSource={events} pagination={{ pageSize: 10 }} columns={[{ title: '时间', dataIndex: 'createdAt', render: (v: string) => formatDateTime(v) }, { title: '操作人员', dataIndex: 'actorName', render: (v: string) => v || '系统' }, { title: '记录', dataIndex: 'description' }]} /> },
       ]} />
+      </Card>
     </div>
     {editing && <TripEditor original={trip} onClose={() => setEditing(false)} onSaved={() => { setEditing(false); refresh(); }} />}
   </>;
