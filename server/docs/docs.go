@@ -401,6 +401,24 @@ const docTemplate = `{
                         "description": "办理阶段",
                         "name": "stage",
                         "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "厂区编码",
+                        "name": "siteCode",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "开具开始日期（YYYY-MM-DD）",
+                        "name": "dateFrom",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "开具结束日期（YYYY-MM-DD）",
+                        "name": "dateTo",
+                        "in": "query"
                     }
                 ],
                 "responses": {
@@ -441,6 +459,30 @@ const docTemplate = `{
                         "type": "string",
                         "description": "流转单号、车牌或供应商",
                         "name": "keyword",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "办理阶段",
+                        "name": "stage",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "厂区编码",
+                        "name": "siteCode",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "登记开始日期（YYYY-MM-DD）",
+                        "name": "dateFrom",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "登记结束日期（YYYY-MM-DD）",
+                        "name": "dateTo",
                         "in": "query"
                     }
                 ],

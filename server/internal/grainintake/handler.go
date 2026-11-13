@@ -146,6 +146,9 @@ func (h *Handler) trips(c *gin.Context) {
 // @Param pageSize query int false "每页条数"
 // @Param keyword query string false "证号、流转单号或车牌"
 // @Param stage query string false "办理阶段"
+// @Param siteCode query string false "厂区编码"
+// @Param dateFrom query string false "开具开始日期（YYYY-MM-DD）"
+// @Param dateTo query string false "开具结束日期（YYYY-MM-DD）"
 // @Success 200 {object} PermitPageResponse
 // @Router /api/v1/grain-intake/permits [get]
 func (h *Handler) permits(c *gin.Context) {
@@ -280,6 +283,10 @@ func (h *Handler) command(c *gin.Context) {
 // @Param page query int false "页码"
 // @Param pageSize query int false "每页条数"
 // @Param keyword query string false "流转单号、车牌或供应商"
+// @Param stage query string false "办理阶段"
+// @Param siteCode query string false "厂区编码"
+// @Param dateFrom query string false "登记开始日期（YYYY-MM-DD）"
+// @Param dateTo query string false "登记结束日期（YYYY-MM-DD）"
 // @Success 200 {object} TripPageResponse
 // @Router /api/v1/grain-intake/rejections [get]
 func (h *Handler) rejections(c *gin.Context) {

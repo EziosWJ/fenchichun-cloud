@@ -123,6 +123,15 @@ func (r *Repository) Permits(ctx context.Context, actor int64, q Query) (PermitP
 		if q.Stage != "" {
 			query = query.Where("("+stageSQL+")=?", q.Stage)
 		}
+		if q.SiteCode != "" {
+			query = query.Where("t.site_code=?", q.SiteCode)
+		}
+		if q.DateFromAt != nil {
+			query = query.Where("p.created_at >= ?", *q.DateFromAt)
+		}
+		if q.DateToAt != nil {
+			query = query.Where("p.created_at < ?", q.DateToAt.AddDate(0, 0, 1))
+		}
 		if err := query.Count(&result.Total).Error; err != nil {
 			return err
 		}
