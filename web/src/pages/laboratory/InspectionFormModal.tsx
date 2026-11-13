@@ -124,7 +124,7 @@ export default function InspectionFormModal({ trip, open, onClose, onSaved }: {
         <section className={styles.resultCard}>
           <div className={styles.resultHead}>
             <h3>检测结果</h3>
-            <span>水分用于匹配扣减规则，容量仅作化验记录</span>
+            <span className={styles.resultHeadNote}>水分用于匹配扣减规则，容量仅作化验记录</span>
           </div>
           <div className={styles.resultGrid}>
             <Form.Item className={styles.resultField} name="moisture" label="水分（%）" rules={[{ required: true, message: '请填写水分' }]}>

@@ -4,19 +4,6 @@
   padding-right: 4px;
 }
 
-.overview {
-  padding: 4px 0 12px;
-}
-
-.overviewNumber {
-  font-size: 18px;
-}
-
-.overviewMeta {
-  color: var(--ant-color-text-secondary);
-  margin-top: 6px;
-}
-
 .identity {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -95,9 +82,19 @@
   background: linear-gradient(180deg, var(--ant-color-primary-bg, #e6f4ff) 0%, var(--ant-color-bg-container, #fff) 72%);
 }
 
+.resultCardAccept {
+  border-color: var(--ant-color-success-border, #b7eb8f);
+  background: linear-gradient(180deg, var(--ant-color-success-bg, #f6ffed) 0%, var(--ant-color-bg-container, #fff) 72%);
+}
+
+.resultCardReject {
+  border-color: var(--ant-color-error-border, #ffccc7);
+  background: linear-gradient(180deg, var(--ant-color-error-bg, #fff2f0) 0%, var(--ant-color-bg-container, #fff) 72%);
+}
+
 .resultHead {
   display: flex;
-  align-items: baseline;
+  align-items: flex-start;
   justify-content: space-between;
   gap: 12px;
   margin-bottom: 14px;
@@ -110,9 +107,110 @@
   font-weight: 600;
 }
 
-.resultHead span {
+.resultHelp {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--ant-color-text-tertiary);
+  cursor: help;
+  transition: color .2s, background .2s;
+}
+
+.resultHelp:hover,
+.resultHelp:focus-visible {
+  background: var(--ant-color-fill-secondary);
+  color: var(--ant-color-primary);
+}
+
+.resultHeading {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.resultHeadNote {
   color: var(--ant-color-text-secondary);
   font-size: 12px;
+}
+
+.conclusionTag {
+  flex-shrink: 0;
+  margin: 0;
+  padding: 2px 10px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.metricGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.metric {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+  padding: 14px 16px;
+  border: 1px solid var(--ant-color-split);
+  border-radius: 8px;
+  background: var(--ant-color-bg-container);
+}
+
+.metricLabel {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--ant-color-text-secondary);
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.metricValue {
+  overflow-wrap: anywhere;
+  color: var(--ant-color-text);
+  font-size: 32px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 650;
+  letter-spacing: -.01em;
+  line-height: 1.15;
+}
+
+.metricValue small {
+  margin-left: 6px;
+  color: var(--ant-color-text-secondary);
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 0;
+}
+
+.reasonBox {
+  margin-top: 14px;
+  padding: 12px 14px;
+  border: 1px solid var(--ant-color-error-border, #ffccc7);
+  border-radius: 8px;
+  background: var(--ant-color-error-bg, #fff2f0);
+}
+
+.reasonBox span {
+  color: var(--ant-color-error-text, #cf1322);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.reasonBox p {
+  margin: 4px 0 0;
+  overflow-wrap: anywhere;
+  color: var(--ant-color-text);
+  line-height: 1.6;
+  white-space: pre-wrap;
 }
 
 .resultGrid {
@@ -163,20 +261,101 @@
   padding-bottom: 4px;
 }
 
-.section {
-  border-bottom: 1px solid var(--ant-color-split);
-  padding: 16px 0 8px;
+.remarkCard {
+  position: relative;
+  padding: 14px 16px 16px;
+  overflow: hidden;
+  border: 1px solid var(--ant-color-warning-border, #ffe58f);
+  border-radius: 10px;
+  background: linear-gradient(135deg, var(--ant-color-warning-bg, #fffbe6) 0%, var(--ant-color-bg-container, #fff) 82%);
 }
 
-.section:last-child {
-  border-bottom: 0;
+.remarkCard::before {
+  content: '';
+  position: absolute;
+  inset: 14px auto 14px 0;
+  width: 3px;
+  border-radius: 0 3px 3px 0;
+  background: var(--ant-color-warning, #faad14);
 }
 
-.section h3 {
+.remarkHeader {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.remarkIcon {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
+  border: 1px solid var(--ant-color-warning-border, #ffe58f);
+  border-radius: 8px;
+  background: var(--ant-color-bg-container);
+  color: var(--ant-color-warning, #faad14);
+}
+
+.remarkHeading {
+  min-width: 0;
+}
+
+.remarkTitleRow {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.remarkTitle {
   color: var(--ant-color-text);
-  font-size: 15px;
+  font-size: 13px;
   font-weight: 600;
-  margin: 0 0 12px;
+  line-height: 1.5;
+}
+
+.remarkContent {
+  margin: 0;
+  padding: 10px 12px;
+  overflow-wrap: anywhere;
+  border: 1px dashed var(--ant-color-warning-border, #ffe58f);
+  border-radius: 8px;
+  background: var(--ant-color-bg-container);
+  color: var(--ant-color-text);
+  font-size: 14px;
+  line-height: 1.8;
+  white-space: pre-wrap;
+}
+
+.infoGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px 24px;
+}
+
+.infoItem {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.infoLabel {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--ant-color-text-secondary);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.infoValue {
+  overflow-wrap: anywhere;
+  color: var(--ant-color-text);
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1.6;
 }
 
 .preview {
@@ -278,5 +457,14 @@
   .identityValue {
     overflow-wrap: anywhere;
     white-space: normal;
+  }
+
+  .metricGrid,
+  .infoGrid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .metricValue {
+    font-size: 28px;
   }
 }

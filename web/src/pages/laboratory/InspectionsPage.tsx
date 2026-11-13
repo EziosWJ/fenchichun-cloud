@@ -1,9 +1,10 @@
 import { useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Alert, App, Button, DatePicker, Descriptions, Input, Modal, Select, Space, Tag, Tooltip, Typography } from 'antd';
+import { Alert, App, Button, DatePicker, Input, Modal, Select, Space, Tag, Tooltip, Typography } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import dayjs from 'dayjs';
+import { Building2, CalendarClock, Droplets, FileText, Gauge, Info, StickyNote, Truck, Users, Wheat } from 'lucide-react';
 import { DataTable } from '../../components/DataTable';
 import { PageHeader } from '../../components/PageHeader';
 import { trips, type Trip } from '../../features/grain-intake/api';
@@ -16,6 +17,12 @@ import InspectionFormModal from './InspectionFormModal';
 import styles from './InspectionModal.module.css';
 
 const pageSize = 10;
+
+function formatMetric(value: string): string {
+  if (!value) return '—';
+  const number = Number(value);
+  return Number.isFinite(number) ? number.toLocaleString('zh-CN', { maximumFractionDigits: 6 }) : value;
+}
 
 /**
  * 化验工作台：列出流转单（未化验的排在前面），在对应行直接录入化验结果。
@@ -183,41 +190,78 @@ export default function InspectionsPage() {
       {detail.isLoading && <p>正在加载…</p>}
       {detail.isError && <Alert type="error" title={getApiErrorMessage(detail.error)} action={<Button onClick={() => void detail.refetch()}>重试</Button>} />}
       {value && <div className={styles.detail}>
-        <div className={styles.overview}>
-          <Space size={8} wrap>
-            <Typography.Text strong copyable={{ text: value.number }}>{value.number}</Typography.Text>
-            {value.conclusion === 'accept' ? <Tag color="green">接收</Tag> : <Tag color="red">拒收</Tag>}
-          </Space>
-          <div className={styles.overviewMeta}>
-            {[value.plate, value.siteCode, value.materialName, value.partyName].filter(Boolean).join(' · ')}
+        <div className={styles.identity}>
+          <div className={styles.identityItem} title="化验单号">
+            <span className={styles.identityIcon} aria-hidden><FileText size={15} /></span>
+            <div className={styles.identityValue}><Typography.Text copyable={{ text: value.number }}>{value.number}</Typography.Text></div>
+          </div>
+          <div className={styles.identityItem} title="粮种">
+            <span className={styles.identityIcon} aria-hidden><Wheat size={15} /></span>
+            <strong className={`${styles.identityValue} ${styles.identityMaterial}`}>{value.materialName || '—'}</strong>
+          </div>
+          <div className={styles.identityItem} title="车牌">
+            <span className={styles.identityIcon} aria-hidden><Truck size={15} /></span>
+            <strong className={`${styles.identityValue} ${styles.identityPlate}`}>{value.plate}</strong>
+          </div>
+          <div className={`${styles.identityItem} ${styles.identitySupplier}`} title="供应商">
+            <span className={styles.identityIcon} aria-hidden><Users size={15} /></span>
+            <strong className={styles.identityValue} title={value.partyName}>{value.partyName || '—'}</strong>
+          </div>
+          <div className={styles.identityItem} title="厂区">
+            <span className={styles.identityIcon} aria-hidden><Building2 size={15} /></span>
+            <strong className={styles.identityValue}>{value.siteCode || '—'}</strong>
           </div>
         </div>
-        <section className={styles.section}>
-          <h3>检测结果</h3>
-          <Descriptions size="small" layout="vertical" column={{ xs: 1, sm: 2 }} items={[
-            { key: 'moisture', label: '水分（%）', children: value.moisture || '—' },
-            { key: 'bulkDensity', label: '容量（g/L）', children: value.bulkDensity || '—' },
-            { key: 'reason', label: '拒收原因', children: value.reason || '—' },
-          ]} />
+        <section className={`${styles.resultCard} ${value.conclusion === 'reject' ? styles.resultCardReject : styles.resultCardAccept}`}>
+          <div className={styles.resultHead}>
+            <div className={styles.resultHeading}>
+              <h3>检测结果</h3>
+              <Tooltip title="水分用于匹配扣减规则，容量仅作化验记录">
+                <button type="button" className={styles.resultHelp} aria-label="检测结果说明"><Info size={14} aria-hidden /></button>
+              </Tooltip>
+            </div>
+            <Tag color={value.conclusion === 'accept' ? 'green' : 'red'} className={styles.conclusionTag}>
+              {value.conclusion === 'accept' ? '接收' : '拒收'}
+            </Tag>
+          </div>
+          <div className={styles.metricGrid}>
+            <div className={styles.metric}>
+              <span className={styles.metricLabel}><Droplets size={14} aria-hidden />水分</span>
+              <strong className={styles.metricValue}>{formatMetric(value.moisture)}<small>%</small></strong>
+            </div>
+            <div className={styles.metric}>
+              <span className={styles.metricLabel}><Gauge size={14} aria-hidden />容量</span>
+              <strong className={styles.metricValue}>{formatMetric(value.bulkDensity)}<small>g/L</small></strong>
+            </div>
+          </div>
+          {value.conclusion === 'reject' && value.reason && <div className={styles.reasonBox}>
+            <span>拒收原因</span>
+            <p>{value.reason}</p>
+          </div>}
         </section>
-        <section className={styles.section}>
-          <h3>单据信息</h3>
-          <Descriptions size="small" layout="vertical" column={{ xs: 1, sm: 2 }} items={[
-            { key: 'site', label: '厂区', children: value.siteCode || '—' },
-            { key: 'plate', label: '车牌', children: value.plate },
-            { key: 'material', label: '粮种', children: value.materialName || '—' },
-            { key: 'party', label: '供应商', children: value.partyName || '—' },
-            { key: 'driver', label: '司机', children: `${value.driver || '—'} ${value.driverPhone}` },
-            { key: 'contract', label: '合同编号', children: value.contractNo || '—' },
-          ]} />
+        <section className={styles.infoCard}>
+          <div className={styles.sectionTitle}>单据信息</div>
+          <div className={styles.infoGrid}>
+            <div className={styles.infoItem}><span className={styles.infoLabel}>司机</span><strong className={styles.infoValue}>{value.driver || '—'}</strong></div>
+            <div className={styles.infoItem}><span className={styles.infoLabel}>联系电话</span><strong className={styles.infoValue}>{value.driverPhone || '—'}</strong></div>
+            <div className={styles.infoItem}><span className={styles.infoLabel}>合同编号</span><strong className={styles.infoValue}>{value.contractNo || '—'}</strong></div>
+            <div className={styles.infoItem}><span className={styles.infoLabel}><CalendarClock size={13} aria-hidden />录入时间</span><strong className={styles.infoValue}>{formatDateTime(value.confirmedAt ?? value.createdAt)}</strong></div>
+          </div>
         </section>
-        <section className={styles.section}>
-          <h3>记录信息</h3>
-          <Descriptions size="small" layout="vertical" column={{ xs: 1, sm: 2 }} items={[
-            { key: 'created', label: '录入时间', children: formatDateTime(value.confirmedAt ?? value.createdAt) },
-            { key: 'remark', label: '备注', children: value.remark || '—' },
-          ]} />
-        </section>
+        {value.remark && <section className={styles.remarkCard}>
+          <div className={styles.remarkHeader}>
+            <span className={styles.remarkIcon} aria-hidden><StickyNote size={16} /></span>
+            <div className={styles.remarkHeading}>
+              <div className={styles.remarkTitleRow}>
+                <div className={styles.remarkTitle}>备注</div>
+                <Tooltip title="现场或化验补充说明">
+                  <button type="button" className={styles.resultHelp} aria-label="备注说明"><Info size={13} aria-hidden /></button>
+                </Tooltip>
+              </div>
+            </div>
+          </div>
+          <p className={styles.remarkContent}>{value.remark}</p>
+        </section>}
       </div>}
     </Modal>
     <Modal
