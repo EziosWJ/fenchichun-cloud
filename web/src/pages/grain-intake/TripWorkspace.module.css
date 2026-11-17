@@ -1,4 +1,4 @@
-.summaryCard :global(.ant-card-body) {
+.summaryCard > :global(.ant-card-body) {
   padding: 18px 20px 0;
 }
 
@@ -32,7 +32,11 @@
   display: none;
 }
 
-.tabs :global(.ant-tabs-content-holder) {
+.tabs :global(.ant-tabs-body-holder) {
+  padding-bottom: 22px;
+}
+
+.tabs :global(.ant-card-body) {
   padding-bottom: 18px;
 }
 
@@ -447,7 +451,7 @@
 }
 
 @media (max-width: 767px) {
-  .summaryCard :global(.ant-card-body) {
+  .summaryCard > :global(.ant-card-body) {
     padding: 14px 14px 0;
   }
 
@@ -471,8 +475,8 @@
     padding-top: 12px;
   }
 
-  .tabs :global(.ant-tabs-content-holder) {
-    padding-bottom: 14px;
+  .tabs :global(.ant-tabs-body-holder) {
+    padding-bottom: 16px;
   }
 
   .resultTop {
