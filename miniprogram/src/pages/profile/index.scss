@@ -1,32 +1,137 @@
-.profile-title {
-  margin-top: 34rpx;
+.profile-screen {
+  box-sizing: border-box;
+  min-height: 100vh;
+  padding: 32rpx 32rpx calc(48rpx + env(safe-area-inset-bottom));
+  background: #f4f5f7;
 }
 
-.profile-person {
+.profile-card {
   display: flex;
   gap: 24rpx;
   align-items: center;
-  padding: 46rpx 0 34rpx;
+  padding: 28rpx;
+  background: #fff;
+  border: 1rpx solid #e6e8eb;
+  border-radius: 20rpx;
 }
 
 .profile-avatar {
   display: flex;
+  flex: none;
   align-items: center;
   justify-content: center;
-  width: 82rpx;
-  height: 82rpx;
-  font-size: 34rpx;
-  font-weight: 600;
+  width: 104rpx;
+  height: 104rpx;
+  font-size: 40rpx;
+  font-weight: 650;
   color: #8c3b2e;
-  background: #f8eeeb;
+  background: #f7eeeb;
   border-radius: 50%;
 }
 
-.profile-name {
-  font-size: 34rpx;
-  font-weight: 600;
+.profile-main {
+  flex: 1;
+  min-width: 0;
 }
 
-.logout {
-  margin-top: 58rpx;
+.profile-name {
+  font-size: 36rpx;
+  font-weight: 650;
+}
+
+.profile-account {
+  margin-top: 4rpx;
+  font-size: 23rpx;
+  color: #687080;
+}
+
+.role-chip {
+  flex: none;
+  padding: 6rpx 16rpx;
+  font-size: 21rpx;
+  font-weight: 600;
+  color: #8c3b2e;
+  white-space: nowrap;
+  background: #f7eeeb;
+  border-radius: 999rpx;
+}
+
+.info-card {
+  padding: 0 28rpx;
+  margin-top: 20rpx;
+  background: #fff;
+  border: 1rpx solid #e6e8eb;
+  border-radius: 20rpx;
+}
+
+.info-title {
+  padding: 22rpx 0 14rpx;
+  font-size: 21rpx;
+  font-weight: 600;
+  color: #687080;
+}
+
+.info-row {
+  display: flex;
+  gap: 28rpx;
+  justify-content: space-between;
+  padding: 20rpx 0;
+  font-size: 25rpx;
+  line-height: 1.45;
+  border-top: 1rpx solid #e6e8eb;
+}
+
+.info-k {
+  flex: none;
+  color: #687080;
+}
+
+.info-v {
+  min-width: 0;
+  color: #20242c;
+  text-align: right;
+  overflow-wrap: anywhere;
+}
+
+.info-mono {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+.logout-card {
+  padding: 24rpx 28rpx;
+  margin-top: 20rpx;
+  background: #fff;
+  border: 1rpx solid #e6e8eb;
+  border-radius: 20rpx;
+}
+
+.logout-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 84rpx;
+  padding: 0;
+  font-size: 28rpx;
+  font-weight: 600;
+  line-height: 1;
+  color: #a1322d;
+  background: #fff;
+  border: 1rpx solid #e7c3bd;
+  border-radius: 16rpx;
+}
+
+.logout-btn::after {
+  border: none;
+}
+
+.logout-btn-hover {
+  background: #fdf4f2;
+}
+
+.logout-hint {
+  margin-top: 14rpx;
+  font-size: 20rpx;
+  color: #8b929c;
+  text-align: center;
 }

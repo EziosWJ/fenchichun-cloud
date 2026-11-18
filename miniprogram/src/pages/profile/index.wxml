@@ -1,10 +1,26 @@
-<view class="screen">
-  <view class="screen-title profile-title">我的</view>
+<view class="profile-screen">
   <loading-state wx:if="{{loading}}" text="正在加载账号" />
   <error-state wx:elif="{{error}}" text="{{error}}" bind:retry="load" />
   <block wx:else>
-    <view class="profile-person"><view class="profile-avatar">员</view><view><view class="profile-name">{{name}}</view><view class="subtle">员工账号 {{account}}</view></view></view>
-    <view class="detail-card"><view class="detail-row"><text class="detail-label">当前岗位</text><text>{{role}}</text></view><view class="detail-row"><text class="detail-label">可用岗位</text><text>{{roles}}</text></view></view>
-    <view class="logout"><t-button block variant="outline" bindtap="logout">退出登录</t-button></view>
+    <view class="profile-card">
+      <view class="profile-avatar">员</view>
+      <view class="profile-main">
+        <view class="profile-name">{{name}}</view>
+        <view class="profile-account">员工账号 {{account}}</view>
+      </view>
+      <view class="role-chip">{{role}}</view>
+    </view>
+
+    <view class="info-card">
+      <view class="info-title">账号信息</view>
+      <view class="info-row"><text class="info-k">员工账号</text><text class="info-v info-mono">{{account}}</text></view>
+      <view class="info-row"><text class="info-k">当前岗位</text><text class="info-v">{{role}}</text></view>
+      <view class="info-row"><text class="info-k">可用岗位</text><text class="info-v">{{roles}}</text></view>
+    </view>
+
+    <view class="logout-card">
+      <button class="logout-btn" hover-class="logout-btn-hover" bindtap="logout">退出登录</button>
+      <view class="logout-hint">退出后需要重新输入账号密码</view>
+    </view>
   </block>
 </view>

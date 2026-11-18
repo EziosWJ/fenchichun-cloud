@@ -23,10 +23,20 @@
     "color": "#687080",
     "selectedColor": "#8c3b2e",
     "backgroundColor": "#ffffff",
-    "borderStyle": "white",
+    "borderStyle": "black",
     "list": [
-      { "pagePath": "pages/index/index", "text": "工作台" },
-      { "pagePath": "pages/profile/index", "text": "我的" }
+      {
+        "pagePath": "pages/index/index",
+        "text": "工作台",
+        "iconPath": "tabbar/workbench.png",
+        "selectedIconPath": "tabbar/workbench-active.png"
+      },
+      {
+        "pagePath": "pages/profile/index",
+        "text": "我的",
+        "iconPath": "tabbar/profile.png",
+        "selectedIconPath": "tabbar/profile-active.png"
+      }
     ]
   },
   "style": "v2",
