@@ -174,12 +174,7 @@ func (h *Handler) statementDetailExport(c *gin.Context) {
 		managementResult(c, nil, err)
 		return
 	}
-	detail, err := h.service.StatementDetail(c.Request.Context(), q)
-	if err != nil {
-		managementResult(c, nil, err)
-		return
-	}
-	tickets, err := h.service.StatementTickets(c.Request.Context(), q)
+	detail, tickets, err := h.service.StatementExport(c.Request.Context(), q)
 	if err != nil {
 		managementResult(c, nil, err)
 		return

@@ -65,16 +65,17 @@ type Contact struct {
 func (Contact) TableName() string { return "wb_cloud_contact" }
 
 type MasterSnapshot struct {
-	SchemaVersion int        `json:"schemaVersion"`
-	SiteCode      string     `json:"siteCode"`
-	Categories    []Category `json:"categories"`
-	Materials     []Material `json:"materials"`
-	Parties       []Party    `json:"parties"`
+	SchemaVersion         int                    `json:"schemaVersion"`
+	SiteCode              string                 `json:"siteCode"`
+	Categories            []Category             `json:"categories"`
+	Materials             []Material             `json:"materials"`
+	Parties               []Party                `json:"parties"`
+	TemporaryPartyResults []TemporaryPartyResult `json:"temporaryPartyResults"`
 }
 
-// MasterSnapshot reads all four related lists in one repeatable-read transaction.
+// MasterSnapshot reads headquarters data and site-specific results in one repeatable-read transaction.
 func (r *Repository) MasterSnapshot(ctx context.Context, code string) (MasterSnapshot, error) {
-	result := MasterSnapshot{SchemaVersion: 2, Categories: []Category{}, Materials: []Material{}, Parties: []Party{}}
+	result := MasterSnapshot{SchemaVersion: 2, Categories: []Category{}, Materials: []Material{}, Parties: []Party{}, TemporaryPartyResults: []TemporaryPartyResult{}}
 	err := r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		var bound site
 		if err := tx.Where("code = ? AND enabled = ?", code, true).Take(&bound).Error; err != nil {
@@ -104,7 +105,9 @@ func (r *Repository) MasterSnapshot(ctx context.Context, code string) (MasterSna
 				result.Parties[i].Contacts = []Contact{}
 			}
 		}
-		return nil
+		return tx.Model(&TemporaryParty{}).Select("temporary_code, version, status, formal_party_code").
+			Where("site_code = ? AND status IN ?", bound.Code, []string{temporaryMerged, temporaryDisabled}).
+			Order("temporary_code").Find(&result.TemporaryPartyResults).Error
 	}, &sql.TxOptions{Isolation: sql.LevelRepeatableRead, ReadOnly: true})
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {

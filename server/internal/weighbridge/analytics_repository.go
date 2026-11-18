@@ -11,7 +11,8 @@ const analyticsFrom = ` FROM wb_cloud_ticket t
 	LEFT JOIN wb_cloud_material m ON m.code = t.material_code
 	LEFT JOIN wb_cloud_category c ON c.id = m.category_id
 	LEFT JOIN wb_cloud_site s ON s.code = t.site_code
-	LEFT JOIN wb_cloud_party p ON p.code = t.party_code `
+	` + temporaryPartyJoin + "\n" + reportingPartyJoin + `
+	CROSS JOIN LATERAL (SELECT ` + reportingPartyCode + ` AS party_code, ` + reportingPartyName + ` AS party_name) party `
 
 type analyticsSummaryRow struct {
 	ValidTickets               int64
@@ -81,9 +82,9 @@ func analyticsKeywordClause(scope string) string {
 	case "material":
 		return "(t.material_code ILIKE ? OR COALESCE(t.material_name, '') ILIKE ? OR COALESCE(t.material_spec, '') ILIKE ?)"
 	case "party":
-		return "(t.party_code ILIKE ? OR COALESCE(t.party_name, '') ILIKE ?)"
+		return "(party.party_code ILIKE ? OR COALESCE(party.party_name, '') ILIKE ?)"
 	default:
-		return "(t.material_code ILIKE ? OR COALESCE(t.material_name, '') ILIKE ? OR t.party_code ILIKE ? OR COALESCE(t.party_name, '') ILIKE ?)"
+		return "(t.material_code ILIKE ? OR COALESCE(t.material_name, '') ILIKE ? OR party.party_code ILIKE ? OR COALESCE(party.party_name, '') ILIKE ?)"
 	}
 }
 
@@ -125,7 +126,7 @@ func analyticsWhere(q AnalyticsQuery, includeVoid bool, keywordScope string) (st
 		args = append(args, q.CategoryCode)
 	}
 	if q.PartyCode != "" {
-		clauses = append(clauses, "t.party_code = ?")
+		clauses = append(clauses, "party.party_code = ?")
 		args = append(args, q.PartyCode)
 	}
 	if q.IssuerName != "" {
@@ -194,8 +195,8 @@ func (r *Repository) AnalyticsSummary(ctx context.Context, q AnalyticsQuery) (an
 		COUNT(*) FILTER (WHERE t.status = 'valid' AND t.direction = 'outbound') AS outbound_tickets,
 		COALESCE(SUM(t.final_net_milli_tonne) FILTER (WHERE t.status = 'valid' AND t.direction = 'outbound'), 0) AS outbound_net_milli_tonne,
 		COUNT(DISTINCT t.site_code) FILTER (WHERE t.status = 'valid') AS active_sites,
-		COUNT(DISTINCT t.party_code) FILTER (WHERE t.status = 'valid' AND t.direction = 'inbound') AS active_suppliers,
-		COUNT(DISTINCT t.party_code) FILTER (WHERE t.status = 'valid' AND t.direction = 'outbound') AS active_customers,
+		COUNT(DISTINCT party.party_code) FILTER (WHERE t.status = 'valid' AND t.direction = 'inbound') AS active_suppliers,
+		COUNT(DISTINCT party.party_code) FILTER (WHERE t.status = 'valid' AND t.direction = 'outbound') AS active_customers,
 		COUNT(*) FILTER (WHERE t.status = 'valid' AND t.adjustment_known) AS adjustment_known_tickets,
 		COUNT(*) FILTER (WHERE t.status = 'valid' AND t.adjusted) AS adjusted_tickets,
 		COALESCE(SUM(t.net_adjustment_milli_tonne) FILTER (WHERE t.status = 'valid' AND t.adjustment_known), 0) AS adjustment_net_milli_tonne,

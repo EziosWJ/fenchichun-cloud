@@ -46,3 +46,34 @@ export const tickets = (params: Record<string, unknown>): Promise<PaginatedResul
 export const totals = (params: Record<string, unknown>) => get<DirectionTotal[]>(`${base}/ticket-totals`, params);
 export const syncSiteReceipts = () => get<SyncSiteReceipt[]>(`${base}/sync/receipts/sites`);
 export const syncTicketReceipt = (siteCode: string, ticketNo: string) => get<SyncTicketReceipt>(`${base}/sync/receipts/ticket`, { siteCode, ticketNo });
+
+export type TemporaryPartyStatus = 'pending' | 'needs_info' | 'merged' | 'disabled';
+export type PartyIdentities = Pick<Party, 'isSupplier' | 'isCustomer' | 'isCarrier'>;
+
+export interface TemporaryParty extends PartyIdentities {
+  id: number;
+  siteCode: string;
+  siteName: string;
+  temporaryCode: string;
+  name: string;
+  nature: string;
+  version: number;
+  status: TemporaryPartyStatus;
+  formalPartyCode: string | null;
+  reason: string;
+  receivedAt: string;
+  processedBy: number | null;
+  processedAt: string | null;
+}
+
+export interface TemporaryPartyDecision {
+  version: number;
+  status: Exclude<TemporaryPartyStatus, 'pending'>;
+  formalPartyCode?: string;
+  reason?: string;
+}
+
+const temporaryPartiesPath = `${base}/master/temporary-parties`;
+export const temporaryParties = () => get<TemporaryParty[]>(temporaryPartiesPath);
+export const decideTemporaryParty = (id: number, decision: TemporaryPartyDecision) =>
+  post<void>(`${temporaryPartiesPath}/${id}/decision`, decision);

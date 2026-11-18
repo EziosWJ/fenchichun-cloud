@@ -1,13 +1,15 @@
 import { useState } from 'react';
-import { Alert, App, Button, Checkbox, Form, Input, Modal, Select, Space, Switch, Tag, Row as GridRow, Col } from 'antd';
-import { useLocation } from 'react-router-dom';
+import { Alert, App, Button, Checkbox, Form, Input, Modal, Select, Space, Switch, Tabs, Tag, Row as GridRow, Col } from 'antd';
+import { Navigate, useLocation, useSearchParams } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { ColumnsType } from 'antd/es/table';
 import { DataTable } from '../../components/DataTable';
 import { PageHeader } from '../../components/PageHeader';
 import { FilterField } from '../../components/SearchFilterBar';
+import { paths } from '../../config/paths';
 import { useListUrlState } from '../../hooks/useListUrlState';
 import { getApiErrorMessage } from '../../lib/api/errors';
+import TemporaryPartiesPage from './TemporaryPartiesPage';
 import { categories, materials, parties, saveCategory, saveMaterial, saveParty, type Category, type Material, type Party } from '../../features/weighbridge/api';
 
 type Kind = 'categories' | 'materials' | 'parties';
@@ -16,17 +18,44 @@ type FormValues = Omit<Party, 'code'> & Omit<Material, 'code'>;
 const identities = [{ value: 'supplier', label: '供应商', field: 'isSupplier' }, { value: 'customer', label: '客户', field: 'isCustomer' }, { value: 'carrier', label: '承运商', field: 'isCarrier' }] as const;
 const config = { filters: { identity: ['supplier', 'customer', 'carrier'] }, sortKeys: [], pageSizeOptions: [10, 20, 50], defaultPageSize: 10 } as const;
 export default function MasterPage() {
+  const { pathname } = useLocation();
+  const [searchParams, setSearchParams] = useSearchParams();
+  if (pathname === paths.weighbridgeTemporaryParties) {
+    const params = new URLSearchParams(searchParams);
+    params.set('tab', 'temporary');
+    return <Navigate replace to={{ pathname: paths.weighbridgeParties, search: `?${params}` }} />;
+  }
+  const kind: Kind = pathname.endsWith('/materials') ? 'materials' : pathname.endsWith('/parties') ? 'parties' : 'categories';
+  return (
+    <>
+      <PageHeader
+        title={kind === 'categories' ? '物料分类' : kind === 'materials' ? '物料' : '往来主体'}
+        description={kind !== 'parties' ? '维护下发各厂的基础资料。' : undefined}
+      />
+      {kind === 'parties' ? (
+        <Tabs
+          activeKey={searchParams.get('tab') === 'temporary' ? 'temporary' : 'formal'}
+          onChange={(key) => setSearchParams(key === 'temporary' ? { tab: 'temporary' } : {}, { preventScrollReset: true })}
+          destroyOnHidden
+          items={[
+            { key: 'formal', label: '正式主体', children: <MasterList kind="parties" /> },
+            { key: 'temporary', label: '临时主体', children: <TemporaryPartiesPage /> },
+          ]}
+        />
+      ) : <MasterList key={kind} kind={kind} />}
+    </>
+  );
+}
+
+function MasterList({ kind }: { kind: Kind }) {
   const { message } = App.useApp();
   const client = useQueryClient();
   const { state, actions } = useListUrlState(config);
-  const pathname = useLocation().pathname;
-  const kind: Kind = pathname.endsWith('/materials') ? 'materials' : pathname.endsWith('/parties') ? 'parties' : 'categories';
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Row | null>(null);
   const [keyword, setKeyword] = useState(state.keyword);
   const [form] = Form.useForm<FormValues>();
   const nature = Form.useWatch('nature', form);
-  const isSupplier = Form.useWatch('isSupplier', form);
   const categoryQuery = useQuery({ queryKey: ['weighbridge', 'categories'], queryFn: categories });
   const materialQuery = useQuery({ queryKey: ['weighbridge', 'materials'], queryFn: materials, enabled: kind === 'materials' });
   const partyQuery = useQuery({ queryKey: ['weighbridge', 'parties'], queryFn: parties, enabled: kind === 'parties' });
@@ -53,7 +82,6 @@ export default function MasterPage() {
     { title: '操作', key: 'actions', render: (_, row) => <Button type="link" onClick={() => edit(row)}>编辑</Button> },
   ];
   return <>
-    <PageHeader title={kind === 'categories' ? '物料分类' : kind === 'materials' ? '物料' : '往来主体'} description="维护下发各厂的基础资料。" />
     <Space direction="vertical" style={{ width: '100%' }} size="middle">
       <Space wrap align="end">
         <FilterField label="名称或编码" wide>
@@ -78,7 +106,7 @@ export default function MasterPage() {
           <Col xs={24} sm={12}><Form.Item name="shortName" label="简称"><Input maxLength={100} /></Form.Item></Col>
           <Col xs={24} sm={12}><Form.Item name="nature" label="主体性质" rules={[{required:true}]}><Select options={[{value:'enterprise',label:'企业'},{value:'individual',label:'个人'}]} /></Form.Item></Col>
           <Col xs={24} sm={12}><Space wrap><Form.Item name="isSupplier" valuePropName="checked"><Checkbox>供货商</Checkbox></Form.Item><Form.Item name="isCustomer" valuePropName="checked"><Checkbox>客户</Checkbox></Form.Item><Form.Item name="isCarrier" valuePropName="checked"><Checkbox>承运商</Checkbox></Form.Item></Space></Col>
-          <Col xs={24} sm={12}><Form.Item name="phone" label="联系电话"><Input maxLength={50} /></Form.Item></Col><Col xs={24} sm={12}><Form.Item name="address" label="业务地址"><Input maxLength={500} /></Form.Item></Col><Col xs={24} sm={12}>{nature === 'individual' ? <Form.Item name="identityNumber" label="身份证号码" extra={editing && (editing as Party).hasIdentityNumber ? '已登记身份证；留空保留原号码，填写新号码可更正。' : '仅用于身份核对和防止重复建档，不下发至厂端。'} rules={[{ required: !!isSupplier && !(editing as Party | null)?.hasIdentityNumber, message: '请输入身份证号码' }, { pattern: /^[1-9][0-9]{16}[0-9Xx]$/, message: '请输入18位身份证号码' }]}><Input maxLength={18} autoComplete="off" /></Form.Item> : <Form.Item name="creditCode" label="统一社会信用代码" rules={[{ required: !!isSupplier, message: '请输入统一社会信用代码' }, { pattern: /^[0-9A-HJ-NPQRTUWXYa-hj-npqrtuwxy]{18}$/, message: '请输入18位统一社会信用代码' }]}><Input maxLength={18} /></Form.Item>}</Col><Col span={24}><Form.Item name="remark" label="备注"><Input.TextArea maxLength={2000} /></Form.Item></Col>
+          <Col xs={24} sm={12}><Form.Item name="phone" label="联系电话"><Input maxLength={50} /></Form.Item></Col><Col xs={24} sm={12}><Form.Item name="address" label="业务地址"><Input maxLength={500} /></Form.Item></Col><Col xs={24} sm={12}>{nature === 'individual' ? <Form.Item name="identityNumber" label="身份证号码" extra={editing && (editing as Party).hasIdentityNumber ? '已登记身份证；留空保留原号码，填写新号码可更正。' : '仅用于身份核对和防止重复建档，不下发至厂端。'} rules={[{ pattern: /^[1-9][0-9]{16}[0-9Xx]$/, message: '请输入18位身份证号码' }]}><Input maxLength={18} autoComplete="off" /></Form.Item> : <Form.Item name="creditCode" label="统一社会信用代码" rules={[{ pattern: /^[0-9A-HJ-NPQRTUWXYa-hj-npqrtuwxy]{18}$/, message: '请输入18位统一社会信用代码' }]}><Input maxLength={18} /></Form.Item>}</Col><Col span={24}><Form.Item name="remark" label="备注"><Input.TextArea maxLength={2000} /></Form.Item></Col>
           <Col span={24}><Form.List name="contacts">{(fields, { add, remove }) => <><strong>联系人</strong>{fields.map(({key, name, ...rest}) => <Space key={key} align="baseline" wrap><Form.Item {...rest} name={[name, 'id']} hidden><Input /></Form.Item><Form.Item {...rest} name={[name, 'name']} rules={[{required:true,whitespace:true,message:'请输入姓名'}]}><Input placeholder="姓名" /></Form.Item><Form.Item {...rest} name={[name, 'phone']}><Input placeholder="电话" /></Form.Item><Form.Item {...rest} name={[name, 'purpose']}><Input placeholder="用途／职务" /></Form.Item><Form.Item {...rest} name={[name, 'remark']}><Input placeholder="备注" /></Form.Item><Form.Item {...rest} name={[name, 'isDefault']} valuePropName="checked"><Checkbox>默认</Checkbox></Form.Item><Button onClick={() => remove(name)}>移除</Button></Space>)}<Button onClick={() => add({id:0,isDefault:fields.length === 0})}>添加联系人</Button></>}</Form.List></Col>
         </>}
         <Col span={24}><Form.Item name="enabled" label="启用" valuePropName="checked"><Switch /></Form.Item></Col>

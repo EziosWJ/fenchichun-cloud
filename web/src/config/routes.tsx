@@ -99,6 +99,15 @@ export const routeDefinitions: AppRouteDefinition[] = [
     component: lazy(() => import('../pages/weighbridge/MasterPage')),
   })),
   {
+    path: paths.weighbridgeTemporaryParties,
+    label: '临时主体待确认',
+    title: '临时主体待确认',
+    hideInMenu: true,
+    parentPath: paths.weighbridgeParties,
+    menuPath: paths.weighbridgeParties,
+    component: lazy(() => import('../pages/weighbridge/MasterPage')),
+  },
+  {
     path: paths.weighbridgeSites,
     label: '厂区接入',
     title: '厂区接入',

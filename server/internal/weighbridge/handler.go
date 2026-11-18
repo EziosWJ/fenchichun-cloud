@@ -49,6 +49,7 @@ func NewHandler(service *Service) *Handler { return &Handler{service: service} }
 func RegisterRoutes(api gin.IRouter, handler *Handler) {
 	api.POST("/weighbridge/sync/changes", handler.change)
 	api.GET("/weighbridge/sync/master", handler.master)
+	api.POST("/weighbridge/sync/temporary-parties", handler.registerTemporaryParty)
 	RegisterSyncV4Routes(api, handler)
 	RegisterSyncV5Routes(api, handler)
 }
@@ -74,6 +75,8 @@ func RegisterManagementRoutes(authenticated gin.IRouter, handler *Handler) {
 	master.GET("/parties", handler.parties)
 	master.POST("/parties", handler.saveParty)
 	master.PUT("/parties/:code", handler.saveParty)
+	master.GET("/temporary-parties", handler.temporaryParties)
+	master.POST("/temporary-parties/:id/decision", handler.decideTemporaryParty)
 	RegisterSyncV4ManagementRoutes(authenticated, handler)
 }
 

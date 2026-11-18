@@ -19,6 +19,8 @@ export const paths = Object.freeze({
   monitorServer: '/monitor/server',
   weighbridgeTickets: '/weighbridge/tickets',
   weighbridgeMaster: '/weighbridge/master',
+  weighbridgeParties: '/weighbridge/master/parties',
+  weighbridgeTemporaryParties: '/weighbridge/master/parties/temporary',
   weighbridgeSites: '/weighbridge/sites',
   weighbridgeSync: '/weighbridge/sync',
   analyticsOverview: '/analytics/overview',

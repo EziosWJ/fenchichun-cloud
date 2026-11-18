@@ -2,6 +2,7 @@ package weighbridge
 
 import (
 	"context"
+	"database/sql"
 	"encoding/json"
 	"time"
 
@@ -65,7 +66,7 @@ func applyTicketFilter(tx *gorm.DB, q TicketQuery) *gorm.DB {
 		tx = tx.Where("t.material_code = ?", q.MaterialCode)
 	}
 	if q.PartyCode != "" {
-		tx = tx.Where("t.party_code = ?", q.PartyCode)
+		tx = tx.Where(reportingPartyCode+" = ?", q.PartyCode)
 	}
 	if q.Adjusted != nil {
 		tx = tx.Where("t.adjusted = ?", *q.Adjusted)
@@ -87,12 +88,20 @@ func (r *Repository) TicketPage(ctx context.Context, q TicketQuery) (TicketPage,
 		return TicketPage{}, ErrInvalid
 	}
 	page := TicketPage{Records: []TicketResult{}, Page: q.Page, PageSize: q.PageSize}
-	base := applyTicketFilter(r.db.WithContext(ctx).Table("wb_cloud_ticket t"), q)
-	if err := base.Count(&page.Total).Error; err != nil {
-		return TicketPage{}, err
-	}
 	var rows []ticketRow
-	if err := base.Select("t.issued_site_code AS site_code, t.status, t.snapshot, t.void_reason, t.voided_by, t.voided_at").Order("t.issued_at DESC, t.id DESC").Limit(q.PageSize).Offset((q.Page - 1) * q.PageSize).Scan(&rows).Error; err != nil {
+	err := r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		base := tx.Table("wb_cloud_ticket t")
+		if q.PartyCode != "" {
+			base = base.Joins(temporaryPartyJoin)
+		}
+		base = applyTicketFilter(base, q)
+		if err := base.Count(&page.Total).Error; err != nil {
+			return err
+		}
+		return base.Select("t.issued_site_code AS site_code, t.status, t.snapshot, t.void_reason, t.voided_by, t.voided_at").
+			Order("t.issued_at DESC, t.id DESC").Limit(q.PageSize).Offset((q.Page - 1) * q.PageSize).Scan(&rows).Error
+	}, &sql.TxOptions{Isolation: sql.LevelRepeatableRead, ReadOnly: true})
+	if err != nil {
 		return TicketPage{}, err
 	}
 	for _, row := range rows {
@@ -107,7 +116,7 @@ func (r *Repository) TicketPage(ctx context.Context, q TicketQuery) (TicketPage,
 func (r *Repository) TicketTotals(ctx context.Context, q TicketQuery) ([]DirectionTotal, error) {
 	q.Status = "valid"
 	totals := []DirectionTotal{}
-	base := applyTicketFilter(r.db.WithContext(ctx).Table("wb_cloud_ticket t"), q)
-	err := base.Select("t.direction, t.material_code, t.party_code, COUNT(*) AS count, COALESCE(SUM(t.final_net_milli_tonne), 0) AS net_milli_tonne").Group("t.direction, t.material_code, t.party_code").Order("t.direction, t.material_code, t.party_code").Scan(&totals).Error
+	base := applyTicketFilter(r.db.WithContext(ctx).Table("wb_cloud_ticket t").Joins(temporaryPartyJoin), q)
+	err := base.Select("t.direction, t.material_code, " + reportingPartyCode + " AS party_code, COUNT(*) AS count, COALESCE(SUM(t.final_net_milli_tonne), 0) AS net_milli_tonne").Group("t.direction, t.material_code, " + reportingPartyCode).Order("t.direction, t.material_code, party_code").Scan(&totals).Error
 	return totals, err
 }

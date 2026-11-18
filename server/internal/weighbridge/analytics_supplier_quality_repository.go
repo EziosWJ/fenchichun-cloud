@@ -60,7 +60,7 @@ func (r *Repository) AnalyticsSupplierQualitySummary(ctx context.Context, q Anal
 	q = defaultCoreCategoryCodes(q)
 	where, args := analyticsWhere(q, false, "party")
 	query := `WITH scoped AS (
-		SELECT t.party_code, t.party_name, p.nature, t.material_code, t.material_name,
+		SELECT party.party_code, party.party_name, p.nature, t.material_code, t.material_name,
 			t.net_adjustment_milli_tonne, t.pre_adjustment_net_milli_tonne,
 			t.adjustment_known, t.adjusted, t.issued_at, t.issued_date` + analyticsFrom + ` WHERE ` + where + `
 	), samples AS (
@@ -86,14 +86,14 @@ func (r *Repository) AnalyticsSupplierQualitySummary(ctx context.Context, q Anal
 func (r *Repository) AnalyticsSupplierQualityRows(ctx context.Context, q AnalyticsQuery) ([]analyticsSupplierQualityRow, int64, error) {
 	q = defaultCoreCategoryCodes(q)
 	where, args := analyticsWhere(q, false, "party")
-	countQuery := `SELECT COUNT(DISTINCT t.party_code)` + analyticsFrom + ` WHERE ` + where
+	countQuery := `SELECT COUNT(DISTINCT party.party_code)` + analyticsFrom + ` WHERE ` + where
 	var total int64
 	if err := r.db.WithContext(ctx).Raw(countQuery, args...).Scan(&total).Error; err != nil {
 		return nil, 0, err
 	}
 	sortExpr := supplierQualitySortExpr(q.SortBy, q.SortOrder)
 	query := `WITH scoped AS (
-		SELECT t.party_code, t.party_name, p.nature, t.material_code, t.material_name,
+		SELECT party.party_code, party.party_name, p.nature, t.material_code, t.material_name,
 			t.net_adjustment_milli_tonne, t.pre_adjustment_net_milli_tonne,
 			t.adjustment_known, t.adjusted, t.issued_at` + analyticsFrom + ` WHERE ` + where + `
 	), samples AS (
@@ -178,7 +178,7 @@ func (r *Repository) AnalyticsSupplierQualityTrend(ctx context.Context, q Analyt
 	}
 	period := analyticsPeriodExprFor("samples", q.Granularity)
 	query := fmt.Sprintf(`WITH scoped AS (
-		SELECT t.party_code, t.party_name, t.net_adjustment_milli_tonne, t.pre_adjustment_net_milli_tonne,
+		SELECT party.party_code, party.party_name, t.net_adjustment_milli_tonne, t.pre_adjustment_net_milli_tonne,
 			t.adjustment_known, t.issued_date`+analyticsFrom+` WHERE %s
 	), samples AS (
 		SELECT *, (net_adjustment_milli_tonne::numeric / NULLIF(pre_adjustment_net_milli_tonne, 0)) AS rate

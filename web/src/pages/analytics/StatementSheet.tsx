@@ -443,6 +443,15 @@ export function StatementSheet({
       render: (_, row) => <span className={styles.plate}>{row.ticket.plate}</span>,
     },
     {
+      title: '开单时往来主体',
+      key: 'party',
+      width: 190,
+      render: (_, { ticket }) => {
+        const label = [ticket.partyName, ticket.partyCode].filter(Boolean).join(' / ');
+        return <span className={styles.ellipsis} title={label}>{label || '—'}</span>;
+      },
+    },
+    {
       title: '物料 / 规格',
       key: 'material',
       width: 160,
@@ -820,7 +829,7 @@ export function StatementSheet({
                 dataSource={ticketList.data?.items ?? []}
                 loading={ticketList.isFetching}
                 size="small"
-                scroll={{ x: 1000 }}
+                scroll={{ x: 1140 }}
                 expandable={{
                   columnWidth: 40,
                   expandRowByClick: true,
