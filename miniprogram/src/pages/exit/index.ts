@@ -16,6 +16,7 @@ Page({
     eligible: false,
     type: '',
     inspection: '',
+    inspectionShort: '',
     evidenceExpanded: false,
     confirming: false,
   },
@@ -37,6 +38,7 @@ Page({
           eligible: exitEligible(trip),
           type: exitType(trip),
           inspection: inspectionText(trip),
+          inspectionShort: trip.inspection?.values?.split('/')[0]?.trim() || '',
         })
         this.setData({ loading: false })
       }
