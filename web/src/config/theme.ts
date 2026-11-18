@@ -157,7 +157,7 @@ export function resolveInitialTheme(): ThemeMode {
   return getSystemTheme();
 }
 
-export function createAppTheme(mode: ThemeMode): ThemeConfig {
+export function createAppTheme(mode: ThemeMode, reducedMotion = false): ThemeConfig {
   const palette = appPalette[mode];
   const dark = mode === 'dark';
 
@@ -165,6 +165,7 @@ export function createAppTheme(mode: ThemeMode): ThemeConfig {
     algorithm: dark ? antdTheme.darkAlgorithm : antdTheme.defaultAlgorithm,
     cssVar: { prefix: 'ant' },
     token: {
+      motion: !reducedMotion,
       colorPrimary: appConfig.brandColor,
       colorInfo: appConfig.brandColor,
       colorLink: palette.brandText,

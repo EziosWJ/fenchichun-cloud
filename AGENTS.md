@@ -140,6 +140,11 @@ triage 流转使用 5 个默认标签（needs-triage / needs-info / ready-for-ag
 - Axios 负责 HTTP；TanStack Query 管理服务端数据；Zustand 管理登录态、页面标签等客户端状态。
 - MSW 仅保留测试能力，真实开发与生产默认不启动浏览器 mock。
 
+## Ant Design 浮层排查
+- 下拉、日期选择器或弹窗浮层异常时，在原路由和容器复现，并以仓库中正常使用的同类组件作对照。检查选项数据、浮层挂载位置、触发器与浮层的实际坐标、遮挡和页面横向溢出。
+- 优先通过组件公开 API 和共享配置修复原因，保留原交互。减少动效通过 `ConfigProvider` 的 `token.motion` 传给 Ant Design。全局 CSS 只为应用自身节点压缩动画和过渡时长，以保留组件的定位时序。
+- 用真实浏览器验证受影响控件能展开、点击选择且不新增横向溢出，覆盖正常模式和系统减少动效。搜索型控件同时验证输入后的筛选和空结果。报告实测的环境与未复现的条件。临时主体和同模块对照用例可运行 `node web/tests/weighbridge/select-popups.smoke.mjs`。
+
 ## 与 Go 后端的契约
 - 统一响应为 `{ code, message, data }`，成功 `code = 200`；HTTP 200 也可能携带业务失败，必须在数据访问层检查 `code`。
 - 认证入口：`/api/v1/auth/login`、`/logout`、`/me`、`/menus`；请求头为 `Authorization: Bearer <tokenValue>`。

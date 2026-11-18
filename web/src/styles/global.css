@@ -81,12 +81,14 @@ input[type='search']::-webkit-search-cancel-button { cursor: pointer; }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  *,
-  *::before,
-  *::after {
+  * { scroll-behavior: auto !important; }
+
+  /* Ant Design 自己管理浮层动效与定位时序。 */
+  :where(:not([class^="ant-"], [class*=" ant-"])),
+  :where(:not([class^="ant-"], [class*=" ant-"]))::before,
+  :where(:not([class^="ant-"], [class*=" ant-"]))::after {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
-    scroll-behavior: auto !important;
     transition-duration: 0.01ms !important;
   }
 }

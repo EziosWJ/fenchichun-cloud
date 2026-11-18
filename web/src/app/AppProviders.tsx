@@ -26,6 +26,8 @@ import { AppErrorBoundary } from './AppErrorBoundary';
 
 dayjs.locale('zh-cn');
 
+const reducedMotionQuery = '(prefers-reduced-motion: reduce)';
+
 export type { ThemeMode } from '../config/theme';
 
 interface AppPreferences {
@@ -42,6 +44,7 @@ interface AppProvidersProps {
 
 export function AppProviders({ children, client = defaultQueryClient }: AppProvidersProps) {
   const [themeMode, setThemeMode] = useState<ThemeMode>(resolveInitialTheme);
+  const [reducedMotion, setReducedMotion] = useState(() => window.matchMedia?.(reducedMotionQuery).matches ?? false);
 
   useEffect(() => {
     if (appConfig.defaultTheme !== 'system' || readStoredTheme() || !window.matchMedia) return;
@@ -49,6 +52,14 @@ export function AppProviders({ children, client = defaultQueryClient }: AppProvi
     const onChange = (event: MediaQueryListEvent) => {
       if (!readStoredTheme()) setThemeMode(event.matches ? 'dark' : 'light');
     };
+    media.addEventListener?.('change', onChange);
+    return () => media.removeEventListener?.('change', onChange);
+  }, []);
+
+  useEffect(() => {
+    const media = window.matchMedia?.(reducedMotionQuery);
+    if (!media) return;
+    const onChange = (event: MediaQueryListEvent) => setReducedMotion(event.matches);
     media.addEventListener?.('change', onChange);
     return () => media.removeEventListener?.('change', onChange);
   }, []);
@@ -78,7 +89,7 @@ export function AppProviders({ children, client = defaultQueryClient }: AppProvi
   }, []);
 
   const preferences = useMemo(() => ({ themeMode, toggleTheme }), [themeMode, toggleTheme]);
-  const themeConfig = useMemo(() => createAppTheme(themeMode), [themeMode]);
+  const themeConfig = useMemo(() => createAppTheme(themeMode, reducedMotion), [themeMode, reducedMotion]);
 
   return (
     <PreferencesContext.Provider value={preferences}>
