@@ -113,10 +113,6 @@
   border-inline-end: 0 !important;
 }
 
-.sideMenu:global(.ant-menu-inline-collapsed) :global(.ant-menu-item-group-title) {
-  display: none;
-}
-
 .sidebarFoot {
   padding: 12px 18px 16px;
   border-top: 1px solid var(--ant-color-border-secondary);

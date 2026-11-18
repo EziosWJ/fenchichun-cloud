@@ -35,7 +35,7 @@ import { useAppPreferences } from '../app/AppProviders';
 import { useAuthStore } from '../stores/useAuthStore';
 import { HOME_TAB, useTabsStore } from '../stores/useTabsStore';
 import { buildBreadcrumbs, canAccessRoute, isAdmin, menuTitleForPath } from '../lib/menus';
-import { buildSidebarNavigation } from '../lib/navigation';
+import { buildSidebarNavigation, findMenuParentKeys } from '../lib/navigation';
 import { getUnreadCount } from '../features/notifications/api';
 import { queryKeys } from '../lib/queryKeys';
 import { connectMessages, useMessageEvents } from '../stores/useMessageEvents';
@@ -95,6 +95,10 @@ export default function AppLayout() {
   const pageTitle = getPageTitle(location.pathname);
   const breadcrumbs = buildBreadcrumbs(location.pathname, menus);
   const navigation = useMemo(() => buildSidebarNavigation(menus, admin), [admin, menus]);
+  const [openKeys, setOpenKeys] = useState<string[]>([]);
+  useEffect(() => {
+    setOpenKeys((current) => [...new Set([...current, ...findMenuParentKeys(navigation.items, activeMenuPath)])]);
+  }, [navigation, activeMenuPath]);
   const displayTabs =
     !hasKnownRoute || tabs.some((tab) => tab.key === tabKey)
       ? tabs
@@ -208,6 +212,8 @@ export default function AppLayout() {
       mode="inline"
       theme={themeMode}
       selectedKeys={[activeMenuPath]}
+      openKeys={openKeys}
+      onOpenChange={setOpenKeys}
       items={navigation.items}
       onClick={handleMenuClick}
       className={styles.sideMenu}

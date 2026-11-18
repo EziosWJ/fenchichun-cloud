@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { buildSidebarNavigation } from '../../src/lib/navigation';
+import { buildSidebarNavigation, findMenuParentKeys } from '../../src/lib/navigation';
 import type { CurrentUserMenu } from '../../src/types/auth';
 
 function node(overrides: Partial<CurrentUserMenu>): CurrentUserMenu {
@@ -38,6 +38,17 @@ describe('sidebar navigation', () => {
     const serialized = JSON.stringify(navigation.items);
     expect(serialized).toContain('/system/notification');
     expect(serialized).toContain('/system/announcement');
+  });
+
+  it('groups messages and finds the parent of the active page', () => {
+    const navigation = buildSidebarNavigation([
+      node({ id: 22, menuType: 'DIR', path: '/weighbridge', children: [
+        node({ id: 23, path: '/weighbridge/tickets', component: 'weighbridge/tickets/index' }),
+      ] }),
+    ], true);
+    expect(findMenuParentKeys(navigation.items, '/notifications')).toEqual(['messages']);
+    expect(findMenuParentKeys(navigation.items, '/weighbridge/tickets')).toEqual(['dir:22']);
+    expect(findMenuParentKeys(navigation.items, '/dashboard')).toEqual([]);
   });
 
   it('shows backend-managed admin pages only once', () => {

@@ -112,6 +112,7 @@ describe('AppLayout', () => {
     renderLayout();
     await screen.findByText('工作台内容');
 
+    await userEventApi.click(screen.getByRole('menuitem', { name: '消息中心' }));
     await userEventApi.click(screen.getByRole('menuitem', { name: '我的通知' }));
     expect(await screen.findByText('通知内容')).toBeInTheDocument();
     expect(screen.getByRole('tab', { name: '我的通知' })).toBeInTheDocument();
@@ -135,6 +136,7 @@ describe('AppLayout', () => {
     renderLayout();
     await screen.findByText('工作台内容');
 
+    await userEventApi.click(screen.getByRole('menuitem', { name: '消息中心' }));
     await userEventApi.click(screen.getByRole('menuitem', { name: '我的通知' }));
     await screen.findByText('通知内容');
 
@@ -151,6 +153,7 @@ describe('AppLayout', () => {
 
     await userEventApi.click(screen.getByRole('button', { name: '打开导航菜单' }));
     const dialog = await screen.findByRole('dialog');
+    await userEventApi.click(within(dialog).getByRole('menuitem', { name: '消息中心' }));
     await userEventApi.click(within(dialog).getByRole('menuitem', { name: '我的通知' }));
 
     expect(await screen.findByText('通知内容')).toBeInTheDocument();
