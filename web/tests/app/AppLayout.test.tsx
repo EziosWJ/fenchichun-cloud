@@ -130,6 +130,89 @@ describe('AppLayout', () => {
     });
   });
 
+  it('right-clicking a tab closes tabs to the right or all tabs', async () => {
+    setViewport(1280);
+    const userEventApi = userEvent.setup({ delay: null });
+    useTabsStore.setState({
+      tabs: [
+        HOME_TAB,
+        { key: '/notifications', label: '我的通知', href: '/notifications', closable: true },
+        { key: '/system/user', label: '用户管理', href: '/system/user', closable: true },
+      ],
+    });
+    renderLayout('/notifications');
+    await screen.findByText('通知内容');
+
+    const openTabMenu = async () => {
+      const tab = screen.getByRole('tab', { name: '我的通知' }).closest('.ant-tabs-tab');
+      await act(async () => {
+        tab!.dispatchEvent(
+          new MouseEvent('contextmenu', { bubbles: true, clientX: 120, clientY: 80 }),
+        );
+      });
+      return screen.findByRole('menu', { name: '标签页操作' });
+    };
+
+    let menu = await openTabMenu();
+    expect(within(menu).getByRole('menuitem', { name: '关闭左侧' })).toHaveAttribute(
+      'aria-disabled',
+      'true',
+    );
+    expect(within(menu).getByRole('menuitem', { name: '关闭右侧' })).not.toHaveAttribute(
+      'aria-disabled',
+      'true',
+    );
+    await userEventApi.click(within(menu).getByRole('menuitem', { name: '关闭右侧' }));
+    await waitFor(() => {
+      expect(screen.queryByRole('tab', { name: '用户管理' })).not.toBeInTheDocument();
+    });
+    expect(screen.getByRole('tab', { name: '我的通知' })).toBeInTheDocument();
+
+    menu = await openTabMenu();
+    await userEventApi.click(within(menu).getByRole('menuitem', { name: '关闭所有' }));
+    expect(await screen.findByText('工作台内容')).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.queryByRole('tab', { name: '我的通知' })).not.toBeInTheDocument();
+    });
+  });
+
+  it('right-clicking a tab closes tabs to the left or others', async () => {
+    setViewport(1280);
+    const userEventApi = userEvent.setup({ delay: null });
+    useTabsStore.setState({
+      tabs: [
+        HOME_TAB,
+        { key: '/system/user', label: '用户管理', href: '/system/user', closable: true },
+        { key: '/notifications', label: '我的通知', href: '/notifications', closable: true },
+      ],
+    });
+    renderLayout('/notifications');
+    await screen.findByText('通知内容');
+
+    const dispatchContextMenu = async (label: string) => {
+      const tab = screen.getByRole('tab', { name: label }).closest('.ant-tabs-tab');
+      await act(async () => {
+        tab!.dispatchEvent(
+          new MouseEvent('contextmenu', { bubbles: true, clientX: 120, clientY: 80 }),
+        );
+      });
+      return screen.findByRole('menu', { name: '标签页操作' });
+    };
+
+    let menu = await dispatchContextMenu('我的通知');
+    await userEventApi.click(within(menu).getByRole('menuitem', { name: '关闭左侧' }));
+    await waitFor(() => {
+      expect(screen.queryByRole('tab', { name: '用户管理' })).not.toBeInTheDocument();
+    });
+
+    menu = await dispatchContextMenu('工作台');
+    await userEventApi.click(within(menu).getByRole('menuitem', { name: '关闭其他' }));
+    expect(await screen.findByText('工作台内容')).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.queryByRole('tab', { name: '我的通知' })).not.toBeInTheDocument();
+    });
+  });
+
   it('moves focus to the main content after a route change', async () => {
     setViewport(1280);
     const userEventApi = userEvent.setup({ delay: null });

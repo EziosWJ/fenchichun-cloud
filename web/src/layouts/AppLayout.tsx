@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type MouseEvent as ReactMouseEvent } from 'react';
 import {
   Avatar,
   Badge,
@@ -33,7 +33,7 @@ import { layoutTokens } from '../config/theme';
 import { findRouteDefinition, getActiveMenuPath, getPageTitle, getTabKey } from '../config/routeUtils';
 import { useAppPreferences } from '../app/AppProviders';
 import { useAuthStore } from '../stores/useAuthStore';
-import { HOME_TAB, useTabsStore } from '../stores/useTabsStore';
+import { HOME_TAB, useTabsStore, type PageTab } from '../stores/useTabsStore';
 import { buildBreadcrumbs, canAccessRoute, isAdmin, menuTitleForPath } from '../lib/menus';
 import { buildSidebarNavigation, findMenuParentKeys } from '../lib/navigation';
 import { getUnreadCount } from '../features/notifications/api';
@@ -83,6 +83,8 @@ export default function AppLayout() {
   const tabs = useTabsStore((state) => state.tabs);
   const openTab = useTabsStore((state) => state.openTab);
   const closeTab = useTabsStore((state) => state.closeTab);
+  const closeTabs = useTabsStore((state) => state.closeTabs);
+  const [tabMenu, setTabMenu] = useState<{ tabKey: string; x: number; y: number } | null>(null);
 
   const matched = findRouteDefinition(location.pathname);
   const accessible = matched ? canAccessRoute(matched.route, menus, user) : false;
@@ -111,6 +113,36 @@ export default function AppLayout() {
             closable: tabKey !== HOME_TAB.key,
           },
         ];
+
+  const tabMenuIndex = tabMenu
+    ? displayTabs.findIndex((tab) => tab.key === tabMenu.tabKey)
+    : -1;
+  const tabMenuTab = tabMenuIndex >= 0 ? displayTabs[tabMenuIndex] : null;
+  const tabMenuItems: MenuProps['items'] = [
+    {
+      key: 'close-left',
+      label: '关闭左侧',
+      disabled: !displayTabs.slice(0, Math.max(0, tabMenuIndex)).some((tab) => tab.closable),
+    },
+    {
+      key: 'close-right',
+      label: '关闭右侧',
+      disabled: !displayTabs.slice(tabMenuIndex + 1).some((tab) => tab.closable),
+    },
+    {
+      key: 'close-others',
+      label: '关闭其他',
+      disabled: !displayTabs.some(
+        (tab) => tab.closable && tab.key !== tabMenuTab?.key,
+      ),
+    },
+    { type: 'divider' },
+    {
+      key: 'close-all',
+      label: '关闭所有',
+      disabled: !displayTabs.some((tab) => tab.closable),
+    },
+  ];
 
   const unreadQuery = useQuery({
     queryKey: queryKeys.notifications.unread,
@@ -201,6 +233,81 @@ export default function AppLayout() {
       closeTab(targetKey);
     }
   };
+
+  const navigateToTab = useCallback(
+    (tab: PageTab) => {
+      navigate(
+        tab.key === paths.analyticsStatement
+          ? statementHrefWithoutDirection(tab.href)
+          : tab.href,
+      );
+    },
+    [navigate],
+  );
+
+  const handleTabContextMenu = (event: ReactMouseEvent<HTMLElement>) => {
+    const node = (event.target as HTMLElement).closest<HTMLElement>('[data-node-key]');
+    if (!node) return;
+    const key = (node.dataset.nodeKey ?? '').replaceAll('TABS_DQ', '"');
+    if (!displayTabs.some((tab) => tab.key === key)) return;
+    event.preventDefault();
+    // 固定定位菜单，靠近视口边缘时向内收，避免被裁掉。
+    const menuWidth = 176;
+    const menuHeight = 196;
+    setTabMenu({
+      tabKey: key,
+      x: Math.max(8, Math.min(event.clientX, window.innerWidth - menuWidth)),
+      y: Math.max(8, Math.min(event.clientY, window.innerHeight - menuHeight)),
+    });
+  };
+
+  const handleTabMenuClick: MenuProps['onClick'] = ({ key }) => {
+    const target = tabMenuTab;
+    setTabMenu(null);
+    if (!target) return;
+    const index = displayTabs.findIndex((tab) => tab.key === target.key);
+    let closing: string[] = [];
+    if (key === 'close-left') {
+      closing = displayTabs
+        .slice(0, index)
+        .filter((tab) => tab.closable)
+        .map((tab) => tab.key);
+    } else if (key === 'close-right') {
+      closing = displayTabs
+        .slice(index + 1)
+        .filter((tab) => tab.closable)
+        .map((tab) => tab.key);
+    } else if (key === 'close-others') {
+      closing = displayTabs
+        .filter((tab) => tab.closable && tab.key !== target.key)
+        .map((tab) => tab.key);
+    } else if (key === 'close-all') {
+      closing = displayTabs.filter((tab) => tab.closable).map((tab) => tab.key);
+    }
+    if (!closing.length) return;
+    closeTabs(closing);
+    if (closing.includes(tabKey)) {
+      navigateToTab(key === 'close-all' ? HOME_TAB : target);
+    }
+  };
+
+  useEffect(() => {
+    if (!tabMenu) return;
+    const closeMenu = () => setTabMenu(null);
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        closeMenu();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    window.addEventListener('resize', closeMenu);
+    window.addEventListener('scroll', closeMenu, true);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener('resize', closeMenu);
+      window.removeEventListener('scroll', closeMenu, true);
+    };
+  }, [tabMenu]);
 
   const handleLogout = async () => {
     await logout();
@@ -362,7 +469,11 @@ export default function AppLayout() {
             </Space>
           </header>
 
-          <nav className={styles.tabBar} aria-label="已打开的页面">
+          <nav
+            className={styles.tabBar}
+            aria-label="已打开的页面"
+            onContextMenu={handleTabContextMenu}
+          >
             <Tabs
               type="editable-card"
               hideAdd
@@ -371,12 +482,7 @@ export default function AppLayout() {
               activeKey={tabKey}
               onChange={(key) => {
                 const tab = displayTabs.find((item) => item.key === key);
-                if (!tab) return;
-                navigate(
-                  tab.key === paths.analyticsStatement
-                    ? statementHrefWithoutDirection(tab.href)
-                    : tab.href,
-                );
+                if (tab) navigateToTab(tab);
               }}
               onEdit={(targetKey, action) => {
                 if (action === 'remove') handleCloseTab(String(targetKey));
@@ -391,6 +497,32 @@ export default function AppLayout() {
             />
           </nav>
         </div>
+
+        {tabMenu && tabMenuTab && (
+          <>
+            <div
+              className={styles.tabMenuBackdrop}
+              onPointerDown={() => setTabMenu(null)}
+              onContextMenu={(event) => {
+                event.preventDefault();
+                setTabMenu(null);
+              }}
+            />
+            <div
+              className={styles.tabContextMenu}
+              style={{ left: tabMenu.x, top: tabMenu.y }}
+            >
+              <Menu
+                mode="vertical"
+                selectable={false}
+                items={tabMenuItems}
+                onClick={handleTabMenuClick}
+                className={styles.tabContextMenuList}
+                aria-label="标签页操作"
+              />
+            </div>
+          </>
+        )}
 
         <main
           id="main-content"

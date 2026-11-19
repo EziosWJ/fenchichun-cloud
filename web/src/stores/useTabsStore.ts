@@ -33,6 +33,7 @@ interface TabsState {
   tabs: PageTab[];
   openTab: (tab: PageTab) => void;
   closeTab: (key: string) => void;
+  closeTabs: (keys: string[]) => void;
   resetTabs: () => void;
 }
 
@@ -57,6 +58,12 @@ export const useTabsStore = create<TabsState>()(
         set((state) => ({
           tabs: state.tabs.filter((tab) => tab.key !== key || !tab.closable),
         })),
+      closeTabs: (keys) =>
+        set((state) => {
+          const removing = new Set(keys);
+          const tabs = state.tabs.filter((tab) => !tab.closable || !removing.has(tab.key));
+          return tabs.length === state.tabs.length ? state : { tabs };
+        }),
       resetTabs: () => set({ tabs: [HOME_TAB] }),
     }),
     {
