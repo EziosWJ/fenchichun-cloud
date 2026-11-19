@@ -54,6 +54,10 @@ func (r *Repository) StatementDetail(ctx context.Context, q StatementQuery) (Sta
 	if err != nil {
 		return StatementDetail{}, err
 	}
+	return r.statementDetail(ctx, q, tickets), nil
+}
+
+func (r *Repository) statementDetail(ctx context.Context, q StatementQuery, tickets []statementTicket) StatementDetail {
 	detail := aggregateStatementDetail(q, tickets)
 	if detail.SiteName == "" {
 		detail.SiteName = r.statementSiteName(ctx, q.SiteCode)
@@ -61,34 +65,45 @@ func (r *Repository) StatementDetail(ctx context.Context, q StatementQuery) (Sta
 	if detail.PartyName == "" {
 		detail.PartyName = r.statementPartyName(ctx, q.PartyCode)
 	}
-	return detail, nil
+	return detail
 }
 
 func (r *Repository) StatementTickets(ctx context.Context, q StatementQuery) ([]StatementTicket, error) {
 	if err := validateStatementQuery(q, true); err != nil {
 		return nil, err
 	}
-	rows, err := r.statementRows(ctx, q)
+	tickets, err := r.statementTickets(ctx, q)
 	if err != nil {
 		return nil, err
 	}
-	tickets := make([]StatementTicket, 0, len(rows))
-	for _, row := range rows {
-		ticket, err := parseStatementTicket(row)
-		if err != nil {
-			return nil, err
-		}
-		tickets = append(tickets, StatementTicket{
+	return statementTicketViews(tickets), nil
+}
+
+func (r *Repository) StatementExport(ctx context.Context, q StatementQuery) (StatementDetail, []StatementTicket, error) {
+	if err := validateStatementQuery(q, true); err != nil {
+		return StatementDetail{}, nil, err
+	}
+	tickets, err := r.statementTickets(ctx, q)
+	if err != nil {
+		return StatementDetail{}, nil, err
+	}
+	return r.statementDetail(ctx, q, tickets), statementTicketViews(tickets), nil
+}
+
+func statementTicketViews(tickets []statementTicket) []StatementTicket {
+	rows := make([]StatementTicket, 0, len(tickets))
+	for _, ticket := range tickets {
+		rows = append(rows, StatementTicket{
 			SiteCode: ticket.siteCode, SiteName: ticket.siteName,
 			PartyCode: ticket.partyCode, PartyName: ticket.partyName,
 			TicketNo: ticket.ticketNo, Plate: ticket.plate,
 			MaterialCode: ticket.materialCode, MaterialName: ticket.materialName, MaterialSpec: ticket.materialSpec,
-			Direction: ticket.direction, Status: ticket.status, IssuedAt: ticket.issuedAt,
+			Direction: ticket.direction, Status: ticket.status, IssuedAt: ticket.issuedAt, BusinessAt: ticket.businessAt,
 			GrossMilliTonne: ticket.gross, TareMilliTonne: ticket.tare,
 			NetAdjustmentMilliTonne: ticket.adjustment, NetMilliTonne: ticket.net,
 		})
 	}
-	return tickets, nil
+	return rows
 }
 
 func (r *Repository) statementTickets(ctx context.Context, q StatementQuery) ([]statementTicket, error) {
@@ -107,11 +122,14 @@ func (r *Repository) statementTickets(ctx context.Context, q StatementQuery) ([]
 	return tickets, nil
 }
 
+// The accounting date of a manual supplement is its actual second weighing.
+const statementBusinessTime = "CASE WHEN t.snapshot::jsonb ->> 'entryType' = 'manual_supplement' THEN (t.snapshot::jsonb ->> 'secondWeighedAt')::timestamptz ELSE t.issued_at END"
+
 func (r *Repository) statementRows(ctx context.Context, q StatementQuery) ([]statementRow, error) {
 	query := r.db.WithContext(ctx).
-		Table("wb_cloud_ticket t").
+		Table("wb_cloud_ticket t").Joins(temporaryPartyJoin).Joins(reportingPartyJoin).
 		Joins("LEFT JOIN wb_cloud_site s ON s.code = t.site_code").
-		Select("t.site_code, COALESCE(s.name, '') AS site_name, t.party_code, t.material_code, t.direction, t.issued_at, t.final_net_milli_tonne, t.snapshot").
+		Select("t.site_code, COALESCE(s.name, '') AS site_name, t.party_code, "+reportingPartyCode+" AS reporting_party_code, COALESCE(p.name, '') AS reporting_party_name, t.material_code, t.direction, t.issued_at, "+statementBusinessTime+" AS business_at, t.final_net_milli_tonne, t.snapshot").
 		Where("t.status = ?", "valid")
 	if q.SiteCode != "" {
 		query = query.Where("t.site_code = ?", q.SiteCode)
@@ -120,7 +138,7 @@ func (r *Repository) statementRows(ctx context.Context, q StatementQuery) ([]sta
 		query = query.Where("t.direction = ?", q.Direction)
 	}
 	if q.PartyCode != "" {
-		query = query.Where("t.party_code = ?", q.PartyCode)
+		query = query.Where(reportingPartyCode+" = ?", q.PartyCode)
 	}
 	if q.MaterialCode != "" {
 		query = query.Where("t.material_code = ?", q.MaterialCode)
@@ -133,13 +151,13 @@ func (r *Repository) statementRows(ctx context.Context, q StatementQuery) ([]sta
 		query = query.Where("t.adjusted = ?", *q.Adjusted)
 	}
 	if q.From != nil {
-		query = query.Where("t.issued_at >= ?", *q.From)
+		query = query.Where(statementBusinessTime+" >= ?", *q.From)
 	}
 	if q.Until != nil {
-		query = query.Where("t.issued_at < ?", *q.Until)
+		query = query.Where(statementBusinessTime+" < ?", *q.Until)
 	}
 	var rows []statementRow
-	if err := query.Order("t.issued_at ASC, t.id ASC").Scan(&rows).Error; err != nil {
+	if err := query.Order(statementBusinessTime + " ASC, t.id ASC").Scan(&rows).Error; err != nil {
 		return nil, err
 	}
 	return rows, nil
@@ -147,8 +165,8 @@ func (r *Repository) statementRows(ctx context.Context, q StatementQuery) ([]sta
 
 func (r *Repository) statementFreshness(ctx context.Context, q StatementQuery) (StatementFreshness, error) {
 	query := r.db.WithContext(ctx).
-		Table("wb_cloud_ticket t").
-		Select("MIN(t.issued_at) AS history_start, MAX(t.issued_at) AS data_through, MAX(t.latest_received_at) AS last_received_at").
+		Table("wb_cloud_ticket t").Joins(temporaryPartyJoin).Joins(reportingPartyJoin).
+		Select("MIN("+statementBusinessTime+") AS history_start, MAX("+statementBusinessTime+") AS data_through, MAX(t.latest_received_at) AS last_received_at").
 		Where("t.status = ?", "valid")
 	if q.SiteCode != "" {
 		query = query.Where("t.site_code = ?", q.SiteCode)
@@ -166,15 +184,18 @@ func (r *Repository) statementFreshness(ctx context.Context, q StatementQuery) (
 	if q.Adjusted != nil {
 		query = query.Where("t.adjusted = ?", *q.Adjusted)
 	}
+	if q.PartyCode != "" {
+		query = query.Where(reportingPartyCode+" = ?", q.PartyCode)
+	}
 	if q.PartyKeyword != "" {
 		term := "%" + q.PartyKeyword + "%"
-		query = query.Where("(t.party_name ILIKE ? OR t.party_code ILIKE ?)", term, term)
+		query = query.Where("("+reportingPartyName+" ILIKE ? OR "+reportingPartyCode+" ILIKE ?)", term, term)
 	}
 	if q.From != nil {
-		query = query.Where("t.issued_at >= ?", *q.From)
+		query = query.Where(statementBusinessTime+" >= ?", *q.From)
 	}
 	if q.Until != nil {
-		query = query.Where("t.issued_at < ?", *q.Until)
+		query = query.Where(statementBusinessTime+" < ?", *q.Until)
 	}
 	var freshness StatementFreshness
 	if err := query.Scan(&freshness).Error; err != nil {

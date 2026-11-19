@@ -216,4 +216,18 @@ func TestPostgresMasterSeed(t *testing.T) {
 	if err != nil || p.Code != "C-P-0083" {
 		t.Fatalf("party sequence: %+v %v", p, err)
 	}
+	for _, nature := range []string{"enterprise", "individual"} {
+		t.Run(nature+" supplier without a document number", func(t *testing.T) {
+			input := weighbridge.PartyInput{Name: "无证件号供应商", Nature: nature, IsSupplier: true, Enabled: true}
+			party, err := repo.SaveParty(ctx, "", input, event)
+			if err != nil {
+				t.Fatal(err)
+			}
+			input.Name = "无证件号供应商（已更新）"
+			updated, err := repo.SaveParty(ctx, party.Code, input, event)
+			if err != nil || updated.Name != input.Name || updated.CreditCode != "" || updated.HasIdentityNumber {
+				t.Fatalf("update supplier without a document number: %+v %v", updated, err)
+			}
+		})
+	}
 }

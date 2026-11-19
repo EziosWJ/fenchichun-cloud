@@ -184,7 +184,7 @@ func (r *Repository) AnalyticsQualityGroups(ctx context.Context, q AnalyticsQuer
 	case "site":
 		codeExpr, nameExpr, groupExpr = "t.site_code", "COALESCE(s.name, '')", "t.site_code, s.name"
 	case "party":
-		codeExpr, nameExpr, groupExpr = "t.party_code", "COALESCE(MAX(t.party_name), '')", "t.party_code"
+		codeExpr, nameExpr, groupExpr = "party.party_code", "COALESCE(MAX(party.party_name), '')", "party.party_code"
 	case "material":
 		codeExpr, nameExpr, groupExpr = "t.material_code", "COALESCE(MAX(t.material_name), '')", "t.material_code"
 	default:

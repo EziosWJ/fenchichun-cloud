@@ -86,9 +86,6 @@ func (r *Repository) SaveParty(ctx context.Context, code string, in PartyInput, 
 			p.IdentityNumber = in.IdentityNumber
 			p.Remark = in.Remark
 			p.Enabled = in.Enabled
-			if in.IsSupplier && ((in.Nature == "individual" && in.IdentityNumber == "") || (in.Nature == "enterprise" && in.CreditCode == "")) {
-				return fmt.Errorf("%w：供应商须填写对应证件号码", ErrInvalid)
-			}
 			if err := tx.Create(&p).Error; err != nil {
 				return err
 			}
@@ -104,9 +101,6 @@ func (r *Repository) SaveParty(ctx context.Context, code string, in PartyInput, 
 			}
 			if in.Nature == "enterprise" {
 				in.IdentityNumber = ""
-			}
-			if in.IsSupplier && ((in.Nature == "individual" && in.IdentityNumber == "") || (in.Nature == "enterprise" && in.CreditCode == "")) {
-				return fmt.Errorf("%w：供应商须填写对应证件号码", ErrInvalid)
 			}
 			changes := map[string]any{"identity_number": in.IdentityNumber, "name": in.Name, "short_name": in.ShortName, "nature": in.Nature, "is_supplier": in.IsSupplier, "is_customer": in.IsCustomer, "is_carrier": in.IsCarrier, "phone": in.Phone, "address": in.Address, "credit_code": in.CreditCode, "remark": in.Remark, "enabled": in.Enabled}
 			if err := tx.Model(&p).Updates(changes).Error; err != nil {

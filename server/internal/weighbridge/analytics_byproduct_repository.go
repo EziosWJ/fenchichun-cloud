@@ -44,7 +44,7 @@ func (r *Repository) AnalyticsByproductSummary(ctx context.Context, q AnalyticsQ
 	q = defaultByproductQuery(q)
 	where, args := analyticsWhere(q, false, "party")
 	query := `SELECT
-		COUNT(DISTINCT t.party_code) AS active_customers,
+		COUNT(DISTINCT party.party_code) AS active_customers,
 		COUNT(*) AS ticket_count,
 		COALESCE(SUM(t.final_net_milli_tonne), 0) AS total_net_milli_tonne,
 		COUNT(DISTINCT t.material_code) AS material_count` + analyticsFrom + ` WHERE ` + where
@@ -56,22 +56,22 @@ func (r *Repository) AnalyticsByproductSummary(ctx context.Context, q AnalyticsQ
 func (r *Repository) AnalyticsByproductRows(ctx context.Context, q AnalyticsQuery) ([]analyticsByproductRow, int64, error) {
 	q = defaultByproductQuery(q)
 	where, args := analyticsWhere(q, false, "party")
-	countQuery := `SELECT COUNT(DISTINCT t.party_code)` + analyticsFrom + ` WHERE ` + where
+	countQuery := `SELECT COUNT(DISTINCT party.party_code)` + analyticsFrom + ` WHERE ` + where
 	var total int64
 	if err := r.db.WithContext(ctx).Raw(countQuery, args...).Scan(&total).Error; err != nil {
 		return nil, 0, err
 	}
 	sortExpr := byproductSortExpr(q.SortBy, q.SortOrder)
 	query := `SELECT
-		t.party_code,
-		COALESCE(MAX(t.party_name), '') AS party_name,
+		party.party_code,
+		COALESCE(MAX(party.party_name), '') AS party_name,
 		COALESCE(MAX(p.nature), '') AS nature,
 		COUNT(*) AS ticket_count,
 		COALESCE(SUM(t.final_net_milli_tonne), 0) AS net_milli_tonne,
 		COUNT(DISTINCT t.material_code) AS material_count,
 		COALESCE(string_agg(DISTINCT t.material_name, '、'), '') AS material_names,
 		MIN(t.issued_at) AS first_issued_at,
-		MAX(t.issued_at) AS last_issued_at` + analyticsFrom + ` WHERE ` + where + ` GROUP BY t.party_code ORDER BY ` + sortExpr + `, t.party_code LIMIT ? OFFSET ?`
+		MAX(t.issued_at) AS last_issued_at` + analyticsFrom + ` WHERE ` + where + ` GROUP BY party.party_code ORDER BY ` + sortExpr + `, party.party_code LIMIT ? OFFSET ?`
 	rows := []analyticsByproductRow{}
 	args = append(args, q.PageSize, (q.Page-1)*q.PageSize)
 	err := r.db.WithContext(ctx).Raw(query, args...).Scan(&rows).Error
@@ -99,9 +99,9 @@ func (r *Repository) AnalyticsByproductConcentration(ctx context.Context, q Anal
 	q = defaultByproductQuery(q)
 	where, args := analyticsWhere(q, false, "party")
 	query := `SELECT
-		t.party_code,
-		COALESCE(MAX(t.party_name), '') AS party_name,
-		COALESCE(SUM(t.final_net_milli_tonne), 0) AS net_milli_tonne` + analyticsFrom + ` WHERE ` + where + ` GROUP BY t.party_code ORDER BY net_milli_tonne DESC, t.party_code`
+		party.party_code,
+		COALESCE(MAX(party.party_name), '') AS party_name,
+		COALESCE(SUM(t.final_net_milli_tonne), 0) AS net_milli_tonne` + analyticsFrom + ` WHERE ` + where + ` GROUP BY party.party_code ORDER BY net_milli_tonne DESC, party.party_code`
 	rows := []analyticsPartyConcentrationRow{}
 	err := r.db.WithContext(ctx).Raw(query, args...).Scan(&rows).Error
 	return rows, err

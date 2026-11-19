@@ -85,7 +85,7 @@ func analyticsPartySortExpr(sortBy, sortOrder string) string {
 func (r *Repository) AnalyticsPartyTotals(ctx context.Context, q AnalyticsQuery) (analyticsPartyTotalsRow, error) {
 	where, args := analyticsWhere(q, true, "party")
 	query := `SELECT
-		COUNT(DISTINCT t.party_code) FILTER (WHERE t.status = 'valid') AS active_parties,
+		COUNT(DISTINCT party.party_code) FILTER (WHERE t.status = 'valid') AS active_parties,
 		COALESCE(SUM(t.final_net_milli_tonne) FILTER (WHERE t.status = 'valid'), 0) AS total_net_milli_tonne,
 		COUNT(*) FILTER (WHERE t.status = 'valid') AS valid_tickets,
 		COUNT(*) FILTER (WHERE t.status = 'void') AS void_tickets,
@@ -100,14 +100,14 @@ func (r *Repository) AnalyticsPartyTotals(ctx context.Context, q AnalyticsQuery)
 
 func (r *Repository) AnalyticsPartyRows(ctx context.Context, q AnalyticsQuery) ([]analyticsPartyRow, int64, error) {
 	where, args := analyticsWhere(q, true, "party")
-	countQuery := `SELECT COUNT(*) FROM (SELECT 1` + analyticsFrom + ` WHERE ` + where + ` GROUP BY t.party_code HAVING COUNT(*) FILTER (WHERE t.status = 'valid') > 0) x`
+	countQuery := `SELECT COUNT(*) FROM (SELECT 1` + analyticsFrom + ` WHERE ` + where + ` GROUP BY party.party_code HAVING COUNT(*) FILTER (WHERE t.status = 'valid') > 0) x`
 	var total int64
 	if err := r.db.WithContext(ctx).Raw(countQuery, args...).Scan(&total).Error; err != nil {
 		return nil, 0, err
 	}
 	sortExpr := analyticsPartySortExpr(q.SortBy, q.SortOrder)
 	query := `WITH base AS (
-		SELECT t.id, t.party_code, t.party_name, p.nature, t.status, t.issued_at, t.issued_date,
+		SELECT t.id, party.party_code, party.party_name, p.nature, t.status, t.issued_at, t.issued_date,
 			t.final_net_milli_tonne, t.adjusted, t.adjustment_known,
 			t.net_adjustment_milli_tonne, t.pre_adjustment_net_milli_tonne` + analyticsFrom + ` WHERE ` + where + `
 	), party_base AS (
@@ -164,8 +164,8 @@ func (r *Repository) AnalyticsPartyNewCount(ctx context.Context, q AnalyticsQuer
 	firstQ.From = time.Time{}
 	where, args := analyticsWhere(firstQ, false, "party")
 	query := `WITH first_seen AS (
-		SELECT t.party_code, MIN(t.issued_at) AS first_at
-		` + analyticsFrom + ` WHERE ` + where + ` GROUP BY t.party_code
+		SELECT party.party_code, MIN(t.issued_at) AS first_at
+		` + analyticsFrom + ` WHERE ` + where + ` GROUP BY party.party_code
 	)
 	SELECT COUNT(*) FROM first_seen WHERE first_at >= ?`
 	args = append(args, q.From)
@@ -185,11 +185,11 @@ func (r *Repository) AnalyticsPartyCohort(ctx context.Context, q AnalyticsQuery,
 	beforeQ.Until = q.From
 	beforeWhere, beforeArgs := analyticsWhere(beforeQ, false, "party")
 	query := `WITH current AS (
-		SELECT DISTINCT t.party_code` + analyticsFrom + ` WHERE ` + currentWhere + `
+		SELECT DISTINCT party.party_code` + analyticsFrom + ` WHERE ` + currentWhere + `
 	), previous AS (
-		SELECT DISTINCT t.party_code` + analyticsFrom + ` WHERE ` + previousWhere + `
+		SELECT DISTINCT party.party_code` + analyticsFrom + ` WHERE ` + previousWhere + `
 	), before AS (
-		SELECT DISTINCT t.party_code` + analyticsFrom + ` WHERE ` + beforeWhere + `
+		SELECT DISTINCT party.party_code` + analyticsFrom + ` WHERE ` + beforeWhere + `
 	)
 	SELECT
 		(SELECT COUNT(*) FROM current c WHERE NOT EXISTS (SELECT 1 FROM previous p WHERE p.party_code = c.party_code) AND EXISTS (SELECT 1 FROM before b WHERE b.party_code = c.party_code)) AS returning,

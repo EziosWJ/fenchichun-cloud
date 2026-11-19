@@ -206,6 +206,7 @@ export function StatementSheet({
       keyword: ticketKeyword || undefined,
       adjusted: ticketAdjusted === 'all' ? undefined : ticketAdjusted,
       status: 'valid',
+      businessDate: true,
       page,
       pageSize,
     }),
@@ -425,10 +426,10 @@ export function StatementSheet({
 
   const ticketColumns: TableColumnsType<TicketRecord> = [
     {
-      title: '出单时间',
+      title: '对账时间',
       key: 'issuedAt',
       width: 140,
-      render: (_, row) => formatDateTime(row.ticket.issuedAt),
+      render: (_, row) => formatDateTime(row.ticket.entryType === 'manual_supplement' && row.ticket.secondWeighedAt ? row.ticket.secondWeighedAt : row.ticket.issuedAt),
     },
     {
       title: '单号',
@@ -441,6 +442,15 @@ export function StatementSheet({
       key: 'plate',
       width: 90,
       render: (_, row) => <span className={styles.plate}>{row.ticket.plate}</span>,
+    },
+    {
+      title: '开单时往来主体',
+      key: 'party',
+      width: 190,
+      render: (_, { ticket }) => {
+        const label = [ticket.partyName, ticket.partyCode].filter(Boolean).join(' / ');
+        return <span className={styles.ellipsis} title={label}>{label || '—'}</span>;
+      },
     },
     {
       title: '物料 / 规格',
@@ -820,7 +830,7 @@ export function StatementSheet({
                 dataSource={ticketList.data?.items ?? []}
                 loading={ticketList.isFetching}
                 size="small"
-                scroll={{ x: 1000 }}
+                scroll={{ x: 1140 }}
                 expandable={{
                   columnWidth: 40,
                   expandRowByClick: true,

@@ -47,13 +47,13 @@ func TestUserPageLoadsDepartmentAndRolesInBatches(t *testing.T) {
 		INSERT INTO sys_dept (id, parent_id, dept_name, dept_code, status, is_builtin)
 		VALUES (2, 1, '研发部', 'BATCH-RND', 1, 0);
 		INSERT INTO sys_role (id, role_name, role_code, status, sort_order, is_builtin)
-		VALUES (2, '运营', 'BATCH-OPS', 1, 2, 0);
+		VALUES (100, '运营', 'BATCH-OPS', 1, 2, 0);
 		INSERT INTO sys_user (id, username, nickname, password, gender, dept_id, status, is_builtin)
 		VALUES
-			(2, 'batch-user-1', '批量用户一', 'password', 'UNSPECIFIED', 2, 1, 0),
-			(3, 'batch-user-2', '批量用户二', 'password', 'UNSPECIFIED', 2, 1, 0);
+			(100, 'batch-user-1', '批量用户一', 'password', 'UNSPECIFIED', 2, 1, 0),
+			(101, 'batch-user-2', '批量用户二', 'password', 'UNSPECIFIED', 2, 1, 0);
 		INSERT INTO sys_user_role (id, user_id, role_id)
-		VALUES (2, 2, 2), (3, 3, 1);
+		VALUES (100, 100, 100), (101, 101, 1);
 	`).Error; err != nil {
 		t.Fatalf("seed batch user page fixture: %v", err)
 	}

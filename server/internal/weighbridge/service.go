@@ -24,6 +24,7 @@ type Store interface {
 	StatementPartiesAll(context.Context, StatementQuery) ([]StatementParty, StatementPageSummary, error)
 	StatementDetail(context.Context, StatementQuery) (StatementDetail, error)
 	StatementTickets(context.Context, StatementQuery) ([]StatementTicket, error)
+	StatementExport(context.Context, StatementQuery) (StatementDetail, []StatementTicket, error)
 	ApplyChangeV4(context.Context, ChangeV4) (ChangeReceiptV4, error)
 	ApplyChangeV5(context.Context, ChangeV5) (ChangeReceiptV5, error)
 	ReconcileTicket(context.Context, string, string) (TicketReconcile, error)
@@ -31,6 +32,9 @@ type Store interface {
 	LookupChange(context.Context, string, string) (ChangeLookup, error)
 	SiteReceipts(context.Context, int64) ([]SiteReceipt, error)
 	TicketReceipt(context.Context, int64, string, string) (TicketReceipt, error)
+	RegisterTemporaryParty(context.Context, TemporaryPartyInput) (TemporaryPartyReceipt, error)
+	TemporaryParties(context.Context, int64) ([]TemporaryParty, error)
+	DecideTemporaryParty(context.Context, int64, TemporaryPartyDecision, audit.Event) error
 	AnalyticsStore
 }
 
@@ -51,6 +55,9 @@ func (s *Service) StatementDetail(ctx context.Context, q StatementQuery) (Statem
 }
 func (s *Service) StatementTickets(ctx context.Context, q StatementQuery) ([]StatementTicket, error) {
 	return s.store.StatementTickets(ctx, q)
+}
+func (s *Service) StatementExport(ctx context.Context, q StatementQuery) (StatementDetail, []StatementTicket, error) {
+	return s.store.StatementExport(ctx, q)
 }
 
 type Service struct{ store Store }
@@ -110,4 +117,16 @@ func (s *Service) SiteReceipts(ctx context.Context, actorID int64) ([]SiteReceip
 
 func (s *Service) TicketReceipt(ctx context.Context, actorID int64, siteCode, ticketNo string) (TicketReceipt, error) {
 	return s.store.TicketReceipt(ctx, actorID, siteCode, ticketNo)
+}
+
+func (s *Service) RegisterTemporaryParty(ctx context.Context, in TemporaryPartyInput) (TemporaryPartyReceipt, error) {
+	return s.store.RegisterTemporaryParty(ctx, in)
+}
+
+func (s *Service) TemporaryParties(ctx context.Context, actorID int64) ([]TemporaryParty, error) {
+	return s.store.TemporaryParties(ctx, actorID)
+}
+
+func (s *Service) DecideTemporaryParty(ctx context.Context, id int64, in TemporaryPartyDecision, event audit.Event) error {
+	return s.store.DecideTemporaryParty(ctx, id, in, event)
 }

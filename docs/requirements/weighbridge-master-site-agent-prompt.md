@@ -1,3 +1,3 @@
-# 厂端基础资料同步后续任务
+# 历史入口：厂端基础资料同步任务
 
-云端已兼容版本 2 和版本 3，厂端版本 3 已实现；真实双端联调仍待完成。以[厂云同步契约](cloud-sync-contract.md)和[接口设计](weighbridge-sync-api-design.md)为准：厂端以厂区编码请求完整资料，不发送凭据或地磅编码；校验版本、回显编码及完整资料后在本地事务中整体生效，失败保留原资料。版本 3 单据变化携带最终净重和净重调整字段，云端以 `finalNet` 统计。改码前应先完成旧编码待上传变化。
+原任务说明已并入 [厂云同步契约](cloud-sync-contract.md#总部资料下发) 和 [同步接口设计](weighbridge-sync-api-design.md#完整资料集)。本次开发与验证入口见 [云端过磅开发说明](weighbridge-cloud-development.md)。

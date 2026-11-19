@@ -1,16 +1,21 @@
 # 汾池春酒厂综合管理大平台
 
-汾池春酒厂综合管理大平台采用 React 管理后台和 Go REST API，基于 [base-project-golang 的 template/sidebar 脚手架](https://github.com/EziosWJ/base-project-golang/tree/template/sidebar)建设。过磅业务及厂云同步是平台的一部分；未来计划覆盖生产、库存、销售订单、经销商和财务，具体业务按需求逐步确认。移动端需求待业务明确后设计。
+汾池春酒厂综合管理大平台采用 React 管理后台和 Go REST API，基于 [base-project-golang 的 template/sidebar 脚手架](https://github.com/EziosWJ/base-project-golang/tree/template/sidebar)建设。过磅业务及厂云同步是平台的一部分；未来计划覆盖生产、库存、销售订单、经销商和财务，具体业务按需求逐步确认。原粮入厂小程序面向库管和门卫岗位。
 
-目前面向本地开发，后续部署到云端。Go 模块路径暂定为 `fenchichun.local/server`，确定项目仓库地址后可再调整。
+## 当前基线
 
-过磅业务的已确认目标见[云端过磅业务规格](docs/requirements/weighbridge-cloud-spec.md)，开发依赖和验证顺序见[云端开发准备](docs/requirements/weighbridge-cloud-development.md)。云端相关功能正在开发，厂云端到端同步尚未完成。
+- **已提交的云端能力**包括总部资料、过磅单查询与对账、v2/v3 兼容接收、v4/v5 摘要接收和对账，以及临时往来主体归并。原粮入厂已有流转、化验或目测、卸粮、磅单关联、开证审批和出厂核验。开发基线使用 Go、React、PostgreSQL 和显式 Goose 迁移。
+- **本次发布范围**包含待回磅任务同步与人工补单 v6。双端实现和迁移仍在交付过程中，验收覆盖首次同步、空批心跳、终止、断网补传、乱序、跨日对账和旧协议兼容。详见 [任务与补单契约](docs/requirements/weighbridge-task-and-manual-ticket-api.md)。
+- **正常放行**等待云端确认已关联的有效磅单。磅房发现作废或重开尚待同步时通知门卫暂缓放行，直到云端重新确认有效依据。详见 [原粮状态流转与验收](docs/requirements/grain-intake-state-machine.md)。
+- **小程序先在单厂试用**，沿用现有员工账号和岗位权限。扩大试用范围时再配置跨厂区授权。详见 [小程序试用方案](docs/requirements/miniprogram-grain-intake-plan.md)。
+- **验证状态**以对应提交的执行记录为准。云端单元测试、厂端隔离测试及小程序静态测试已有历史记录，真实双端联调、现场和真机验收仍待确认。
 
 ## 目录结构
 
 ```
 ├── web/   # 前端管理后台（React + Ant Design SPA）
 ├── server/   # 后端 REST API（Go）
+├── miniprogram/   # 原粮入厂微信小程序
 ├── docs/
 │   ├── adr/       # 架构决策记录
 │   └── agents/    # Agent skills 仓库级配置
@@ -132,5 +137,9 @@ pnpm dev   # 默认 http://localhost:5173
 - 后端启动与调试细节：[server/README.md](server/README.md)
 - 侧边栏模板接入决策：[docs/adr/0014-sidebar-template-integration.md](docs/adr/0014-sidebar-template-integration.md)
 - 脚手架的历史开发初始化设计与验收（涉及 SQLite 的内容已不适用）：[设计](docs/development-initialization.md)、[Spec](docs/development-initialization-spec.md)、[Issue #72](https://github.com/EziosWJ/base-project-golang/issues/72)
-- 领域术语与架构约定：[CONTEXT.md](CONTEXT.md)
-- 架构决策：[docs/adr/](docs/adr/)
+- 领域术语与开发约定见 [CONTEXT.md](CONTEXT.md) 和 [AGENTS.md](AGENTS.md)。
+- 后端及平台决策见 [ADR](docs/adr/)。
+- 厂云对接先读 [共享业务契约](docs/requirements/cloud-sync-contract.md)，再查 [v2–v5 同步接口](docs/requirements/weighbridge-sync-api-design.md)、[临时主体接口](docs/requirements/weighbridge-temporary-party-api.md) 或 [任务与 v6 契约](docs/requirements/weighbridge-task-and-manual-ticket-api.md)。验证入口见 [云端过磅开发说明](docs/requirements/weighbridge-cloud-development.md)。
+- 原粮入厂见 [当前实现](docs/requirements/grain-intake-implementation.md)、[厂云协同接口](docs/requirements/grain-intake-collaboration-api.md)、[状态机和验收](docs/requirements/grain-intake-state-machine.md) 及 [目测规则](docs/requirements/material-inspection-method.md)。
+- 小程序开发见 [小程序 README](miniprogram/README.md)，现场试用见 [试用方案](docs/requirements/miniprogram-grain-intake-plan.md)。
+- 总部查询和统计见 [云端过磅业务](docs/requirements/weighbridge-cloud-spec.md) 与 [统计及分析口径](docs/requirements/analytics-spec.md)。

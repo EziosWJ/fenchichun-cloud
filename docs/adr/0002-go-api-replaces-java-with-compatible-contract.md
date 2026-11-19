@@ -1,6 +1,6 @@
 # Go API 兼容替代 Java system-api
 
-Status: accepted（认证内部实现部分由 ADR-0004 更新；数据库正式支持边界由 ADR-0010 修订；旧 `/api/**` 路径兼容条款由 ADR-0013 替代）
+Status: accepted（认证内部实现部分由 ADR-0004 更新；汾池春的数据库范围见 ADR-0004；旧 `/api/**` 路径兼容条款由 ADR-0013 替代）
 
 本 ADR 中关于 PostgreSQL 的表述记录 Go 后端首次迁移基线；当前 SQLite 正式生产支持、单实例边界和双数据库兼容矩阵以 [ADR-0010](0010-sqlite-production-support.md) 为准。
 

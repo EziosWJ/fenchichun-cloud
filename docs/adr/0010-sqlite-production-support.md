@@ -2,7 +2,7 @@
 
 ## Status
 
-Accepted
+历史脚手架决策。当前汾池春仅运行 PostgreSQL，见 [ADR-0004](0004-backend-architecture-and-database-strategy.md) 和 [数据库驱动](../../server/internal/platform/database/database.go)。以下保留原决策。
 
 ## Context
 

@@ -89,7 +89,9 @@ func notificationRealtimeContract(t *testing.T, db *database.Database, deps app.
 	awaitChange(t, events, "notification")
 	assertEnvelopeCode(t, serveJSON(router, "PUT", "/api/v1/system/notification/read-all", "", admin), 200, 200, "success")
 	awaitChange(t, events, "read")
-	assertEnvelopeCode(t, serveJSON(router, "POST", "/api/v1/system/user", `{"username":"realtime-user","nickname":"接收用户","status":1}`, admin), 200, 200, "success")
+	createdUser := serveJSON(router, "POST", "/api/v1/system/user", `{"username":"realtime-user","nickname":"接收用户","status":1}`, admin)
+	assertEnvelopeCode(t, createdUser, 200, 200, "success")
+	userID := integrationUserID(t, router, loginUser(t, router, "realtime-user", "admin123"))
 	other := loginUser(t, router, "realtime-user", "admin123")
 	otherEvents, stopOther := notificationStream(t, server.URL+"/api/v1/system/notification/events", other)
 	defer stopOther()
@@ -101,7 +103,7 @@ func notificationRealtimeContract(t *testing.T, db *database.Database, deps app.
 	if err := db.GORM.Exec(`ALTER TABLE sys_oper_log ADD CONSTRAINT reject_notification_audit CHECK (operation_type <> 'user.roles') NOT VALID`).Error; err != nil {
 		t.Fatal(err)
 	}
-	failed := serveJSON(router, "PUT", "/api/v1/system/user/2/roles", `{"roleIds":[1]}`, admin)
+	failed := serveJSON(router, "PUT", fmt.Sprintf("/api/v1/system/user/%d/roles", userID), `{"roleIds":[1]}`, admin)
 	if failed.Code != 500 {
 		t.Fatalf("audit failure should reject role change: %s", failed.Body.String())
 	}
@@ -113,9 +115,9 @@ func notificationRealtimeContract(t *testing.T, db *database.Database, deps app.
 	if err := db.GORM.Exec("ALTER TABLE sys_oper_log DROP CONSTRAINT reject_notification_audit").Error; err != nil {
 		t.Fatal(err)
 	}
-	assertEnvelopeCode(t, serveJSON(router, "PUT", "/api/v1/system/user/2/roles", `{"roleIds":[1]}`, admin), 200, 200, "success")
+	assertEnvelopeCode(t, serveJSON(router, "PUT", fmt.Sprintf("/api/v1/system/user/%d/roles", userID), `{"roleIds":[1]}`, admin), 200, 200, "success")
 	awaitChange(t, otherEvents, "notification")
-	assertEnvelopeCode(t, serveJSON(router, "PUT", "/api/v1/system/user/2/roles", `{"roleIds":[1]}`, admin), 200, 200, "success")
+	assertEnvelopeCode(t, serveJSON(router, "PUT", fmt.Sprintf("/api/v1/system/user/%d/roles", userID), `{"roleIds":[1]}`, admin), 200, 200, "success")
 	noChange(t, otherEvents)
 	if total := pageTotal(t, serveJSON(router, "GET", "/api/v1/system/notification/page", "", other).Body.Bytes()); total != 1 {
 		t.Fatalf("duplicate role save produced notification: %d", total)
@@ -138,7 +140,7 @@ func notificationRealtimeContract(t *testing.T, db *database.Database, deps app.
 	assertEnvelopeCode(t, serveJSON(router, "GET", fmt.Sprintf("/api/v1/public/announcement/%d", a.Data.ID), "", ""), 200, 404, "公告已失效或不存在")
 	// A revoked session cannot receive its next event, even before a heartbeat.
 	assertEnvelopeCode(t, serveJSON(router, "POST", "/api/v1/auth/logout", "", other), 200, 200, "success")
-	assertEnvelopeCode(t, serveJSON(router, "POST", "/api/v1/system/notification", `{"title":"退出后消息","content":"不能推送","userIds":[2]}`, admin), 200, 200, "success")
+	assertEnvelopeCode(t, serveJSON(router, "POST", "/api/v1/system/notification", fmt.Sprintf(`{"title":"退出后消息","content":"不能推送","userIds":[%d]}`, userID), admin), 200, 200, "success")
 	timer := time.NewTimer(2 * time.Second)
 	defer timer.Stop()
 	for {
@@ -286,7 +288,9 @@ func announcementContract(t *testing.T, router http.Handler) {
 	assertEnvelopeCode(t, serveJSON(router, "PUT", fmt.Sprintf("/api/v1/system/announcement/%d/publish", internalID), "", admin), 200, 200, "success")
 	assertEnvelopeCode(t, serveJSON(router, "GET", fmt.Sprintf("/api/v1/public/announcement/%d", internalID), "", ""), 200, 404, "公告已失效或不存在")
 	assertEnvelopeCode(t, serveJSON(router, "POST", "/api/v1/system/notification", `{"title":"全体快照","content":"发布时账号","allUsers":true}`, admin), 200, 200, "success")
-	assertEnvelopeCode(t, serveJSON(router, "POST", "/api/v1/system/user", `{"username":"announcement-new-user","nickname":"新用户","status":1}`, admin), 200, 200, "success")
+	createdUser := serveJSON(router, "POST", "/api/v1/system/user", `{"username":"announcement-new-user","nickname":"新用户","status":1}`, admin)
+	assertEnvelopeCode(t, createdUser, 200, 200, "success")
+	userID := integrationUserID(t, router, loginUser(t, router, "announcement-new-user", "admin123"))
 	user := loginUser(t, router, "announcement-new-user", "admin123")
 	if total := pageTotal(t, serveJSON(router, "GET", "/api/v1/system/notification/page", "", user).Body.Bytes()); total != 0 {
 		t.Fatalf("new user received historical broadcast: %d", total)
@@ -307,13 +311,27 @@ func announcementContract(t *testing.T, router http.Handler) {
 		t.Fatalf("admin history: %s", adminPage.Body.String())
 	}
 	// Preserve the existing role-management behavior for disabled accounts.
-	assertEnvelopeCode(t, serveJSON(router, "PATCH", "/api/v1/system/user/2/status", `{"status":0}`, admin), 200, 200, "success")
-	assertEnvelopeCode(t, serveJSON(router, "PUT", "/api/v1/system/user/2/roles", `{"roleIds":[1]}`, admin), 200, 200, "success")
-	assertEnvelopeCode(t, serveJSON(router, "PATCH", "/api/v1/system/user/2/status", `{"status":1}`, admin), 200, 200, "success")
+	assertEnvelopeCode(t, serveJSON(router, "PATCH", fmt.Sprintf("/api/v1/system/user/%d/status", userID), `{"status":0}`, admin), 200, 200, "success")
+	assertEnvelopeCode(t, serveJSON(router, "PUT", fmt.Sprintf("/api/v1/system/user/%d/roles", userID), `{"roleIds":[1]}`, admin), 200, 200, "success")
+	assertEnvelopeCode(t, serveJSON(router, "PATCH", fmt.Sprintf("/api/v1/system/user/%d/status", userID), `{"status":1}`, admin), 200, 200, "success")
 	restored := loginUser(t, router, "announcement-new-user", "admin123")
 	if total := pageTotal(t, serveJSON(router, "GET", "/api/v1/system/notification/page", "", restored).Body.Bytes()); total != 1 {
 		t.Fatalf("disabled account lost role notification: %d", total)
 	}
+}
+
+func integrationUserID(t *testing.T, router http.Handler, token string) int64 {
+	t.Helper()
+	response := serveJSON(router, "GET", "/api/v1/auth/me", "", token)
+	var result struct {
+		Data struct {
+			ID int64 `json:"id"`
+		} `json:"data"`
+	}
+	if err := json.Unmarshal(response.Body.Bytes(), &result); err != nil || result.Data.ID == 0 {
+		t.Fatalf("current user: %s", response.Body.String())
+	}
+	return result.Data.ID
 }
 
 func pageTotal(t *testing.T, body []byte) int {

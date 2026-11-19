@@ -115,6 +115,7 @@ type StatementTicket struct {
 	Direction               string    `json:"direction"`
 	Status                  string    `json:"status"`
 	IssuedAt                time.Time `json:"issuedAt"`
+	BusinessAt              time.Time `json:"businessAt"`
 	GrossMilliTonne         int64     `json:"grossMilliTonne"`
 	TareMilliTonne          int64     `json:"tareMilliTonne"`
 	NetAdjustmentMilliTonne int64     `json:"netAdjustmentMilliTonne"`
@@ -122,33 +123,39 @@ type StatementTicket struct {
 }
 
 type statementRow struct {
+	ReportingPartyCode string
+	ReportingPartyName string
 	SiteCode           string
 	SiteName           string
 	PartyCode          string
 	MaterialCode       string
 	Direction          string
 	IssuedAt           time.Time
+	BusinessAt         time.Time
 	FinalNetMilliTonne int64
 	Snapshot           string
 }
 
 type statementTicket struct {
-	siteCode     string
-	siteName     string
-	partyCode    string
-	partyName    string
-	ticketNo     string
-	plate        string
-	materialCode string
-	materialName string
-	materialSpec string
-	direction    string
-	status       string
-	issuedAt     time.Time
-	gross        int64
-	tare         int64
-	adjustment   int64
-	net          int64
+	reportingPartyCode string
+	reportingPartyName string
+	siteCode           string
+	siteName           string
+	partyCode          string
+	partyName          string
+	ticketNo           string
+	plate              string
+	materialCode       string
+	materialName       string
+	materialSpec       string
+	direction          string
+	status             string
+	issuedAt           time.Time
+	businessAt         time.Time
+	gross              int64
+	tare               int64
+	adjustment         int64
+	net                int64
 }
 
 func parseStatementTicket(row statementRow) (statementTicket, error) {
@@ -183,24 +190,40 @@ func parseStatementTicket(row statementRow) (statementTicket, error) {
 	if siteName == "" {
 		siteName = row.SiteCode
 	}
+	reportingCode, reportingName := row.ReportingPartyCode, row.ReportingPartyName
+	if reportingCode == "" {
+		reportingCode = row.PartyCode
+	}
+	if reportingName == "" {
+		reportingName = partyName
+	}
 	return statementTicket{
+		reportingPartyCode: reportingCode, reportingPartyName: reportingName,
 		siteCode: row.SiteCode, siteName: siteName, partyCode: row.PartyCode, partyName: partyName,
 		ticketNo: snapshot.TicketNo, plate: snapshot.Plate,
 		materialCode: row.MaterialCode, materialName: materialName, materialSpec: snapshot.MaterialSpec,
-		direction: row.Direction, status: "valid", issuedAt: row.IssuedAt,
+		direction: row.Direction, status: "valid", issuedAt: row.IssuedAt, businessAt: row.BusinessAt,
 		gross: gross, tare: tare, adjustment: adjustment, net: row.FinalNetMilliTonne,
 	}, nil
+}
+
+func (t statementTicket) reportingParty() (string, string) {
+	if t.reportingPartyCode != "" {
+		return t.reportingPartyCode, t.reportingPartyName
+	}
+	return t.partyCode, t.partyName
 }
 
 func aggregateStatementParties(tickets []statementTicket, keyword string) ([]StatementParty, StatementPageSummary) {
 	groups := make(map[string]*StatementParty)
 	for _, ticket := range tickets {
-		key := ticket.siteCode + "\x00" + ticket.partyCode
+		partyCode, partyName := ticket.reportingParty()
+		key := ticket.siteCode + "\x00" + partyCode
 		party := groups[key]
 		if party == nil {
 			party = &StatementParty{
 				SiteCode: ticket.siteCode, SiteName: ticket.siteName,
-				PartyCode: ticket.partyCode, PartyName: ticket.partyName,
+				PartyCode: partyCode, PartyName: partyName,
 				FirstIssuedAt: ticket.issuedAt, LastIssuedAt: ticket.issuedAt,
 			}
 			groups[key] = party
@@ -211,7 +234,7 @@ func aggregateStatementParties(tickets []statementTicket, keyword string) ([]Sta
 		}
 		if ticket.issuedAt.After(party.LastIssuedAt) || party.LastIssuedAt.IsZero() {
 			party.LastIssuedAt = ticket.issuedAt
-			party.PartyName = ticket.partyName
+			party.PartyName = partyName
 			party.SiteName = ticket.siteName
 		}
 	}
@@ -261,8 +284,7 @@ func aggregateStatementDetail(q StatementQuery, tickets []statementTicket) State
 			latest = ticket.issuedAt
 			detail.SiteCode = ticket.siteCode
 			detail.SiteName = ticket.siteName
-			detail.PartyCode = ticket.partyCode
-			detail.PartyName = ticket.partyName
+			detail.PartyCode, detail.PartyName = ticket.reportingParty()
 		}
 		detail.StatementTotals.add(ticket.gross, ticket.tare, ticket.adjustment, ticket.net)
 
@@ -276,7 +298,11 @@ func aggregateStatementDetail(q StatementQuery, tickets []statementTicket) State
 		}
 		material.StatementTotals.add(ticket.gross, ticket.tare, ticket.adjustment, ticket.net)
 
-		date := ticket.issuedAt.In(statementZone).Format("2006-01-02")
+		businessAt := ticket.businessAt
+		if businessAt.IsZero() {
+			businessAt = ticket.issuedAt
+		}
+		date := businessAt.In(statementZone).Format("2006-01-02")
 		day := daily[date]
 		if day == nil {
 			day = &StatementDaily{Date: date}

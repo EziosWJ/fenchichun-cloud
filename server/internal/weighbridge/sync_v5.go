@@ -28,7 +28,7 @@ type ChangeV5 struct {
 type ChangeReceiptV5 = ChangeReceiptV4
 
 func (c ChangeV5) Validate() (int64, error) {
-	if c.SchemaVersion != SyncSchemaVersionV5 || c.DigestVersion != SyncDigestVersion3 || !digestPattern.MatchString(c.Digest) || !identityCode.MatchString(c.SiteCode) || c.TicketNo == "" || len(c.TicketNo) > 200 {
+	if !((c.SchemaVersion == 5 && c.DigestVersion == 3) || (c.SchemaVersion == 6 && c.DigestVersion == 4)) || !digestPattern.MatchString(c.Digest) || !identityCode.MatchString(c.SiteCode) || c.TicketNo == "" || len(c.TicketNo) > 200 {
 		return 0, ErrInvalid
 	}
 	if (c.Type != "issue" && c.Type != "reopen" && c.Type != "void") || c.Ticket == nil {
@@ -38,6 +38,13 @@ func (c ChangeV5) Validate() (int64, error) {
 		return 0, ErrInvalid
 	}
 	t := c.Ticket
+	if c.SchemaVersion == 6 {
+		if t.EntryType != "manual_supplement" || t.FirstWeighedAt == nil || t.SecondWeighedAt == nil || t.FirstWeighedAt.IsZero() || t.SecondWeighedAt.IsZero() || t.FirstWeighedAt.After(*t.SecondWeighedAt) || t.SecondWeighedAt.After(t.IssuedAt) || t.GrossSource != "manual" || t.TareSource != "manual" {
+			return 0, ErrInvalid
+		}
+	} else if t.EntryType != "" || t.FirstWeighedAt != nil || t.SecondWeighedAt != nil {
+		return 0, ErrInvalid
+	}
 	changeType := c.Type
 	if c.Type == "void" {
 		if c.Void == nil || c.Void.Reason == "" || c.Void.Actor == "" || c.Void.At.IsZero() {

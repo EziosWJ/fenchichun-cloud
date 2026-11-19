@@ -26,30 +26,33 @@ type NetAdjustmentItem struct {
 }
 
 type TicketSnapshot struct {
-	TicketNo                  string    `json:"ticketNo"`
-	PreviousTicketNo          *string   `json:"previousTicketNo"`
-	Title                     string    `json:"title"`
-	Plate                     string    `json:"plate"`
-	Direction                 string    `json:"direction"`
-	MaterialCode              string    `json:"materialCode"`
-	MaterialName              string    `json:"materialName"`
-	MaterialSpec              string    `json:"materialSpec"`
-	PartyCode                 string    `json:"partyCode"`
-	PartyName                 string    `json:"partyName"`
-	FirstConfirmedAt          time.Time `json:"firstConfirmedAt"`
-	SecondConfirmedAt         time.Time `json:"secondConfirmedAt"`
-	IssuedAt                  time.Time `json:"issuedAt"`
-	IssuerName                string    `json:"issuerName"`
-	OriginalGross             string    `json:"originalGross"`
-	OriginalTare              string    `json:"originalTare"`
-	FinalGross                string    `json:"finalGross"`
-	FinalTare                 string    `json:"finalTare"`
-	FinalNet                  string    `json:"finalNet,omitempty"`
-	NetAdjustment             string    `json:"netAdjustment,omitempty"`
-	NetAdjustmentMode         string    `json:"netAdjustmentMode,omitempty"`
-	NetAdjustmentRateBP       *int      `json:"netAdjustmentRateBp,omitempty"`
-	NetAdjustmentCategory     string    `json:"netAdjustmentCategory,omitempty"`
-	NetAdjustmentCategoryName string    `json:"netAdjustmentCategoryName,omitempty"`
+	EntryType                 string     `json:"entryType,omitempty"`
+	FirstWeighedAt            *time.Time `json:"firstWeighedAt,omitempty"`
+	SecondWeighedAt           *time.Time `json:"secondWeighedAt,omitempty"`
+	TicketNo                  string     `json:"ticketNo"`
+	PreviousTicketNo          *string    `json:"previousTicketNo"`
+	Title                     string     `json:"title"`
+	Plate                     string     `json:"plate"`
+	Direction                 string     `json:"direction"`
+	MaterialCode              string     `json:"materialCode"`
+	MaterialName              string     `json:"materialName"`
+	MaterialSpec              string     `json:"materialSpec"`
+	PartyCode                 string     `json:"partyCode"`
+	PartyName                 string     `json:"partyName"`
+	FirstConfirmedAt          time.Time  `json:"firstConfirmedAt"`
+	SecondConfirmedAt         time.Time  `json:"secondConfirmedAt"`
+	IssuedAt                  time.Time  `json:"issuedAt"`
+	IssuerName                string     `json:"issuerName"`
+	OriginalGross             string     `json:"originalGross"`
+	OriginalTare              string     `json:"originalTare"`
+	FinalGross                string     `json:"finalGross"`
+	FinalTare                 string     `json:"finalTare"`
+	FinalNet                  string     `json:"finalNet,omitempty"`
+	NetAdjustment             string     `json:"netAdjustment,omitempty"`
+	NetAdjustmentMode         string     `json:"netAdjustmentMode,omitempty"`
+	NetAdjustmentRateBP       *int       `json:"netAdjustmentRateBp,omitempty"`
+	NetAdjustmentCategory     string     `json:"netAdjustmentCategory,omitempty"`
+	NetAdjustmentCategoryName string     `json:"netAdjustmentCategoryName,omitempty"`
 	// NetAdjustments is present for schema version 5 snapshots and absent for
 	// older protocols. A pointer distinguishes a missing array (invalid in
 	// version 5) from an empty array (no adjustment).

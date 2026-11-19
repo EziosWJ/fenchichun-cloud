@@ -99,6 +99,15 @@ export const routeDefinitions: AppRouteDefinition[] = [
     component: lazy(() => import('../pages/weighbridge/MasterPage')),
   })),
   {
+    path: paths.weighbridgeTemporaryParties,
+    label: '临时主体待确认',
+    title: '临时主体待确认',
+    hideInMenu: true,
+    parentPath: paths.weighbridgeParties,
+    menuPath: paths.weighbridgeParties,
+    component: lazy(() => import('../pages/weighbridge/MasterPage')),
+  },
+  {
     path: paths.weighbridgeSites,
     label: '厂区接入',
     title: '厂区接入',
@@ -107,6 +116,11 @@ export const routeDefinitions: AppRouteDefinition[] = [
     menuPath: paths.weighbridgeSites,
     adminOnly: true,
     component: lazy(() => import('../pages/weighbridge/SitesPage')),
+  },
+  {
+    path: paths.weighbridgeTasks, label: '待回磅任务', title: '待回磅任务', icon: ClipboardList,
+    menuComponent: 'weighbridge/tasks/index', menuPath: paths.weighbridgeTasks,
+    component: lazy(() => import('../pages/weighbridge/TasksPage')),
   },
   {
     path: paths.weighbridgeTickets,

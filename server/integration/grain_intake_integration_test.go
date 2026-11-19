@@ -52,7 +52,7 @@ func exerciseGrainIntake(t *testing.T, db *gorm.DB) {
 	check(db.Raw("INSERT INTO sys_user(username,nickname,password) VALUES ('grain_gate_test','验证门卫','unused') RETURNING id").Scan(&gateActor).Error)
 	check(db.Raw("INSERT INTO sys_role(role_name,role_code) VALUES ('验证门卫','GRAIN_GATE_TEST') RETURNING id").Scan(&gateRole).Error)
 	check(db.Exec("INSERT INTO sys_user_role(user_id,role_id) VALUES (?,?)", gateActor, gateRole).Error)
-	check(db.Exec("INSERT INTO sys_role_menu(role_id,menu_id) SELECT ?,id FROM sys_menu WHERE permission_code='grain-intake:permits'", gateRole).Error)
+	check(db.Exec("INSERT INTO sys_role_menu(role_id,menu_id) SELECT ?,id FROM sys_menu WHERE permission_code IN ('grain-intake:permits','grain-intake:release')", gateRole).Error)
 	gateEvent := e
 	gateEvent.Metadata.ActorID = gateActor
 	if _, err := flow.Trips(ctx, gateActor, grainintake.Query{}); !errors.Is(err, grainintake.ErrForbidden) {
@@ -60,19 +60,17 @@ func exerciseGrainIntake(t *testing.T, db *gorm.DB) {
 	}
 	number := 0
 	createTrip := func(plate string) grainintake.Detail {
-		v, err := flow.Save(ctx, 0, 0, grainintake.Input{SiteCode: "GRAIN-TEST", Plate: plate, MaterialCode: "C-M-0010", PartyCode: "C-P-0001"}, e)
+		v, err := flow.Save(ctx, 0, 0, grainintake.Input{SiteCode: "GRAIN-TEST", Plate: plate, MaterialCode: "C-M-0010", PartyCode: "C-P-0001", Driver: "司机", DriverPhone: "13800000000", ContractNo: "合同-1"}, e)
 		check(err)
 		return v
 	}
 	createInspection := func(v grainintake.Detail, conclusion string) laboratory.Inspection {
-		in := laboratory.Input{TripID: &v.Trip.ID, Moisture: "14.1", Impurity: "0", Conclusion: conclusion, Reason: "人工判定"}
-		i, err := lab.Save(ctx, 0, 0, in, e)
+		in := laboratory.Input{TripID: &v.Trip.ID, Moisture: "14.1", BulkDensity: "720", Impurity: "0", Conclusion: conclusion, Reason: "人工判定"}
+		i, err := lab.Create(ctx, in, e)
 		check(err)
-		if i.SiteCode != v.Trip.SiteCode || i.Plate != v.Trip.Plate || i.PartyCode != v.Trip.PartyCode {
+		if i.SiteCode != v.Trip.SiteCode || i.Plate != v.Trip.Plate || i.PartyCode != v.Trip.PartyCode || i.MaterialCode != v.Trip.MaterialCode || i.Driver != v.Trip.Driver || i.DriverPhone != v.Trip.DriverPhone || i.ContractNo != v.Trip.ContractNo {
 			t.Fatal("trip information not inherited")
 		}
-		i, err = lab.Transition(ctx, i.ID, i.Version, "confirm", "", e)
-		check(err)
 		return i
 	}
 	read := func(id int64) grainintake.Detail {
@@ -86,14 +84,11 @@ func exerciseGrainIntake(t *testing.T, db *gorm.DB) {
 		check(err)
 		return next
 	}
-	selectInspection := func(v grainintake.Detail, i laboratory.Inspection) grainintake.Detail {
-		return command(read(v.Trip.ID), "select-inspection", grainintake.Command{InspectionID: i.ID, InspectionVersion: i.Version})
-	}
 	makeReady := func(plate string) (grainintake.Detail, weighbridge.Change) {
 		number++
 		v := createTrip(plate)
-		i := createInspection(v, "accept")
-		v = selectInspection(v, i)
+		createInspection(v, "accept")
+		v = read(v.Trip.ID)
 		v = command(v, "confirm-unloading", grainintake.Command{Location: "1号仓 / 东侧"})
 		if _, err := flow.Command(ctx, v.Trip.ID, "link-ticket", grainintake.Command{Version: v.Trip.Version, TicketSiteCode: "GRAIN-TEST", TicketNo: "not-synced"}, e); !errors.Is(err, grainintake.ErrConflict) {
 			t.Fatalf("unsynced ticket: %v", err)
@@ -104,64 +99,46 @@ func exerciseGrainIntake(t *testing.T, db *gorm.DB) {
 		change := weighbridge.Change{SchemaVersion: 2, ChangeID: no, SiteCode: "GRAIN-TEST", TicketNo: no, Type: "issue", Ticket: &weighbridge.TicketSnapshot{TicketNo: no, Title: "验证磅单", Plate: plate, Direction: "inbound", MaterialCode: v.Trip.MaterialCode, MaterialName: v.Trip.MaterialName, PartyCode: v.Trip.PartyCode, PartyName: v.Trip.PartyName, FirstConfirmedAt: first, SecondConfirmedAt: second, IssuedAt: second, IssuerName: "验证库管", OriginalGross: "30", OriginalTare: "10", FinalGross: "30", FinalTare: "10"}}
 		_, err := wb.ApplyChange(ctx, change)
 		check(err)
+		_, err = lab.Void(ctx, 1, *v.Trip.EffectiveInspectionID, v.Inspections[0].Version, "不能改", e)
+		if !errors.Is(err, laboratory.ErrConflict) {
+			t.Fatalf("generated ticket must block inspection void: %v", err)
+		}
 		v = command(v, "link-ticket", grainintake.Command{TicketSiteCode: "GRAIN-TEST", TicketNo: no})
 		if v.Trip.Stage != "ready" {
 			t.Fatalf("ready stage: %s", v.Trip.Stage)
 		}
 		return v, change
 	}
-	// Multiple inspections: explicit selection changes the one effective pointer, not historical results.
+	// A trip has one immediately effective result; voiding permits re-entry while preserving history.
 	multiple := createTrip("晋A10001")
 	initial := createInspection(multiple, "accept")
-	multiple = selectInspection(multiple, initial)
-	retest, err := lab.Retest(ctx, initial.ID, initial.Version, e)
-	check(err)
-	if retest.TripID == nil || *retest.TripID != multiple.Trip.ID || retest.OriginalID == nil || *retest.OriginalID != initial.ID {
-		t.Fatal("retest lost ownership")
+	multiple = read(multiple.Trip.ID)
+	if initial.Status != "confirmed" || multiple.Trip.EffectiveInspectionID == nil || *multiple.Trip.EffectiveInspectionID != initial.ID || multiple.Trip.Stage != "pending_unload" {
+		t.Fatal("created inspection is not immediately effective")
 	}
-	retest.Moisture = "13.5"
-	retest.Impurity = "0"
-	retest.Conclusion = "accept"
-	retest, err = lab.Save(ctx, retest.ID, retest.Version, retest.Input, e)
-	check(err)
-	retest, err = lab.Transition(ctx, retest.ID, retest.Version, "confirm", "", e)
-	check(err)
-	before := read(multiple.Trip.ID)
-	if *before.Trip.EffectiveInspectionID != initial.ID {
-		t.Fatal("retest automatically replaced effective result")
+	_, err := lab.Create(ctx, laboratory.Input{TripID: &multiple.Trip.ID, Moisture: "13.5", BulkDensity: "720", Conclusion: "accept"}, e)
+	if !errors.Is(err, laboratory.ErrConflict) {
+		t.Fatalf("duplicate inspection: %v", err)
 	}
-	multiple = selectInspection(before, retest)
-	if len(multiple.Inspections) != 2 || *multiple.Trip.EffectiveInspectionID != retest.ID {
-		t.Fatal("one effective result or history lost")
-	}
-	_, err = lab.Transition(ctx, retest.ID, retest.Version, "void", "录错", e)
+	_, err = lab.Void(ctx, 1, initial.ID, initial.Version, "录错", e)
 	check(err)
 	multiple = read(multiple.Trip.ID)
 	if multiple.Trip.EffectiveInspectionID != nil || multiple.Trip.Stage != "pending_inspection" {
 		t.Fatal("void did not clear effective result")
 	}
-	// Independent confirmed inspection can be linked; a mismatch and cross-trip reuse are rejected.
-	independent, err := lab.Save(ctx, 0, 0, laboratory.Input{SiteCode: multiple.Trip.SiteCode, Plate: multiple.Trip.Plate, MaterialCode: multiple.Trip.MaterialCode, PartyCode: multiple.Trip.PartyCode, Moisture: "12", Impurity: "0", Conclusion: "accept"}, e)
-	check(err)
-	independent, err = lab.Transition(ctx, independent.ID, independent.Version, "confirm", "", e)
-	check(err)
-	multiple = command(multiple, "link-inspection", grainintake.Command{InspectionID: independent.ID, InspectionVersion: independent.Version})
-	other := createTrip("晋B20002")
-	_, err = flow.Command(ctx, other.Trip.ID, "link-inspection", grainintake.Command{Version: other.Trip.Version, InspectionID: independent.ID, InspectionVersion: independent.Version}, e)
-	if !errors.Is(err, grainintake.ErrConflict) {
-		t.Fatalf("cross-trip association: %v", err)
+	reentered := createInspection(multiple, "accept")
+	multiple = read(multiple.Trip.ID)
+	if len(multiple.Inspections) != 2 || multiple.Trip.EffectiveInspectionID == nil || *multiple.Trip.EffectiveInspectionID != reentered.ID {
+		t.Fatal("re-entry lost effective result or history")
 	}
-	// An inspection from another site cannot be linked even when plate, material and supplier match.
-	if _, err := wb.CreateSite(ctx, weighbridge.SiteInput{Code: "GRAIN-OTHER", Name: "其他厂"}, e); err != nil {
-		t.Fatal(err)
+	foundVoided := false
+	for _, inspection := range multiple.Inspections {
+		if inspection.ID == initial.ID && inspection.Status == "void" {
+			foundVoided = true
+		}
 	}
-	foreign, err := lab.Save(ctx, 0, 0, laboratory.Input{SiteCode: "GRAIN-OTHER", Plate: multiple.Trip.Plate, MaterialCode: multiple.Trip.MaterialCode, PartyCode: multiple.Trip.PartyCode, Moisture: "12", Impurity: "0", Conclusion: "accept"}, e)
-	check(err)
-	foreign, err = lab.Transition(ctx, foreign.ID, foreign.Version, "confirm", "", e)
-	check(err)
-	_, err = flow.Command(ctx, other.Trip.ID, "link-inspection", grainintake.Command{Version: other.Trip.Version, InspectionID: foreign.ID, InspectionVersion: foreign.Version}, e)
-	if !errors.Is(err, grainintake.ErrConflict) {
-		t.Fatalf("cross-site inspection: %v", err)
+	if !foundVoided {
+		t.Fatal("voided inspection missing from history")
 	}
 	// A void before the permit is issued detaches the ticket so the trip can be linked again.
 	detached, detachedChange := makeReady("晋A60006")
@@ -169,7 +146,7 @@ func exerciseGrainIntake(t *testing.T, db *gorm.DB) {
 	_, err = wb.ApplyChange(ctx, weighbridge.Change{SchemaVersion: 2, ChangeID: detachedChange.ChangeID + "-void", SiteCode: detachedChange.SiteCode, TicketNo: detachedChange.TicketNo, Type: "void", Void: &weighbridge.VoidInfo{Reason: "选错磅单", Actor: "库管", At: time.Now().UTC()}})
 	check(err)
 	detached = read(detached.Trip.ID)
-	if detached.Trip.TicketID != nil || detached.Trip.Stage != "accepted" || detached.Trip.Version != beforeVoid.Trip.Version+1 {
+	if detached.Trip.TicketID != nil || detached.Trip.Stage != "pending_ticket" || detached.Trip.Version != beforeVoid.Trip.Version+1 {
 		t.Fatalf("void did not detach ticket: stage=%s ticket=%v version=%d", detached.Trip.Stage, detached.Trip.TicketID, detached.Trip.Version)
 	}
 	if len(detached.Events) == 0 || detached.Events[0].Action != "trip.ticket-voided" || detached.Events[0].ActorID != nil {
@@ -199,7 +176,7 @@ func exerciseGrainIntake(t *testing.T, db *gorm.DB) {
 	if normal.Trip.Stage != "permit_approved" || normal.Trip.ExitedAt != nil {
 		t.Fatal("approval marked departure")
 	}
-	_, err = lab.Transition(ctx, *normal.Trip.EffectiveInspectionID, normal.Inspections[0].Version, "void", "不能改", e)
+	_, err = lab.Void(ctx, 1, *normal.Trip.EffectiveInspectionID, normal.Inspections[0].Version, "不能改", e)
 	if !errors.Is(err, laboratory.ErrConflict) {
 		t.Fatalf("approved evidence mutable: %v", err)
 	}
@@ -226,9 +203,9 @@ func exerciseGrainIntake(t *testing.T, db *gorm.DB) {
 		t.Fatalf("void ticket released: %v", err)
 	}
 	// Rejection needs neither ticket nor normal exit permit; gate-only users retain history.
-	rejected := createTrip("晋A拒收")
+	rejected := createTrip("晋A90009")
 	ri := createInspection(rejected, "reject")
-	rejected = selectInspection(rejected, ri)
+	rejected = read(rejected.Trip.ID)
 	_, err = flow.Command(ctx, rejected.Trip.ID, "issue-permit", grainintake.Command{Version: rejected.Trip.Version}, e)
 	if !errors.Is(err, grainintake.ErrConflict) {
 		t.Fatalf("normal permit on rejection: %v", err)
