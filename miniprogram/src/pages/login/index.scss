@@ -1,8 +1,8 @@
 .login-page {
   box-sizing: border-box;
   min-height: 100vh;
-  padding: 80rpx 48rpx calc(48rpx + env(safe-area-inset-bottom));
-  background: #fff;
+  padding: 96rpx 48rpx calc(48rpx + env(safe-area-inset-bottom));
+  background: var(--fc-bg);
 }
 
 .brand {
@@ -10,64 +10,107 @@
   gap: 16rpx;
   align-items: center;
   font-size: 32rpx;
-  font-weight: 700;
-  color: #8c3b2e;
+  font-weight: 600;
+  color: var(--fc-brand);
 }
 
 .brand-mark {
-  width: 9rpx;
-  height: 39rpx;
-  background: #8c3b2e;
-  border-radius: 5rpx;
+  width: 8rpx;
+  height: 40rpx;
+  background: var(--fc-brand);
+  border-radius: 999rpx;
 }
 
 .login-title {
-  margin-top: 94rpx;
-  font-size: 52rpx;
-  font-weight: 700;
+  margin-top: 96rpx;
+  font-size: 44rpx;
+  font-weight: 600;
+  line-height: 1.25;
+  color: var(--fc-text);
 }
 
 .login-subtitle {
   margin-top: 12rpx;
-  color: #687080;
+  font-size: 26rpx;
+  line-height: 1.5;
+  color: var(--fc-text-secondary);
 }
 
-.login-note {
-  margin-top: 48rpx;
+.login-card {
+  padding: 32rpx;
+  margin-top: 40rpx;
+  background: var(--fc-surface);
+  border: 1rpx solid var(--fc-border);
+  border-radius: 32rpx;
 }
 
-.login-form {
-  margin-top: 34rpx;
+.login-field {
+  margin-bottom: 24rpx;
+}
+
+.login-field--last {
+  margin-bottom: 0;
+}
+
+.login-label {
+  margin-bottom: 16rpx;
+  font-size: 28rpx;
+  font-weight: 600;
+  color: var(--fc-text);
+}
+
+.login-control {
+  display: flex;
+  align-items: center;
+  min-height: 88rpx;
+  padding: 0 24rpx;
+  background: var(--fc-surface-muted);
+  border: 1rpx solid var(--fc-border);
+  border-radius: 16rpx;
 }
 
 .login-input {
-  width: 100%;
-  height: 74rpx;
-}
-
-.password-row {
-  display: flex;
-  align-items: center;
+  flex: 1;
+  min-width: 0;
+  height: 88rpx;
+  font-size: 30rpx;
+  color: var(--fc-text);
 }
 
 .password-input {
-  flex: 1;
-  min-width: 0;
+  padding-right: 8rpx;
 }
 
 .password-toggle {
-  padding: 20rpx;
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  min-width: 88rpx;
+  min-height: 88rpx;
+  margin-right: -16rpx;
   font-size: 26rpx;
-  color: #8c3b2e;
+  color: var(--fc-brand);
+}
+
+.login-error {
+  padding: 16rpx 20rpx;
+  margin-top: 24rpx;
+  font-size: 26rpx;
+  line-height: 1.5;
+  color: var(--fc-error);
+  background: var(--fc-error-soft);
+  border-radius: 16rpx;
 }
 
 .login-button {
-  margin-top: 52rpx;
+  margin-top: 32rpx;
 }
 
 .login-hint {
   margin-top: 24rpx;
   font-size: 24rpx;
-  color: #8b929c;
+  line-height: 1.5;
+  color: var(--fc-text-secondary);
   text-align: center;
 }

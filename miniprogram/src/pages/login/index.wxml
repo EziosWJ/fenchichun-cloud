@@ -2,21 +2,51 @@
   <view class="brand"><view class="brand-mark"></view><text>汾池春</text></view>
   <view class="login-title">员工登录</view>
   <view class="login-subtitle">使用员工账号和密码进入工作台</view>
-  <view class="notice login-note">请使用员工账号登录</view>
-  <view class="login-form">
-    <view class="field">
-      <view class="field-label">员工账号</view>
-      <input class="login-input" placeholder="请输入员工账号" placeholder-class="field-placeholder" value="{{account}}" bindinput="accountInput" />
-    </view>
-    <view class="field">
-      <view class="field-label">登录密码</view>
-      <view class="password-row">
-        <input class="login-input password-input" placeholder="请输入登录密码" placeholder-class="field-placeholder" password="{{!showPassword}}" value="{{password}}" bindinput="passwordInput" confirm-type="done" bindconfirm="login" />
-        <view class="password-toggle" bindtap="togglePassword" aria-role="button">{{showPassword ? '隐藏' : '显示'}}</view>
+
+  <view class="login-card">
+    <view class="login-field">
+      <view class="login-label">员工账号</view>
+      <view class="login-control">
+        <input
+          class="login-input"
+          placeholder="请输入员工账号"
+          placeholder-class="field-placeholder"
+          value="{{account}}"
+          bindinput="accountInput"
+          confirm-type="next"
+          bindconfirm="focusPassword"
+          maxlength="40"
+          cursor-spacing="32"
+          adjust-position="{{true}}"
+        />
       </view>
     </view>
-    <view wx:if="{{error}}" class="error-text">{{error}}</view>
-    <view class="login-button"><t-button theme="primary" block size="large" loading="{{submitting}}" disabled="{{submitting}}" bindtap="login">登 录</t-button></view>
-    <view class="login-hint">库管、门卫和管理员可使用小程序</view>
+
+    <view class="login-field login-field--last">
+      <view class="login-label">登录密码</view>
+      <view class="login-control">
+        <input
+          class="login-input password-input"
+          placeholder="请输入登录密码"
+          placeholder-class="field-placeholder"
+          password="{{!showPassword}}"
+          value="{{password}}"
+          bindinput="passwordInput"
+          focus="{{passwordFocus}}"
+          bindblur="blurPassword"
+          confirm-type="done"
+          bindconfirm="login"
+          maxlength="64"
+          cursor-spacing="32"
+          adjust-position="{{true}}"
+        />
+        <view class="password-toggle" bindtap="togglePassword" aria-role="button" aria-label="{{showPassword ? '隐藏密码' : '显示密码'}}">{{showPassword ? '隐藏' : '显示'}}</view>
+      </view>
+    </view>
+
+    <view wx:if="{{error}}" class="login-error">{{error}}</view>
+    <view class="login-button"><t-button theme="primary" block size="large" loading="{{submitting}}" disabled="{{submitting}}" bindtap="login">登录</t-button></view>
   </view>
+
+  <view class="login-hint">库管、门卫和管理员可使用小程序</view>
 </view>

@@ -11,6 +11,7 @@ Page({
     account: '',
     roles: '',
     role: '',
+    avatarText: '员',
   },
   onShow() {
     this.load()
@@ -27,6 +28,7 @@ Page({
         account: current.user.account,
         roles: current.user.roles.map(role => roleLabels[role]).join('、'),
         role: roleLabels[current.role],
+        avatarText: current.user.name.slice(0, 1) || '员',
       })
     }
     catch (error) {

@@ -2,17 +2,17 @@
   box-sizing: border-box;
   min-height: 100vh;
   padding: 32rpx 32rpx calc(48rpx + env(safe-area-inset-bottom));
-  background: #f4f5f7;
+  background: var(--fc-bg);
 }
 
 .profile-card {
   display: flex;
   gap: 24rpx;
   align-items: center;
-  padding: 28rpx;
-  background: #fff;
-  border: 1rpx solid #e6e8eb;
-  border-radius: 20rpx;
+  padding: 32rpx;
+  background: var(--fc-surface);
+  border: 1rpx solid var(--fc-border);
+  border-radius: 32rpx;
 }
 
 .profile-avatar {
@@ -23,9 +23,9 @@
   width: 104rpx;
   height: 104rpx;
   font-size: 40rpx;
-  font-weight: 650;
-  color: #8c3b2e;
-  background: #f7eeeb;
+  font-weight: 600;
+  color: var(--fc-brand);
+  background: var(--fc-brand-soft);
   border-radius: 50%;
 }
 
@@ -36,73 +36,73 @@
 
 .profile-name {
   font-size: 36rpx;
-  font-weight: 650;
+  font-weight: 600;
+  line-height: 1.3;
+  color: var(--fc-text);
+  overflow-wrap: anywhere;
 }
 
 .profile-account {
-  margin-top: 4rpx;
-  font-size: 23rpx;
-  color: #687080;
+  margin-top: 6rpx;
+  font-size: 24rpx;
+  line-height: 1.4;
+  color: var(--fc-text-secondary);
 }
 
 .role-chip {
   flex: none;
-  padding: 6rpx 16rpx;
-  font-size: 21rpx;
+  padding: 8rpx 16rpx;
+  font-size: 24rpx;
   font-weight: 600;
-  color: #8c3b2e;
+  color: var(--fc-brand);
   white-space: nowrap;
-  background: #f7eeeb;
+  background: var(--fc-brand-soft);
   border-radius: 999rpx;
 }
 
 .info-card {
-  padding: 0 28rpx;
-  margin-top: 20rpx;
-  background: #fff;
-  border: 1rpx solid #e6e8eb;
-  border-radius: 20rpx;
+  padding: 0 32rpx;
+  margin-top: 24rpx;
+  background: var(--fc-surface);
+  border: 1rpx solid var(--fc-border);
+  border-radius: 32rpx;
 }
 
 .info-title {
-  padding: 22rpx 0 14rpx;
-  font-size: 21rpx;
+  padding: 24rpx 0 12rpx;
+  font-size: 24rpx;
   font-weight: 600;
-  color: #687080;
+  color: var(--fc-text-secondary);
 }
 
 .info-row {
   display: flex;
-  gap: 28rpx;
+  gap: 24rpx;
   justify-content: space-between;
   padding: 20rpx 0;
-  font-size: 25rpx;
+  font-size: 28rpx;
   line-height: 1.45;
-  border-top: 1rpx solid #e6e8eb;
+  border-top: 1rpx solid var(--fc-border);
 }
 
 .info-k {
   flex: none;
-  color: #687080;
+  color: var(--fc-text-secondary);
 }
 
 .info-v {
   min-width: 0;
-  color: #20242c;
+  color: var(--fc-text);
   text-align: right;
   overflow-wrap: anywhere;
 }
 
-.info-mono {
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-}
-
 .logout-card {
-  padding: 24rpx 28rpx;
-  margin-top: 20rpx;
-  background: #fff;
-  border: 1rpx solid #e6e8eb;
-  border-radius: 20rpx;
+  padding: 32rpx;
+  margin-top: 24rpx;
+  background: var(--fc-surface);
+  border: 1rpx solid var(--fc-border);
+  border-radius: 32rpx;
 }
 
 .logout-btn {
@@ -110,15 +110,15 @@
   align-items: center;
   justify-content: center;
   width: 100%;
-  height: 84rpx;
+  height: 88rpx;
   padding: 0;
-  font-size: 28rpx;
+  font-size: 30rpx;
   font-weight: 600;
   line-height: 1;
-  color: #a1322d;
-  background: #fff;
-  border: 1rpx solid #e7c3bd;
-  border-radius: 16rpx;
+  color: var(--fc-error);
+  background: var(--fc-surface);
+  border: 1rpx solid var(--fc-error);
+  border-radius: 24rpx;
 }
 
 .logout-btn::after {
@@ -126,12 +126,13 @@
 }
 
 .logout-btn-hover {
-  background: #fdf4f2;
+  background: var(--fc-error-soft);
 }
 
 .logout-hint {
-  margin-top: 14rpx;
-  font-size: 20rpx;
-  color: #8b929c;
+  margin-top: 16rpx;
+  font-size: 24rpx;
+  line-height: 1.5;
+  color: var(--fc-text-secondary);
   text-align: center;
 }

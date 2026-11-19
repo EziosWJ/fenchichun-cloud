@@ -38,6 +38,12 @@ Page({
     id: '',
     version: 0,
     form: emptyForm(),
+    fieldErrors: {
+      site: '',
+      plate: '',
+      material: '',
+      supplier: '',
+    },
     sites: [] as string[],
     materials: [] as string[],
     materialNames: [] as string[],
@@ -113,6 +119,13 @@ Page({
             methods,
             suppliers,
             form,
+            fieldErrors: {
+              site: '',
+              plate: '',
+              material: '',
+              supplier: '',
+            },
+            formError: '',
             province,
             provinceIndex: Math.max(0, plateProvinces.indexOf(province)),
             plateBody,
@@ -168,6 +181,7 @@ Page({
       province,
       'provinceIndex': index,
       'form.plate': `${province}${this.data.plateBody}`,
+      'fieldErrors.plate': '',
       'formError': '',
     })
   },
@@ -184,6 +198,7 @@ Page({
       'provinceIndex': Math.max(0, plateProvinces.indexOf(province)),
       'plateBody': value,
       'form.plate': `${province}${value}`,
+      'fieldErrors.plate': '',
       'formError': '',
     })
   },
@@ -197,6 +212,7 @@ Page({
       'provinceIndex': Math.max(0, plateProvinces.indexOf(province)),
       'plateBody': body,
       'form.plate': `${province}${body}`,
+      'fieldErrors.plate': '',
       'formError': '',
     })
   },
@@ -277,6 +293,7 @@ Page({
     this.setData({
       'siteIndex': index,
       'form.site': index ? this.data.sites[index] : '',
+      'fieldErrors.site': '',
       'formError': '',
     })
   },
@@ -285,6 +302,7 @@ Page({
     this.setData({
       'materialIndex': index,
       'form.material': this.data.materialNames[index],
+      'fieldErrors.material': '',
       'formError': '',
     })
   },
@@ -293,6 +311,7 @@ Page({
     this.setData({
       'supplierIndex': index,
       'form.supplier': index ? this.data.suppliers[index] : '',
+      'fieldErrors.supplier': '',
       'formError': '',
     })
   },
@@ -303,23 +322,27 @@ Page({
     if (this.data.submitting) {
       return
     }
+    const plate = normalizePlate(
+      this.data.province
+        ? `${this.data.province}${this.data.plateBody}`
+        : this.data.form.plate,
+    )
+    const form = {
+      ...this.data.form,
+      plate,
+    }
+    const fieldErrors = {
+      site: form.site ? '' : '请选择厂区',
+      plate: isValidPlate(form.plate) ? '' : '请输入正确的车牌号，例如 晋A12345',
+      material: form.material ? '' : '请选择货品',
+      supplier: form.supplier ? '' : '请选择供应商',
+    }
+    if (fieldErrors.site || fieldErrors.plate || fieldErrors.material || fieldErrors.supplier) {
+      this.setData({ fieldErrors, formError: '' })
+      return
+    }
     this.setData({ submitting: true, formError: '' })
     try {
-      const plate = normalizePlate(
-        this.data.province
-          ? `${this.data.province}${this.data.plateBody}`
-          : this.data.form.plate,
-      )
-      const form = {
-        ...this.data.form,
-        plate,
-      }
-      if (!isValidPlate(form.plate)) {
-        throw new Error('请输入正确的车牌号，例如 晋A12345')
-      }
-      if (!form.supplier) {
-        throw new Error('请选择供应商')
-      }
       const clientRequestId = this.data.edit
         ? ''
         : this.data.clientRequestId || newRequestId()

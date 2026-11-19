@@ -7,6 +7,7 @@ Page({
     account: '',
     password: '',
     showPassword: false,
+    passwordFocus: false,
     error: '',
     submitting: false,
   },
@@ -25,6 +26,12 @@ Page({
   },
   passwordInput(event: WechatMiniprogram.Input) {
     this.setData({ password: event.detail.value, error: '' })
+  },
+  focusPassword() {
+    this.setData({ passwordFocus: true })
+  },
+  blurPassword() {
+    this.setData({ passwordFocus: false })
   },
   togglePassword() {
     this.setData({ showPassword: !this.data.showPassword })

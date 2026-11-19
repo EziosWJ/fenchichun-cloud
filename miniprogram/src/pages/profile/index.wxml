@@ -3,7 +3,7 @@
   <error-state wx:elif="{{error}}" text="{{error}}" bind:retry="load" />
   <block wx:else>
     <view class="profile-card">
-      <view class="profile-avatar">员</view>
+      <view class="profile-avatar">{{avatarText}}</view>
       <view class="profile-main">
         <view class="profile-name">{{name}}</view>
         <view class="profile-account">员工账号 {{account}}</view>
@@ -13,7 +13,7 @@
 
     <view class="info-card">
       <view class="info-title">账号信息</view>
-      <view class="info-row"><text class="info-k">员工账号</text><text class="info-v info-mono">{{account}}</text></view>
+      <view class="info-row"><text class="info-k">员工账号</text><text class="info-v">{{account}}</text></view>
       <view class="info-row"><text class="info-k">当前岗位</text><text class="info-v">{{role}}</text></view>
       <view class="info-row"><text class="info-k">可用岗位</text><text class="info-v">{{roles}}</text></view>
     </view>

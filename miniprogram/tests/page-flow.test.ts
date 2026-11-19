@@ -238,7 +238,7 @@ test('页面控制器通过后端接口登记、关联磅单并跨岗位确认�
   await call(register, 'chooseProvince', { detail: { value: '19' } })
   await call(register, 'inputPlateBody', { detail: { value: 'A90909' } })
   await call(register, 'save')
-  assert.equal(register.data.formError, '请选择供应商')
+  assert.equal((register.data.fieldErrors as Data).supplier, '请选择供应商')
   assert.equal(app.request('POST', '/grain-intake/trips'), undefined)
   await call(register, 'chooseSupplier', { detail: { value: '1' } })
   await call(register, 'save')
