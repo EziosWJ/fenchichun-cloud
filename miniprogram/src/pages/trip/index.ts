@@ -40,6 +40,8 @@ Page({
       events: false,
     },
     confirming: false,
+    step: 1,
+    inspectionShort: '',
   },
   onLoad(query: Record<string, string | undefined>) {
     this.setData({ id: query.id || '' })
@@ -75,6 +77,30 @@ Page({
         else if (status.action === 'issue' || status.action === 'approve' || trip.stage === 'permit_approved') {
           expanded.permit = true
         }
+        const stepByAction: Record<string, number> = {
+          'visual': 2,
+          'unload': 3,
+          'ticket': 4,
+          'confirm-ticket': 4,
+          'issue': 5,
+          'approve': 5,
+        }
+        let step = stepByAction[status.action] || 0
+        if (!step) {
+          if (trip.stage === 'pending_inspection') {
+            step = 2
+          }
+          else if (trip.stage === 'permit_approved' || trip.stage === 'rejected' || trip.exitedAt) {
+            step = 6
+          }
+          else if (trip.stage === 'blocked') {
+            step = 0
+          }
+          else {
+            step = 1
+          }
+        }
+        const inspectionShort = trip.inspection?.values?.split('/')[0]?.trim() || ''
         this.setData({
           trip,
           events: trip.events.map((event, key) => ({ ...event, key })),
@@ -85,6 +111,8 @@ Page({
           actionLabel: actionLabels[status.action] || '',
           editable: canEdit(trip),
           inspection: inspectionText(trip),
+          inspectionShort,
+          step,
           expanded,
         })
         this.setData({ loading: false })
