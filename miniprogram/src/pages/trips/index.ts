@@ -49,6 +49,13 @@ Page({
     this.setData({ query: event.detail.value })
     this.load()
   },
+  clearSearch() {
+    if (!this.data.query) {
+      return
+    }
+    this.setData({ query: '' })
+    this.load()
+  },
   setRange(event: WechatMiniprogram.BaseEvent) {
     this.setData({ range: event.currentTarget.dataset.range as TimeRange })
     this.load()

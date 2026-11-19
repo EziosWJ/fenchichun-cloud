@@ -1,0 +1,28 @@
+<view class="workbench-banner workbench-banner--{{role}} {{canSwitch ? 'workbench-banner--switchable' : ''}}">
+  <view class="workbench-banner__accent" aria-hidden="true"></view>
+  <view class="workbench-banner__main">
+    <view class="workbench-banner__icon">
+      <t-icon name="{{role === 'warehouse' ? 'building' : 'vehicle'}}" size="40rpx" color="#a74532" />
+    </view>
+    <view class="workbench-banner__text">
+      <view class="workbench-banner__title">{{title}}</view>
+      <view class="workbench-banner__subtitle">{{subtitle}}</view>
+    </view>
+  </view>
+  <view wx:if="{{canSwitch}}" class="workbench-banner__switch" bindtap="switchRole" aria-role="button" aria-label="切换岗位">切换岗位</view>
+  <view class="workbench-banner__silo" aria-hidden="true">
+    <view class="silo silo--small">
+      <view class="silo__roof"></view>
+      <view class="silo__body"></view>
+    </view>
+    <view class="silo silo--medium">
+      <view class="silo__roof"></view>
+      <view class="silo__body"></view>
+    </view>
+    <view class="silo silo--large">
+      <view class="silo__roof"></view>
+      <view class="silo__body"></view>
+    </view>
+    <view class="silo__conveyor"></view>
+  </view>
+</view>

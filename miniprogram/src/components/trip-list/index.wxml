@@ -1,11 +1,30 @@
 <view class="trip-list">
-  <view wx:for="{{trips}}" wx:key="id" class="trip-item" data-id="{{item.serverId}}" bindtap="open" hover-class="trip-hover" aria-role="button" aria-label="{{item.plate}}，{{item.statusLabel}}，查看详情">
-    <view class="trip-top">
-      <text class="trip-plate">{{item.plate}}</text>
-      <text class="trip-status {{item.waiting ? 'waiting' : ''}}">{{kind === 'guard' ? item.exitType : item.statusLabel}}</text>
+  <view
+    wx:for="{{trips}}"
+    wx:key="id"
+    class="trip-row {{index === trips.length - 1 ? 'trip-row--last' : ''}}"
+    data-id="{{item.serverId}}"
+    bindtap="open"
+    hover-class="trip-row--hover"
+    aria-role="button"
+    aria-label="{{item.plate}}，{{item.material}}，{{item.supplier || '供应商待核实'}}"
+  >
+    <view class="trip-main">
+      <view class="trip-plate">{{item.plate}}</view>
+      <view class="trip-meta">{{item.material}}<text class="trip-sep">·</text>{{item.supplier || '供应商待核实'}}</view>
+      <view wx:if="{{mode === 'ledger'}}" class="trip-sub">{{item.statusLabel}}<text class="trip-sep">·</text>{{item.createdAt}}</view>
     </view>
-    <view class="trip-description">{{item.site}}　{{item.material}}</view>
-    <view class="trip-next">{{kind === 'guard' ? (item.exitedAt ? '已出厂 ' + item.exitedAt : (item.exitType === '拒收退厂' ? item.inspectionText : '出门证已审批')) : item.next}}</view>
-    <view class="trip-number">{{item.id}}　{{item.createdAt}} <text class="arrow">›</text></view>
+    <view
+      wx:if="{{showAction && mode === 'workbench' && (kind === 'guard' || item.actionLabel)}}"
+      class="trip-action trip-action--{{kind === 'guard' ? 'brand' : item.actionTone}}"
+      data-id="{{item.serverId}}"
+      catchtap="act"
+      hover-class="trip-action--hover"
+      aria-role="button"
+    >
+      <text>{{kind === 'guard' ? '核验放行' : item.actionLabel}}</text>
+      <text class="trip-action__arrow">›</text>
+    </view>
+    <view wx:else class="trip-chevron" aria-hidden="true">›</view>
   </view>
 </view>

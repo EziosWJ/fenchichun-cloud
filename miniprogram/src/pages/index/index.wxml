@@ -1,20 +1,46 @@
-<view class="screen">
-  <view class="workbench-heading heading-row">
-    <view><view class="screen-title">{{roleName}}工作台</view><view class="subtle workbench-subtitle">{{role === 'warehouse' ? '查看车辆进度，办理现场作业' : '核对出厂依据，确认车辆放行'}}</view></view>
-    <view wx:if="{{canSwitch}}" class="text-link" bindtap="switchRole">切换岗位</view>
+<view class="screen workbench-screen">
+  <workbench-banner
+    role="{{role}}"
+    title="{{roleName}}工作台"
+    subtitle="{{role === 'warehouse' ? '原粮入厂 · 卸货 / 开证 / 目测 / 磅单' : '核验凭据 · 确认车辆放行'}}"
+    can-switch="{{canSwitch}}"
+    bind:switchrole="switchRole"
+  />
+
+  <view class="search-field">
+    <t-icon class="search-field__icon" name="search" size="32rpx" color="#777674" />
+    <input
+      class="search-input"
+      value="{{query}}"
+      placeholder="{{role === 'warehouse' ? '搜索车牌 / 供应商 / 出门证号' : '搜索车牌 / 出门证号 / 供应商'}}"
+      placeholder-class="field-placeholder"
+      bindinput="search"
+      confirm-type="search"
+    />
+    <view wx:if="{{query}}" class="search-field__clear" bindtap="clearSearch" aria-role="button" aria-label="清除搜索">×</view>
   </view>
-  <input class="search-input" value="{{query}}" placeholder="搜索车牌或流转单号" placeholder-class="field-placeholder" bindinput="search" confirm-type="search" />
-  <view wx:if="{{role === 'guard'}}" class="filter-tabs">
-    <view class="filter-tab {{!gateHistory ? 'selected' : ''}}" bindtap="showPending">待出厂</view>
-    <view class="filter-tab {{gateHistory ? 'selected' : ''}}" bindtap="showHistory">已出厂</view>
+
+  <view wx:if="{{role === 'guard'}}" class="status-tabs" aria-role="tablist">
+    <view class="status-tab {{!gateHistory ? 'active' : ''}}" bindtap="showPending" aria-role="tab" aria-selected="{{!gateHistory}}">待放行</view>
+    <view class="status-tab {{gateHistory ? 'active' : ''}}" bindtap="showHistory" aria-role="tab" aria-selected="{{gateHistory}}">已放行</view>
   </view>
+
   <view class="list-heading heading-row">
-    <view class="section-heading">{{role === 'warehouse' ? '进行中的车辆' : (gateHistory ? '已出厂记录' : '待出厂车辆')}}</view>
-    <t-button wx:if="{{role === 'warehouse'}}" theme="primary" size="small" bindtap="register">登记流转单</t-button>
+    <view class="section-heading">{{role === 'warehouse' ? '待处理车辆' : (gateHistory ? '已放行车辆' : '待放行车辆')}}</view>
+    <view wx:if="{{role === 'warehouse'}}" class="list-links">
+      <view class="section-link" bindtap="register" aria-role="button">登记流转单</view>
+      <view class="section-link section-link--muted" bindtap="allTrips" aria-role="button">查看全部 ›</view>
+    </view>
   </view>
+
   <loading-state wx:if="{{loading}}" text="正在加载车辆" />
   <error-state wx:elif="{{error}}" text="{{error}}" bind:retry="load" />
-  <empty-state wx:elif="{{!trips.length}}" text="{{query ? '没有匹配的车辆或流转单' : (role === 'warehouse' ? '暂无进行中的车辆' : (gateHistory ? '暂无已出厂记录' : '暂无待出厂车辆'))}}" />
-  <trip-list wx:else trips="{{trips}}" kind="{{role}}" />
-  <view wx:if="{{role === 'warehouse'}}" class="all-link" bindtap="allTrips">查看全部流转单　›</view>
+  <empty-state wx:elif="{{!trips.length}}" text="{{query ? '没有匹配的车辆' : (role === 'warehouse' ? '暂无待处理车辆' : (gateHistory ? '暂无已放行记录' : '暂无待放行车辆'))}}" />
+  <trip-list
+    wx:else
+    trips="{{trips}}"
+    kind="{{role}}"
+    mode="workbench"
+    show-action="{{role === 'guard' ? !gateHistory : true}}"
+  />
 </view>

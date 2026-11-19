@@ -1,0 +1,141 @@
+.workbench-banner {
+  position: relative;
+  box-sizing: border-box;
+  min-height: 160rpx;
+  padding: 26rpx 28rpx 26rpx 36rpx;
+  overflow: hidden;
+  background: linear-gradient(105deg, var(--fc-surface-muted) 0%, var(--fc-brand-soft) 100%);
+  border: 1rpx solid var(--fc-border);
+  border-radius: 32rpx;
+}
+
+.workbench-banner__accent {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 8rpx;
+  background: var(--fc-brand);
+}
+
+.workbench-banner__main {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  gap: 20rpx;
+  align-items: flex-start;
+  max-width: 82%;
+}
+
+.workbench-banner--switchable .workbench-banner__main {
+  max-width: 64%;
+}
+
+.workbench-banner__icon {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 72rpx;
+  height: 72rpx;
+  background: var(--fc-surface);
+  border: 1rpx solid var(--fc-border);
+  border-radius: 24rpx;
+}
+
+.workbench-banner__text {
+  min-width: 0;
+}
+
+.workbench-banner__title {
+  font-size: 44rpx;
+  font-weight: 600;
+  line-height: 1.25;
+  color: var(--fc-text);
+  letter-spacing: -0.5rpx;
+}
+
+.workbench-banner__subtitle {
+  margin-top: 6rpx;
+  font-size: 26rpx;
+  line-height: 1.45;
+  color: var(--fc-text-secondary);
+  overflow-wrap: anywhere;
+}
+
+.workbench-banner__switch {
+  position: absolute;
+  top: 20rpx;
+  right: 20rpx;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  min-height: 72rpx;
+  padding: 0 16rpx;
+  font-size: 24rpx;
+  color: var(--fc-brand);
+  background: var(--fc-surface);
+  border: 1rpx solid var(--fc-border);
+  border-radius: 999rpx;
+}
+
+.workbench-banner__silo {
+  position: absolute;
+  right: 12rpx;
+  bottom: 0;
+  width: 220rpx;
+  height: 136rpx;
+  pointer-events: none;
+  opacity: 0.58;
+}
+
+.silo {
+  position: absolute;
+  bottom: 0;
+  width: 54rpx;
+}
+
+.silo--small {
+  left: 0;
+  height: 76rpx;
+}
+
+.silo--medium {
+  left: 62rpx;
+  height: 96rpx;
+}
+
+.silo--large {
+  left: 128rpx;
+  height: 118rpx;
+}
+
+.silo__roof {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  width: 0;
+  height: 0;
+  border-right: 27rpx solid transparent;
+  border-bottom: 22rpx solid var(--fc-border-strong);
+  border-left: 27rpx solid transparent;
+  transform: translateX(-50%);
+}
+
+.silo__body {
+  position: absolute;
+  inset: 22rpx 0 0;
+  background: var(--fc-border);
+  border-radius: 4rpx 4rpx 0 0;
+}
+
+.silo__conveyor {
+  position: absolute;
+  top: 18rpx;
+  left: 18rpx;
+  width: 184rpx;
+  height: 3rpx;
+  background: var(--fc-border-strong);
+  transform: rotate(-10deg);
+  transform-origin: left center;
+}

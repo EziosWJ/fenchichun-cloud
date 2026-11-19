@@ -29,6 +29,17 @@ export function applyAsync<T>(
   void value.then(onValue).catch(onError)
 }
 
+const listActionLabels: Record<string, string> = {
+  'visual': '去目测',
+  'unload': '确认卸货',
+  'ticket': '关联磅单',
+  'confirm-ticket': '确认磅单',
+  'issue': '开出门证',
+  'approve': '审批出门证',
+}
+
+const accentActions = new Set(['issue', 'visual'])
+
 export function cards(trips: Trip[]) {
   return trips.map((trip) => {
     const status = tripStatus(trip)
@@ -37,6 +48,9 @@ export function cards(trips: Trip[]) {
       statusLabel: status.label,
       next: status.next,
       waiting: status.waiting,
+      action: status.action,
+      actionLabel: listActionLabels[status.action] || '',
+      actionTone: accentActions.has(status.action) ? 'accent' : 'brand',
       exitType: exitType(trip),
       inspectionText: inspectionText(trip),
     }
@@ -49,16 +63,22 @@ export function matches(trip: Trip, query: string) {
     !value
     || trip.plate.toUpperCase().includes(value)
     || trip.id.toUpperCase().includes(value)
+    || (trip.supplier || '').toUpperCase().includes(value)
+    || (trip.permit?.id || '').toUpperCase().includes(value)
   )
 }
 
 const actionableActions = new Set(['visual', 'unload', 'ticket', 'confirm-ticket', 'issue', 'approve'])
 
+export function needsAction(trip: Trip) {
+  return actionableActions.has(tripStatus(trip).action)
+}
+
 /** 当前角色真正需要操作的流转单排在前面，其余（等待他人或已办）按更新时间倒序。 */
 export function sortTrips(trips: Trip[], role: Role) {
   const pending = (trip: Trip) => role === 'guard'
     ? exitEligible(trip)
-    : actionableActions.has(tripStatus(trip).action)
+    : needsAction(trip)
   return [...trips].sort((left, right) => {
     const leftPending = pending(left) ? 0 : 1
     const rightPending = pending(right) ? 0 : 1

@@ -6,6 +6,7 @@ import {
   cards,
   errorMessage,
   matches,
+  needsAction,
   requireLogin,
   sortTrips,
 } from '@/features/grain/page'
@@ -39,7 +40,7 @@ Page({
             return false
           }
           if (current.role === 'warehouse') {
-            return !trip.exitedAt
+            return !trip.exitedAt && needsAction(trip)
           }
           return this.data.gateHistory ? !!trip.exitedAt : exitEligible(trip)
         })
@@ -61,6 +62,13 @@ Page({
   },
   search(event: WechatMiniprogram.Input) {
     this.setData({ query: event.detail.value })
+    this.load()
+  },
+  clearSearch() {
+    if (!this.data.query) {
+      return
+    }
+    this.setData({ query: '' })
     this.load()
   },
   switchRole() {

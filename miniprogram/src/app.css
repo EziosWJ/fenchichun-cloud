@@ -168,6 +168,45 @@ page {
   border-radius: 24rpx;
 }
 
+.search-field {
+  box-sizing: border-box;
+  display: flex;
+  gap: 16rpx;
+  align-items: center;
+  height: 88rpx;
+  padding: 0 24rpx;
+  background: var(--fc-surface);
+  border: 1rpx solid var(--fc-border);
+  border-radius: 24rpx;
+}
+
+.search-field .search-input {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  padding: 0;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+}
+
+.search-field__icon {
+  flex: none;
+}
+
+.search-field__clear {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 88rpx;
+  height: 88rpx;
+  margin-right: -16rpx;
+  font-size: 36rpx;
+  line-height: 1;
+  color: var(--fc-text-secondary);
+}
+
 .section-heading {
   font-size: 34rpx;
   font-weight: 600;
