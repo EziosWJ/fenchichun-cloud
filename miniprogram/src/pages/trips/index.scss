@@ -1,11 +1,23 @@
+.screen.ledger-screen {
+  padding: 0 32rpx calc(48rpx + env(safe-area-inset-bottom));
+}
+
+.ledger-sticky {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  padding: 16rpx 32rpx 12rpx;
+  margin: 0 -32rpx;
+  background: var(--fc-bg);
+}
+
 .range-row {
   box-sizing: border-box;
   display: flex;
   gap: 12rpx;
   width: 100%;
   height: 88rpx;
-  margin-top: 24rpx;
-  margin-bottom: 24rpx;
+  margin-top: 16rpx;
   white-space: nowrap;
 }
 

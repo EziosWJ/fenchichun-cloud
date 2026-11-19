@@ -1,7 +1,6 @@
 {
   "navigationBarTitleText": "台账",
   "usingComponents": {
-    "page-header": "/components/page-header/index",
     "trip-list": "/components/trip-list/index",
     "empty-state": "/components/empty-state/index",
     "loading-state": "/components/loading-state/index",

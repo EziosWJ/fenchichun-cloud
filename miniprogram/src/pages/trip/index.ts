@@ -56,6 +56,9 @@ Page({
         return
       }
       const apply = (trip: Trip) => {
+        wx.setNavigationBarTitle({
+          title: trip.exitedAt ? '出厂记录' : '库管作业详情',
+        })
         const status = tripStatus(trip)
         const expanded = {
           registration: false,

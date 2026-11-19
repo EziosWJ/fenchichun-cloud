@@ -6,6 +6,11 @@
       <view class="detail-plate"><text class="detail-plate__province">{{plateProvince}}</text><text class="detail-plate__number">{{plateNumber}}</text></view>
     </view>
 
+    <view wx:if="{{trip.exitedAt}}" class="status-card status-card--done">
+      <view class="status-title">已实际出厂</view>
+      <view class="status-desc">出厂时间 {{trip.exitedAt}}</view>
+    </view>
+
     <view class="summary-cards">
       <view class="summary-card">
         <view class="summary-card__label"><image class="summary-card__icon" src="/ui-kit/icons/icon-grain.png" mode="aspectFit" aria-hidden="true" /><text>粮种</text></view>
@@ -17,13 +22,13 @@
       </view>
     </view>
 
-    <view class="segmented" aria-role="tablist">
+    <view wx:if="{{!trip.exitedAt}}" class="segmented" aria-role="tablist">
       <view class="segmented__item {{tab === 'current' ? 'segmented__item--active' : ''}}" data-tab="current" bindtap="switchTab" aria-role="tab" aria-selected="{{tab === 'current'}}">当前步骤</view>
       <view class="segmented__item {{tab === 'timeline' ? 'segmented__item--active' : ''}}" data-tab="timeline" bindtap="switchTab" aria-role="tab" aria-selected="{{tab === 'timeline'}}">时间线</view>
     </view>
 
-    <block wx:if="{{tab === 'current'}}">
-      <view class="handoff" wx:if="{{!trip.exitedAt && trip.stage === 'pending_inspection'}}">
+    <block wx:if="{{!trip.exitedAt && tab === 'current'}}">
+      <view class="handoff" wx:if="{{trip.stage === 'pending_inspection'}}">
         <view class="handoff-step waiting">
           <view class="handoff-dot"></view>
           <view><view class="handoff-label">化验员</view><view class="handoff-sub">出具结果</view></view>
@@ -34,7 +39,7 @@
           <view><view class="handoff-label">库管</view><view class="handoff-sub">接收结果</view></view>
         </view>
       </view>
-      <view class="handoff" wx:elif="{{!trip.exitedAt && (trip.stage === 'permit_approved' || trip.stage === 'rejected')}}">
+      <view class="handoff" wx:elif="{{trip.stage === 'permit_approved' || trip.stage === 'rejected'}}">
         <view class="handoff-step done">
           <view class="handoff-dot"></view>
           <view><view class="handoff-label">库管</view><view class="handoff-sub">{{trip.stage === 'rejected' ? '确认拒收' : '开证并审批'}}</view></view>
@@ -45,7 +50,9 @@
           <view><view class="handoff-label">门卫</view><view class="handoff-sub">{{trip.stage === 'rejected' ? '核验退厂' : '核验出厂'}}</view></view>
         </view>
       </view>
+    </block>
 
+    <block wx:if="{{trip.exitedAt || tab === 'current'}}">
       <view wx:if="{{trip.ticketWarning}}" class="notice-card warning">
         <view class="notice-title">磅单需要核对</view>
         <view class="notice-text">{{trip.ticketWarning}}</view>
@@ -160,29 +167,32 @@
       </view>
     </block>
 
-    <block wx:else>
+    <block wx:if="{{trip.exitedAt || tab === 'timeline'}}">
       <view class="timeline-card">
-        <view wx:if="{{!events.length && trip.exitedAt}}" class="record-empty">暂无过程记录</view>
+        <view wx:if="{{!trip.exitedAt}}" class="timeline__item timeline__item--current">
+          <view class="timeline__rail">
+            <view class="timeline__dot timeline__dot--current"></view>
+            <view wx:if="{{events.length}}" class="timeline__line"></view>
+          </view>
+          <view class="timeline__body {{events.length ? '' : 'timeline__body--last'}}">
+            <view class="timeline__title">{{status}}</view>
+            <view class="timeline__meta">当前 · {{next}}</view>
+          </view>
+        </view>
+        <view wx:if="{{trip.exitedAt && !events.length}}" class="record-empty">暂无过程记录</view>
         <view wx:for="{{events}}" wx:key="key" class="timeline__item">
           <view class="timeline__rail">
             <view class="timeline__dot"></view>
-            <view wx:if="{{index < events.length - 1 || !trip.exitedAt}}" class="timeline__line"></view>
+            <view wx:if="{{index < events.length - 1}}" class="timeline__line"></view>
           </view>
-          <view class="timeline__body {{index === events.length - 1 && trip.exitedAt ? 'timeline__body--last' : ''}}">
+          <view class="timeline__body {{index === events.length - 1 ? 'timeline__body--last' : ''}}">
             <view class="timeline__title">{{item.text}}</view>
             <view class="timeline__meta">{{item.operator}} · {{item.at}}</view>
-          </view>
-        </view>
-        <view wx:if="{{!trip.exitedAt}}" class="timeline__item timeline__item--current">
-          <view class="timeline__rail"><view class="timeline__dot timeline__dot--current"></view></view>
-          <view class="timeline__body timeline__body--last">
-            <view class="timeline__title">{{status}}</view>
-            <view class="timeline__meta">当前 · {{next}}</view>
           </view>
         </view>
       </view>
     </block>
 
-    <view wx:if="{{action && !waiting}}" class="fixed-action"><t-button block size="large" theme="primary" disabled="{{confirming}}" bindtap="act">{{actionLabel}}</t-button></view>
+    <view wx:if="{{!trip.exitedAt && action && !waiting}}" class="fixed-action"><t-button block size="large" theme="primary" disabled="{{confirming}}" bindtap="act">{{actionLabel}}</t-button></view>
   </block>
 </view>

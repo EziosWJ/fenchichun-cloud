@@ -1,26 +1,26 @@
-<view class="screen">
-  <page-header title="全部流转单" description="包含进行中和已出厂的每一趟记录" />
+<view class="screen ledger-screen">
+  <view class="ledger-sticky">
+    <view class="search-field">
+      <t-icon class="search-field__icon" name="search" size="32rpx" color="#777674" />
+      <input
+        class="search-input"
+        value="{{query}}"
+        placeholder="搜索车牌 / 供应商 / 出门证号"
+        placeholder-class="field-placeholder"
+        bindinput="search"
+        confirm-type="search"
+      />
+      <view wx:if="{{query}}" class="search-field__clear" bindtap="clearSearch" aria-role="button" aria-label="清除搜索">×</view>
+    </view>
 
-  <view class="search-field">
-    <t-icon class="search-field__icon" name="search" size="32rpx" color="#777674" />
-    <input
-      class="search-input"
-      value="{{query}}"
-      placeholder="搜索车牌 / 供应商 / 出门证号"
-      placeholder-class="field-placeholder"
-      bindinput="search"
-      confirm-type="search"
-    />
-    <view wx:if="{{query}}" class="search-field__clear" bindtap="clearSearch" aria-role="button" aria-label="清除搜索">×</view>
+    <scroll-view class="range-row" scroll-x enable-flex show-scrollbar="{{false}}">
+      <view class="range-chip {{range === 'all' ? 'active' : ''}}" data-range="all" bindtap="setRange" aria-role="button">全部</view>
+      <view class="range-chip {{range === 'today' ? 'active' : ''}}" data-range="today" bindtap="setRange" aria-role="button">今天</view>
+      <view class="range-chip {{range === '3d' ? 'active' : ''}}" data-range="3d" bindtap="setRange" aria-role="button">近3天</view>
+      <view class="range-chip {{range === '7d' ? 'active' : ''}}" data-range="7d" bindtap="setRange" aria-role="button">近7天</view>
+      <view class="range-chip {{range === '30d' ? 'active' : ''}}" data-range="30d" bindtap="setRange" aria-role="button">近30天</view>
+    </scroll-view>
   </view>
-
-  <scroll-view class="range-row" scroll-x enable-flex show-scrollbar="{{false}}">
-    <view class="range-chip {{range === 'all' ? 'active' : ''}}" data-range="all" bindtap="setRange" aria-role="button">全部</view>
-    <view class="range-chip {{range === 'today' ? 'active' : ''}}" data-range="today" bindtap="setRange" aria-role="button">今天</view>
-    <view class="range-chip {{range === '3d' ? 'active' : ''}}" data-range="3d" bindtap="setRange" aria-role="button">近3天</view>
-    <view class="range-chip {{range === '7d' ? 'active' : ''}}" data-range="7d" bindtap="setRange" aria-role="button">近7天</view>
-    <view class="range-chip {{range === '30d' ? 'active' : ''}}" data-range="30d" bindtap="setRange" aria-role="button">近30天</view>
-  </scroll-view>
 
   <loading-state wx:if="{{loading}}" text="正在加载流转单" />
   <error-state wx:elif="{{error}}" text="{{error}}" bind:retry="load" />
