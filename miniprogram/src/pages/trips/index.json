@@ -1,4 +1,5 @@
 {
+  "navigationBarTitleText": "台账",
   "usingComponents": {
     "page-header": "/components/page-header/index",
     "trip-list": "/components/trip-list/index",

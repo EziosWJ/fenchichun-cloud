@@ -15,7 +15,6 @@ Page({
     trip: null as Trip | null,
     loading: true,
     error: '',
-    status: '',
     plateProvince: '',
     plateNumber: '',
     formError: '',
@@ -48,12 +47,17 @@ Page({
         ) {
           throw new Error('当前状态已变化，请返回详情重新核对')
         }
+        const granaries = dictionary.granaries.map(item => item.name)
+        const currentLocation = granaries.includes(this.data.location)
+          ? this.data.location
+          : (granaries[0] || '')
         this.setData({
           trip,
-          status: status.label,
           plateProvince: trip.plate.slice(0, 1),
           plateNumber: trip.plate.slice(1),
-          granaries: ['请选择卸货地点', ...dictionary.granaries.map(item => item.name)],
+          granaries,
+          granaryIndex: Math.max(0, granaries.indexOf(currentLocation)),
+          location: currentLocation,
         })
         this.setData({ loading: false })
       }
@@ -89,7 +93,7 @@ Page({
     const index = Number(event.detail.value)
     this.setData({
       granaryIndex: index,
-      location: index ? this.data.granaries[index] : '',
+      location: this.data.granaries[index] || '',
       formError: '',
     })
   },

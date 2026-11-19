@@ -8,10 +8,6 @@ Component({
       type: String,
       value: '',
     },
-    subtitle: {
-      type: String,
-      value: '',
-    },
     canSwitch: {
       type: Boolean,
       value: false,

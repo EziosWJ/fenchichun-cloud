@@ -25,5 +25,5 @@
   <loading-state wx:if="{{loading}}" text="正在加载流转单" />
   <error-state wx:elif="{{error}}" text="{{error}}" bind:retry="load" />
   <empty-state wx:elif="{{!trips.length}}" text="{{query ? '没有匹配的流转单' : '暂无流转单'}}" />
-  <trip-list wx:else trips="{{trips}}" mode="ledger" />
+  <trip-list wx:else trips="{{trips}}" kind="{{role}}" mode="ledger" />
 </view>

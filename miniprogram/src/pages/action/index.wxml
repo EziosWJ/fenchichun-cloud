@@ -2,27 +2,25 @@
   <loading-state wx:if="{{loading}}" text="正在加载车辆" />
   <error-state wx:elif="{{error}}" text="{{error}}" bind:retry="load" />
   <block wx:elif="{{trip}}">
-    <view class="detail-heading">
-      <view class="detail-heading__bar"></view>
-      <view class="detail-heading__title">{{action === 'visual' ? '目测登记' : '卸货确认'}}</view>
-    </view>
-
-    <view class="plate-hero plate-hero--compact">
-      <view class="plate-hero__top">
-        <view class="plate-hero__plate"><text class="plate-hero__province">{{plateProvince}}</text><text>{{plateNumber}}</text></view>
-        <view class="status-chip">{{status}}</view>
+    <view wx:if="{{action === 'visual'}}" class="detail-header">
+      <view class="detail-heading">
+        <view class="detail-heading__bar"></view>
+        <view class="detail-heading__title">目测登记</view>
       </view>
-      <view class="plate-hero__meta">{{trip.site}} · {{trip.material}} · {{trip.supplier || '供应商待核实'}}</view>
     </view>
 
-    <view class="task-card">
+    <view class="detail-plate-panel">
+      <view class="detail-plate"><text class="detail-plate__province">{{plateProvince}}</text><text class="detail-plate__number">{{plateNumber}}</text></view>
+    </view>
+
+    <view wx:if="{{action === 'visual'}}" class="task-card">
       <view class="task-kicker">当前任务</view>
-      <view class="task-title">{{action === 'visual' ? '确认目测' : '确认卸货'}}</view>
-      <view class="task-desc">{{action === 'visual' ? '核对货品与供应商，确认目测结论' : '现场首磅和卸货完成后，确认实际卸货地点'}}</view>
+      <view class="task-title">确认目测</view>
+      <view class="task-desc">核对货品与供应商，确认目测结论</view>
     </view>
 
     <view class="form-card">
-      <view class="form-title">{{action === 'visual' ? '目测结论' : '卸货信息'}}</view>
+      <view class="form-title">{{action === 'visual' ? '目测结论' : '实际卸货地点'}}<text wx:if="{{action !== 'visual'}}" class="required"> *</text></view>
 
       <block wx:if="{{action === 'visual'}}">
         <view class="choices">
@@ -45,15 +43,12 @@
       </block>
 
       <block wx:else>
-        <view class="field">
-          <view class="field-label">实际卸货地点 <text class="required">*</text></view>
-          <picker range="{{granaries}}" value="{{granaryIndex}}" bindchange="chooseGranary">
-            <view class="field-control field-control-picker {{granaryIndex ? '' : 'field-placeholder'}}">
-              <text>{{granaries[granaryIndex] || '请选择卸货地点'}}</text>
-              <text class="field-chevron">›</text>
-            </view>
-          </picker>
-        </view>
+        <picker range="{{granaries}}" value="{{granaryIndex}}" bindchange="chooseGranary">
+          <view class="field-control field-control-picker {{granaries.length ? '' : 'field-placeholder'}}">
+            <text>{{granaries[granaryIndex] || '请选择卸货地点'}}</text>
+            <text class="field-chevron">›</text>
+          </view>
+        </picker>
 
         <view class="form-hint">请在现场首磅和卸货完成后确认，无需等待首磅上传。</view>
       </block>

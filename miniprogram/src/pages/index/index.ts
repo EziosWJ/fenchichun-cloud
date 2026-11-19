@@ -107,7 +107,4 @@ Page({
   register() {
     wx.navigateTo({ url: routes.registration })
   },
-  allTrips() {
-    wx.navigateTo({ url: routes.trips })
-  },
 })

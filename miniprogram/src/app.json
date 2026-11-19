@@ -32,6 +32,12 @@
         "selectedIconPath": "tabbar/workbench-active.png"
       },
       {
+        "pagePath": "pages/trips/index",
+        "text": "台账",
+        "iconPath": "tabbar/ledger.png",
+        "selectedIconPath": "tabbar/ledger-active.png"
+      },
+      {
         "pagePath": "pages/profile/index",
         "text": "我的",
         "iconPath": "tabbar/profile.png",

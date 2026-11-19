@@ -265,7 +265,7 @@ test('页面控制器通过后端接口登记、关联磅单并跨岗位确认�
   assert.equal(detail.data.status, '待卸货')
   const action = app.page('action')
   await call(action, 'onLoad', { id: '41', action: 'unload' })
-  await call(action, 'chooseGranary', { detail: { value: '1' } })
+  await call(action, 'chooseGranary', { detail: { value: '0' } })
   publish({ stage: 'pending_ticket', version: 3, unloadedAt: time, unloadingLocation: '一号仓' }, 'confirm-unloading')
   await call(action, 'submit')
   assert.deepEqual(app.request('POST', `${tripPath}/confirm-unloading`)?.data, { version: 2, location: '一号仓' })

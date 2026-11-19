@@ -1,1 +1,7 @@
-{ "navigationBarTitleText": "出厂核验", "usingComponents": { "loading-state": "/components/loading-state/index", "error-state": "/components/error-state/index" } }
+{
+  "navigationBarTitleText": "核验放行",
+  "usingComponents": {
+    "loading-state": "/components/loading-state/index",
+    "error-state": "/components/error-state/index"
+  }
+}

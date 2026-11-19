@@ -23,8 +23,8 @@
       aria-role="button"
     >
       <text>{{kind === 'guard' ? '核验放行' : item.actionLabel}}</text>
-      <text class="trip-action__arrow">›</text>
+      <t-icon class="trip-action__arrow" name="chevron-right" size="28rpx" color="#fff" />
     </view>
-    <view wx:else class="trip-chevron" aria-hidden="true">›</view>
+    <t-icon wx:else class="trip-chevron" name="chevron-right" size="32rpx" color="#a5a39f" aria-hidden="true" />
   </view>
 </view>

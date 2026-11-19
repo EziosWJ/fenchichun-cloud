@@ -2,29 +2,18 @@
   <loading-state wx:if="{{loading}}" text="正在加载流转单" />
   <error-state wx:elif="{{error}}" text="{{error}}" bind:retry="load" />
   <block wx:elif="{{trip}}">
-    <view class="detail-heading">
-      <view class="detail-heading__bar"></view>
-      <view class="detail-heading__title">库管作业详情</view>
-    </view>
-
-    <view class="plate-hero">
-      <view class="plate-hero__top">
-        <view class="plate-hero__plate"><text class="plate-hero__province">{{plateProvince}}</text><text>{{plateNumber}}</text></view>
-        <view class="status-chip {{waiting || trip.exitedAt ? 'neutral' : ''}}">{{status}}</view>
-      </view>
-      <view class="plate-hero__meta">{{trip.site}} · {{trip.material}} · {{trip.supplier || '供应商待核实'}}</view>
+    <view class="detail-plate-panel">
+      <view class="detail-plate"><text class="detail-plate__province">{{plateProvince}}</text><text class="detail-plate__number">{{plateNumber}}</text></view>
     </view>
 
     <view class="summary-cards">
       <view class="summary-card">
-        <view class="summary-card__label">粮种 / 供应商</view>
+        <view class="summary-card__label"><image class="summary-card__icon" src="/ui-kit/icons/icon-grain.png" mode="aspectFit" aria-hidden="true" /><text>粮种</text></view>
         <view class="summary-card__value">{{trip.material}}</view>
-        <view class="summary-card__sub">{{trip.supplier || '供应商待核实'}}</view>
       </view>
       <view class="summary-card">
-        <view class="summary-card__label">{{action && !waiting ? '当前任务' : '当前状态'}}</view>
-        <view class="summary-card__value">{{action && !waiting ? actionLabel : status}}</view>
-        <view class="summary-card__sub">{{next}}</view>
+        <view class="summary-card__label"><image class="summary-card__icon" src="/ui-kit/icons/icon-warehouse.png" mode="aspectFit" aria-hidden="true" /><text>供应商</text></view>
+        <view class="summary-card__value">{{trip.supplier || '供应商待核实'}}</view>
       </view>
     </view>
 
@@ -34,17 +23,6 @@
     </view>
 
     <block wx:if="{{tab === 'current'}}">
-      <view wx:if="{{action && !waiting}}" class="task-card">
-        <view class="task-kicker">当前任务</view>
-        <view class="task-title">{{actionLabel}}</view>
-        <view class="task-desc">{{next}}</view>
-      </view>
-      <view wx:else class="status-card">
-        <view class="status-kicker">当前状态</view>
-        <view class="status-title">{{status}}</view>
-        <view class="status-desc">{{next}}</view>
-      </view>
-
       <view class="handoff" wx:if="{{!trip.exitedAt && trip.stage === 'pending_inspection'}}">
         <view class="handoff-step waiting">
           <view class="handoff-dot"></view>
@@ -76,8 +54,6 @@
         <view class="notice-title">拒收原因</view>
         <view class="notice-text">{{trip.inspection.reason || '未填写拒收原因'}}</view>
       </view>
-
-      <view class="more-label">作业记录</view>
 
       <view class="group-card">
         <view class="group-title">现场作业</view>

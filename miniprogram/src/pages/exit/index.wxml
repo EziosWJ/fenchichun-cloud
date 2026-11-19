@@ -2,29 +2,20 @@
   <loading-state wx:if="{{loading}}" text="正在加载出厂依据" />
   <error-state wx:elif="{{error}}" text="{{error}}" bind:retry="load" />
   <block wx:elif="{{trip}}">
-    <view class="detail-heading">
-      <view class="detail-heading__bar"></view>
-      <view class="detail-heading__title">门卫核验详情</view>
-    </view>
-
-    <view class="plate-hero">
-      <view class="plate-hero__top">
-        <view class="plate-hero__plate"><text class="plate-hero__province">{{plateProvince}}</text><text>{{plateNumber}}</text></view>
-        <view class="status-chip {{trip.exitedAt || !eligible ? 'neutral' : (type === '拒收退厂' ? 'danger' : '')}}">{{trip.exitedAt ? '已放行' : (eligible ? (type === '拒收退厂' ? '拒收待放行' : '待放行') : '等待依据')}}</view>
-      </view>
-      <view class="plate-hero__meta">{{trip.site}} · {{trip.material}} · {{trip.supplier || '供应商待核实'}}</view>
+    <view class="detail-plate-panel">
+      <view class="detail-plate"><text class="detail-plate__province">{{plateProvince}}</text><text class="detail-plate__number">{{plateNumber}}</text></view>
     </view>
 
     <view class="summary-cards">
       <view class="summary-card">
-        <view class="summary-card__label">{{type === '拒收退厂' ? '检验结果' : '出门证号'}}</view>
-        <view class="summary-card__value">{{type === '拒收退厂' ? inspection : (trip.permit ? trip.permit.id : '未开具')}}</view>
-        <view class="summary-card__sub">{{type === '拒收退厂' ? (trip.exitedAt ? '已放行' : '拒收退厂 · 待核验') : (trip.permit ? (trip.permit.approvedAt ? '已审批' : '待审批') : '等待库管')}}</view>
+        <view class="summary-card__label">{{type === '拒收退厂' ? '放行依据' : '出门证状态'}}</view>
+        <view class="summary-card__value {{type === '拒收退厂' ? 'summary-card__value--danger' : (trip.permit && trip.permit.approvedAt ? 'summary-card__value--success' : 'summary-card__value--warning')}}">{{type === '拒收退厂' ? '拒收退厂' : (trip.permit ? (trip.permit.approvedAt ? '已审批' : '待审批') : '未开具')}}</view>
+        <view wx:if="{{type === '拒收退厂' || !trip.permit || !trip.permit.approvedAt}}" class="summary-card__sub">{{type === '拒收退厂' ? inspection : (trip.permit ? '等待库管审批' : '等待库管开具')}}</view>
       </view>
       <view class="summary-card">
-        <view class="summary-card__label">实际净重</view>
-        <view class="summary-card__value">{{trip.ticket ? trip.ticket.net : '—'}}<text wx:if="{{trip.ticket}}" class="summary-card__unit">吨</text></view>
-        <view class="summary-card__sub">{{trip.ticket ? '毛 ' + trip.ticket.gross + ' / 皮 ' + trip.ticket.tare : '待关联磅单'}}</view>
+        <view class="summary-card__label">供应商</view>
+        <view class="summary-card__value">{{trip.supplier || '供应商待核实'}}</view>
+        <view class="summary-card__sub">{{trip.material || '粮种待核实'}}</view>
       </view>
     </view>
 
@@ -34,17 +25,11 @@
     </view>
 
     <block wx:if="{{tab === 'current'}}">
-      <view wx:if="{{eligible}}" class="task-card">
-        <view class="task-kicker">当前任务</view>
-        <view class="task-title">确认实际出厂</view>
-        <view class="task-desc">{{type === '拒收退厂' ? '核对现场车辆与拒收依据后放行' : '核对现场车辆与出门证后放行'}}</view>
-      </view>
-      <view wx:elif="{{trip.exitedAt}}" class="status-card">
-        <view class="status-kicker">当前状态</view>
+      <view wx:if="{{trip.exitedAt}}" class="status-card status-card--done">
         <view class="status-title">已实际出厂</view>
-        <view class="status-desc">车辆已于 {{trip.exitedAt}} 完成出厂，无需再次确认</view>
+        <view class="status-desc">出厂时间 {{trip.exitedAt}}</view>
       </view>
-      <view wx:else class="status-card">
+      <view wx:elif="{{!eligible}}" class="status-card">
         <view class="status-kicker">当前状态</view>
         <view class="status-title">出厂依据尚不满足</view>
         <view class="status-desc">请刷新并核对出门证或拒收依据，必要时联系库管确认</view>
