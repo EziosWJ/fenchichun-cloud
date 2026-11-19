@@ -4,12 +4,12 @@
 @use '../../styles/detail-ui';
 
 .status-chip.danger {
-  color: #a1322d;
-  background: #f9e9e7;
+  color: var(--fc-error);
+  background: var(--fc-error-soft);
 }
 
 .status-chip.danger::before {
-  background: #ad3932;
+  background: var(--fc-error);
 }
 
 .group-card > .record-sheet {

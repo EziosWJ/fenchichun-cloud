@@ -1,1 +1,3 @@
-<t-tag theme="{{theme}}" variant="light">{{text}}</t-tag>
+<view class="status-tag">
+  <t-tag theme="{{theme}}" variant="light" shape="round" size="medium">{{text}}</t-tag>
+</view>

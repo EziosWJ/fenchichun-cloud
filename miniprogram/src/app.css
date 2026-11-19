@@ -3,57 +3,143 @@
 @source './**/*.{wxml,ts}';
 
 page {
-  --td-brand-color: #8c3b2e;
-  --td-brand-color-light: #f7eeeb;
-  --app-background: #f5f6f8;
-  --app-text: #20242c;
-  --app-muted: #687080;
-  --app-space: 24rpx;
+  /* 汾池春 Design Tokens：颜色 */
+  --fc-brand: #a74532;
+  --fc-brand-pressed: #943b2b;
+  --fc-brand-soft: #f7eee7;
+  --fc-accent: #de8b25;
+  --fc-accent-pressed: #c4771b;
+  --fc-accent-soft: #fbf1e3;
+  --fc-text: #25282b;
+  --fc-text-secondary: #777674;
+  --fc-text-placeholder: #a5a39f;
+  --fc-text-disabled: #c9c5bf;
+  --fc-bg: #f7f6f3;
+  --fc-surface: #fff;
+  --fc-surface-muted: #faf8f5;
+  --fc-control-track: #f1ede7;
+  --fc-border: #e8e3dd;
+  --fc-border-strong: #d9d3cb;
+  --fc-success: #27865b;
+  --fc-success-soft: #e8f3ed;
+  --fc-warning: #de8b25;
+  --fc-warning-text: #8a5a12;
+  --fc-warning-soft: #fbf1e3;
+  --fc-error: #b33f35;
+  --fc-error-soft: #fbedeb;
 
-  font-size: 28rpx;
+  /* 兼容旧变量，页面迁移完成后移除 */
+  --app-background: var(--fc-bg);
+  --app-text: var(--fc-text);
+  --app-muted: var(--fc-text-secondary);
+  --app-space: 32rpx;
+
+  /* TDesign 语义映射 */
+  --td-brand-color: var(--fc-brand);
+  --td-brand-color-active: var(--fc-brand-pressed);
+  --td-brand-color-focus: var(--fc-brand-soft);
+  --td-brand-color-disabled: var(--fc-border-strong);
+  --td-brand-color-light: var(--fc-brand-soft);
+  --td-brand-color-light-active: var(--fc-brand-soft);
+  --td-text-color-primary: var(--fc-text);
+  --td-text-color-secondary: var(--fc-text-secondary);
+  --td-text-color-placeholder: var(--fc-text-placeholder);
+  --td-text-color-disabled: var(--fc-text-disabled);
+  --td-bg-color-page: var(--fc-bg);
+  --td-bg-color-container: var(--fc-surface);
+  --td-bg-color-secondarycontainer: var(--fc-surface-muted);
+  --td-bg-color-component: var(--fc-control-track);
+  --td-bg-color-component-active: var(--fc-border-strong);
+  --td-bg-color-component-disabled: var(--fc-surface-muted);
+  --td-border-level-1-color: var(--fc-border);
+  --td-component-stroke: var(--fc-border);
+  --td-component-border: var(--fc-border);
+  --td-success-color: var(--fc-success);
+  --td-warning-color: var(--fc-warning);
+  --td-error-color: var(--fc-error);
+
+  /* TDesign 按钮 */
+  --td-button-border-radius: 24rpx;
+  --td-button-small-height: 80rpx;
+  --td-button-medium-height: 88rpx;
+  --td-button-large-height: 88rpx;
+  --td-button-small-padding-horizontal: 24rpx;
+  --td-button-medium-padding-horizontal: 32rpx;
+  --td-button-large-padding-horizontal: 32rpx;
+  --td-button-small-font: 600 28rpx / 1 var(--td-font-family);
+  --td-button-medium-font: 600 30rpx / 1 var(--td-font-family);
+  --td-button-large-font: 600 30rpx / 1 var(--td-font-family);
+  --td-button-primary-disabled-color: var(--fc-text-secondary);
+  --td-button-primary-disabled-bg: var(--fc-control-track);
+  --td-button-primary-disabled-border-color: var(--fc-border);
+
+  /* TDesign 状态标签 */
+  --td-tag-primary-color: var(--fc-brand);
+  --td-tag-primary-light-color: var(--fc-brand-soft);
+  --td-tag-success-color: var(--fc-success);
+  --td-tag-success-light-color: var(--fc-success-soft);
+  --td-tag-warning-color: var(--fc-warning-text);
+  --td-tag-warning-light-color: var(--fc-warning-soft);
+  --td-tag-danger-color: var(--fc-error);
+  --td-tag-danger-light-color: var(--fc-error-soft);
+  --td-tag-default-color: var(--fc-text-secondary);
+  --td-tag-default-light-color: var(--fc-control-track);
+  --td-tag-default-font-color: var(--fc-text-secondary);
+
+  /* TDesign 加载与空状态 */
+  --td-loading-color: var(--fc-brand);
+  --td-loading-text-color: var(--fc-text-secondary);
+  --td-loading-text-font: 400 26rpx / 1.5 var(--td-font-family);
+  --td-empty-icon-color: var(--fc-border-strong);
+  --td-empty-description-color: var(--fc-text-secondary);
+  --td-empty-description-font: 400 26rpx / 1.5 var(--td-font-family);
+
+  font-size: 30rpx;
   line-height: 1.5;
-  color: var(--app-text);
-  background: var(--app-background);
+  color: var(--fc-text);
+  background: var(--fc-bg);
 }
 
 .page-container {
-  padding: 32rpx 24rpx;
-  padding-bottom: calc(32rpx + env(safe-area-inset-bottom));
+  padding: 32rpx;
+  padding-bottom: calc(48rpx + env(safe-area-inset-bottom));
 }
 
 .muted {
-  color: var(--app-muted);
+  color: var(--fc-text-secondary);
 }
 
 .title {
   font-size: 44rpx;
   font-weight: 600;
+  color: var(--fc-text);
   overflow-wrap: anywhere;
 }
 
 .section {
-  padding: 28rpx;
+  padding: 32rpx;
   margin-bottom: var(--app-space);
-  background: #fff;
-  border-radius: 20rpx;
+  background: var(--fc-surface);
+  border: 1rpx solid var(--fc-border);
+  border-radius: 32rpx;
 }
 
 .screen {
   box-sizing: border-box;
   min-height: 100vh;
-  padding: 30rpx 32rpx calc(48rpx + env(safe-area-inset-bottom));
-  background: #fff;
+  padding: 32rpx 32rpx calc(48rpx + env(safe-area-inset-bottom));
+  background: var(--fc-bg);
 }
 
 .screen-title {
-  font-size: 42rpx;
-  font-weight: 650;
-  color: #20242c;
+  font-size: 44rpx;
+  font-weight: 600;
+  color: var(--fc-text);
 }
 
 .subtle {
-  font-size: 25rpx;
-  color: #687080;
+  font-size: 26rpx;
+  color: var(--fc-text-secondary);
 }
 
 .heading-row {
@@ -64,23 +150,28 @@ page {
 }
 
 .text-link {
-  padding: 16rpx 0 16rpx 20rpx;
-  font-size: 27rpx;
-  color: #8c3b2e;
+  min-height: 88rpx;
+  padding: 24rpx 0 24rpx 20rpx;
+  font-size: 28rpx;
+  line-height: 1.4;
+  color: var(--fc-brand);
 }
 
 .search-input {
   box-sizing: border-box;
-  height: 82rpx;
+  height: 88rpx;
   padding: 0 24rpx;
-  font-size: 28rpx;
-  background: #f5f6f8;
-  border-radius: 10rpx;
+  font-size: 30rpx;
+  color: var(--fc-text);
+  background: var(--fc-surface);
+  border: 1rpx solid var(--fc-border);
+  border-radius: 24rpx;
 }
 
 .section-heading {
-  font-size: 32rpx;
+  font-size: 34rpx;
   font-weight: 600;
+  color: var(--fc-text);
 }
 
 .spacer {
@@ -88,25 +179,30 @@ page {
 }
 
 .field {
-  padding: 24rpx 0;
-  border-bottom: 1rpx solid #edf0f2;
+  padding: 28rpx 0;
+  border-bottom: 1rpx solid var(--fc-border);
 }
 
 .field-label {
-  margin-bottom: 12rpx;
+  margin-bottom: 16rpx;
+  font-size: 28rpx;
   font-weight: 600;
+  color: var(--fc-text);
 }
 
 .field-control {
   box-sizing: border-box;
-  min-height: 72rpx;
-  padding: 16rpx 20rpx;
-  background: #f5f6f8;
-  border-radius: 8rpx;
+  min-height: 88rpx;
+  padding: 20rpx 24rpx;
+  font-size: 30rpx;
+  color: var(--fc-text);
+  background: var(--fc-surface);
+  border: 1rpx solid var(--fc-border);
+  border-radius: 16rpx;
 }
 
 .field-placeholder {
-  color: #8b929c;
+  color: var(--fc-text-placeholder);
 }
 
 .form-footer {
@@ -114,56 +210,61 @@ page {
 }
 
 .detail-card {
-  padding: 26rpx 0;
-  border-bottom: 1rpx solid #eceef0;
+  padding: 28rpx 0;
+  border-bottom: 1rpx solid var(--fc-border);
 }
 
 .detail-row {
   display: flex;
-  gap: 30rpx;
+  gap: 32rpx;
   align-items: flex-start;
   justify-content: space-between;
-  padding-top: 14rpx;
+  padding-top: 16rpx;
 }
 
 .detail-label {
   flex: none;
-  color: #687080;
+  font-size: 28rpx;
+  color: var(--fc-text-secondary);
 }
 
 .detail-value {
+  font-size: 30rpx;
+  color: var(--fc-text);
   text-align: right;
   overflow-wrap: anywhere;
 }
 
 .plate {
   font-size: 40rpx;
-  font-weight: 700;
+  font-weight: 600;
+  color: var(--fc-text);
   letter-spacing: 1rpx;
 }
 
 .status {
   font-weight: 600;
-  color: #8c3b2e;
+  color: var(--fc-brand);
 }
 
 .status-waiting {
-  color: #606a75;
+  color: var(--fc-text-secondary);
 }
 
 .notice {
-  padding: 22rpx 24rpx;
-  color: #654238;
-  background: #fbf5f2;
-  border-left: 5rpx solid #8c3b2e;
-  border-radius: 6rpx;
+  padding: 24rpx;
+  color: var(--fc-text);
+  background: var(--fc-brand-soft);
+  border-left: 8rpx solid var(--fc-brand);
+  border-radius: 16rpx;
 }
 
 .error-text {
   margin-top: 16rpx;
-  color: #ad3932;
+  font-size: 26rpx;
+  color: var(--fc-error);
 }
 
 .button-space {
-  margin-top: 24rpx;
+  margin-top: 32rpx;
 }

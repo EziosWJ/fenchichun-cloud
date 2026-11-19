@@ -77,6 +77,8 @@ APP_API_BASE_URL=http://127.0.0.1:8100/api/v1
 
 公共组件：page-header、empty-state、loading-state、error-state、status-tag、section-card。全局 src/app.css 使用 TDesign 品牌 Token 和统一文字颜色、28rpx 正文、1.5 行高、24rpx 常用间距。Tailwind 使用主题和 utilities，不加载 preflight，避免重置 TDesign。间距建议 8/16/24/32/48rpx；交互优先 TDesign，禁止第二套图标或 UI 库。
 
+页面美化与样式重构先读 [UI 设计系统与开发规范](docs/ui-design-system.md)。该文档固定了颜色、字号、间距、圆角、页面范式与验收约束；其中 `28rpx` 正文等旧值会在后续页面迁移时按新规范调整。
+
 脚本别名 @/ 指向 src；原生组件采用显式路径，并由 TDesignResolver 处理 t-* 标签。TypeScript 与构建均校验。页面不直接使用 wx.request，统一由 src/utils/api 提供；ApiError 区分 HTTP、业务、超时、网络与格式错误，HTTP 401 清理匹配版本的本地会话，防止并发重复通知和旧请求清除新会话。
 
 ## 微信开发者工具

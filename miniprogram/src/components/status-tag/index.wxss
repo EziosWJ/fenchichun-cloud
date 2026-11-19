@@ -1,0 +1,4 @@
+.status-tag {
+  display: inline-flex;
+  vertical-align: middle;
+}

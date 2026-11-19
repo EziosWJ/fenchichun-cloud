@@ -1,9 +1,9 @@
 .record-sheet {
   box-sizing: border-box;
   padding: 24rpx;
-  background: #fafbfc;
-  border: 1rpx solid #e8eaed;
-  border-radius: 12rpx;
+  background: var(--fc-surface-muted);
+  border: 1rpx solid var(--fc-border);
+  border-radius: 24rpx;
 }
 
 .record-header {
@@ -13,19 +13,19 @@
   justify-content: space-between;
   padding-bottom: 20rpx;
   margin-bottom: 4rpx;
-  border-bottom: 1rpx solid #dfe3e7;
+  border-bottom: 1rpx solid var(--fc-border);
 }
 
 .record-title {
-  font-size: 29rpx;
-  font-weight: 650;
-  color: #20242c;
+  font-size: 30rpx;
+  font-weight: 600;
+  color: var(--fc-text);
 }
 
 .record-caption {
-  margin-top: 5rpx;
-  font-size: 23rpx;
-  color: #687080;
+  margin-top: 6rpx;
+  font-size: 24rpx;
+  color: var(--fc-text-secondary);
   overflow-wrap: anywhere;
 }
 
@@ -33,16 +33,16 @@
   flex: none;
   max-width: 45%;
   padding: 4rpx 12rpx;
-  font-size: 23rpx;
-  color: #654238;
+  font-size: 24rpx;
+  color: var(--fc-brand);
   text-align: right;
-  background: #f4ebe7;
-  border-radius: 6rpx;
+  background: var(--fc-brand-soft);
+  border-radius: 16rpx;
 }
 
 .record-badge-reject {
-  color: #a1322d;
-  background: #f9e9e7;
+  color: var(--fc-error);
+  background: var(--fc-error-soft);
 }
 
 .record-row {
@@ -50,57 +50,61 @@
   gap: 24rpx;
   align-items: flex-start;
   justify-content: space-between;
-  padding: 14rpx 0;
-  font-size: 26rpx;
-  border-bottom: 1rpx solid #eceef0;
+  padding: 16rpx 0;
+  font-size: 28rpx;
+  line-height: 1.45;
+  border-bottom: 1rpx solid var(--fc-border);
 }
 
 .record-label {
   flex: none;
-  color: #687080;
+  color: var(--fc-text-secondary);
 }
 
 .record-value {
   min-width: 0;
-  color: #20242c;
+  color: var(--fc-text);
   text-align: right;
   overflow-wrap: anywhere;
 }
 
 .record-row-emphasis .record-value {
-  font-weight: 650;
-  color: #8c3b2e;
+  font-weight: 600;
+  color: var(--fc-brand);
 }
 
 .record-note {
-  padding: 16rpx;
-  margin: 16rpx 0 4rpx;
-  font-size: 26rpx;
+  padding: 20rpx;
+  margin: 20rpx 0 4rpx;
+  font-size: 28rpx;
+  line-height: 1.5;
+  color: var(--fc-text);
   overflow-wrap: anywhere;
-  background: #fff;
-  border-left: 4rpx solid #c6b6af;
+  background: var(--fc-surface);
+  border-left: 4rpx solid var(--fc-border-strong);
 }
 
 .record-note-reject {
-  color: #90342e;
-  background: #fdf4f2;
-  border-left-color: #ad3932;
+  color: var(--fc-error);
+  background: var(--fc-error-soft);
+  border-left-color: var(--fc-error);
 }
 
 .record-note-label {
   margin-bottom: 6rpx;
-  font-size: 23rpx;
-  color: #687080;
+  font-size: 24rpx;
+  color: var(--fc-text-secondary);
 }
 
 .record-empty,
 .record-footnote {
-  padding-top: 18rpx;
+  padding-top: 20rpx;
   font-size: 24rpx;
-  color: #687080;
+  line-height: 1.5;
+  color: var(--fc-text-secondary);
 }
 
 .record-action {
-  padding-top: 14rpx;
+  padding-top: 16rpx;
   text-align: right;
 }

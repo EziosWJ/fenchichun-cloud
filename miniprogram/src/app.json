@@ -17,11 +17,11 @@
     "navigationBarTitleText": "汾池春",
     "navigationBarBackgroundColor": "#ffffff",
     "navigationBarTextStyle": "black",
-    "backgroundColor": "#f5f6f8"
+    "backgroundColor": "#f7f6f3"
   },
   "tabBar": {
-    "color": "#687080",
-    "selectedColor": "#8c3b2e",
+    "color": "#777674",
+    "selectedColor": "#a74532",
     "backgroundColor": "#ffffff",
     "borderStyle": "black",
     "list": [

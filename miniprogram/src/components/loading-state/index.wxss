@@ -1,4 +1,7 @@
-.state {
-padding: 48rpx;
-text-align: center;
+.loading-state {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 160rpx;
+  padding: 48rpx 32rpx;
 }
