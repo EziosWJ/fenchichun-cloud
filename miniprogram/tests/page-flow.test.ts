@@ -240,7 +240,12 @@ test('页面控制器通过后端接口登记、关联磅单并跨岗位确认�
   await call(register, 'save')
   assert.equal((register.data.fieldErrors as Data).supplier, '请选择供应商')
   assert.equal(app.request('POST', '/grain-intake/trips'), undefined)
-  await call(register, 'chooseSupplier', { detail: { value: '1' } })
+  await call(register, 'openSupplier')
+  await call(register, 'inputSupplierQuery', { detail: { value: 'csgys' } })
+  assert.equal((register.data.supplierResults as Data[]).length, 1)
+  await call(register, 'chooseSupplierItem', {
+    currentTarget: { dataset: { name: '测试供应商' } },
+  })
   await call(register, 'save')
   assert.equal(app.navigation(), '/pages/trip/index?id=41')
   const registration = app.request('POST', '/grain-intake/trips')

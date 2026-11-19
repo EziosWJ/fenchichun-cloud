@@ -57,12 +57,17 @@
 
       <view class="field field--last">
         <view class="field-label">供应商 <text class="required">*</text></view>
-        <picker range="{{suppliers}}" value="{{supplierIndex}}" bindchange="chooseSupplier">
-          <view class="field-control field-control--picker {{supplierIndex ? '' : 'field-placeholder'}}">
-            <text>{{suppliers[supplierIndex]}}</text>
-            <text class="field-chevron">›</text>
-          </view>
-        </picker>
+        <view
+          class="field-control field-control--picker {{form.supplier ? '' : 'field-placeholder'}}"
+          hover-class="field-control--hover"
+          bindtap="openSupplier"
+          aria-role="button"
+          aria-label="选择供应商"
+        >
+          <text class="field-value">{{form.supplier || '请选择供应商'}}</text>
+          <text class="field-chevron">›</text>
+        </view>
+        <view class="field-hint">供应商较多，可按汉字或拼音首字母搜索</view>
         <view wx:if="{{fieldErrors.supplier}}" class="field-error">{{fieldErrors.supplier}}</view>
       </view>
     </view>
@@ -98,5 +103,51 @@
 
     <view wx:if="{{formError}}" class="form-error">{{formError}}</view>
     <view class="form-footer"><t-button block size="large" theme="primary" loading="{{submitting}}" disabled="{{submitting}}" bindtap="save">{{edit ? '保存更正' : '保存登记'}}</t-button></view>
+
+    <t-popup
+      visible="{{supplierOpen}}"
+      placement="bottom"
+      close-btn="{{false}}"
+      custom-style="--td-popup-border-radius: 32rpx;"
+      bind:visible-change="onSupplierVisibleChange"
+    >
+      <view class="supplier-sheet">
+        <view class="supplier-sheet__head">
+          <view class="supplier-sheet__title">选择供应商</view>
+          <view class="supplier-sheet__close" bindtap="closeSupplier" aria-role="button" aria-label="关闭供应商选择">×</view>
+        </view>
+
+        <view class="search-field supplier-sheet__search">
+          <t-icon class="search-field__icon" name="search" size="32rpx" color="#777674" />
+          <input
+            class="search-input"
+            value="{{supplierQuery}}"
+            placeholder="输入汉字或拼音首字母，如 sh、上"
+            placeholder-class="field-placeholder"
+            bindinput="inputSupplierQuery"
+            confirm-type="search"
+            cursor-spacing="24"
+          />
+          <view wx:if="{{supplierQuery}}" class="search-field__clear" bindtap="clearSupplierQuery" aria-role="button" aria-label="清除搜索">×</view>
+        </view>
+
+        <scroll-view class="supplier-list" scroll-y>
+          <view wx:if="{{!supplierResults.length}}" class="supplier-empty">没有匹配的供应商，请尝试输入汉字或拼音首字母</view>
+          <view
+            wx:for="{{supplierResults}}"
+            wx:key="name"
+            class="supplier-row {{item.name === form.supplier ? 'supplier-row--active' : ''}}"
+            data-name="{{item.name}}"
+            hover-class="supplier-row--hover"
+            bindtap="chooseSupplierItem"
+            aria-role="button"
+            aria-label="选择 {{item.name}}"
+          >
+            <text class="supplier-row__name">{{item.name}}</text>
+            <t-icon wx:if="{{item.name === form.supplier}}" name="check" size="36rpx" color="#a74532" />
+          </view>
+        </scroll-view>
+      </view>
+    </t-popup>
   </block>
 </view>

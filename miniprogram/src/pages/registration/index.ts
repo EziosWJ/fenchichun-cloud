@@ -7,6 +7,7 @@ import {
   sameDictionary,
 } from '@/features/grain/dictionary-service'
 import { applyAsync, errorMessage, requireLogin } from '@/features/grain/page'
+import { filterSearchableNames, searchableName } from '@/features/grain/pinyin'
 import { correctPlateOcrConfusions, isValidPlate, normalizePlate, plateProvinces } from '@/features/grain/plate'
 import { recognizePlatePhoto } from '@/features/grain/plate-scan'
 import { canEdit } from '@/features/grain/presentation'
@@ -48,10 +49,12 @@ Page({
     materials: [] as string[],
     materialNames: [] as string[],
     methods: [] as string[],
-    suppliers: [] as string[],
+    supplierItems: [] as ReturnType<typeof searchableName>[],
+    supplierResults: [] as ReturnType<typeof searchableName>[],
+    supplierOpen: false,
+    supplierQuery: '',
     siteIndex: 0,
     materialIndex: 0,
-    supplierIndex: 0,
     extraOpen: false,
     provinces: plateProvinces,
     province: '',
@@ -87,7 +90,7 @@ Page({
           item.method === 'lab' ? '化验' : '目测',
         ),
       ]
-      const suppliers = ['请选择供应商', ...options.suppliers]
+      const supplierItems = options.suppliers.map(name => searchableName(name))
       const applyTrip = (trip: Trip | null) => {
         try {
           if (trip && !canEdit(trip)) {
@@ -117,7 +120,10 @@ Page({
             materials,
             materialNames,
             methods,
-            suppliers,
+            supplierItems,
+            supplierResults: supplierItems,
+            supplierOpen: false,
+            supplierQuery: '',
             form,
             fieldErrors: {
               site: '',
@@ -132,7 +138,6 @@ Page({
             version: trip?.version || 0,
             siteIndex: Math.max(0, sites.indexOf(form.site)),
             materialIndex: Math.max(0, materialNames.indexOf(form.material)),
-            supplierIndex: Math.max(0, suppliers.indexOf(form.supplier)),
             extraOpen: !!(form.driver || form.phone || form.contract || form.note),
           })
         }
@@ -306,11 +311,44 @@ Page({
       'formError': '',
     })
   },
-  chooseSupplier(event: WechatMiniprogram.PickerChange) {
-    const index = Number(event.detail.value)
+  openSupplier() {
     this.setData({
-      'supplierIndex': index,
-      'form.supplier': index ? this.data.suppliers[index] : '',
+      'supplierOpen': true,
+      'supplierQuery': '',
+      'supplierResults': this.data.supplierItems,
+      'fieldErrors.supplier': '',
+      'formError': '',
+    })
+  },
+  closeSupplier() {
+    this.setData({ supplierOpen: false })
+  },
+  onSupplierVisibleChange(event: { detail?: { visible?: boolean } }) {
+    this.setData({ supplierOpen: !!(event.detail && event.detail.visible) })
+  },
+  inputSupplierQuery(event: WechatMiniprogram.Input) {
+    const query = event.detail.value
+    this.setData({
+      supplierQuery: query,
+      supplierResults: filterSearchableNames(this.data.supplierItems, query),
+    })
+  },
+  clearSupplierQuery() {
+    this.setData({
+      supplierQuery: '',
+      supplierResults: this.data.supplierItems,
+    })
+  },
+  chooseSupplierItem(event: WechatMiniprogram.BaseEvent) {
+    const name = String(event.currentTarget.dataset.name || '')
+    if (!name) {
+      return
+    }
+    this.setData({
+      'supplierOpen': false,
+      'supplierQuery': '',
+      'supplierResults': this.data.supplierItems,
+      'form.supplier': name,
       'fieldErrors.supplier': '',
       'formError': '',
     })
