@@ -1,28 +1,139 @@
-.choice-title {
-  margin-top: 32rpx;
+/* stylelint-disable-next-line at-rule-no-unknown -- Sass module */
+@use '../../styles/detail-ui';
+
+.form-card {
+  padding: 28rpx;
+  margin-top: 20rpx;
+  background: #fff;
+  border: 1rpx solid #e6e8eb;
+  border-radius: 20rpx;
+}
+
+.form-title {
+  margin-bottom: 20rpx;
+  font-size: 28rpx;
+  font-weight: 600;
 }
 
 .choices {
   display: flex;
-  gap: 20rpx;
+  gap: 16rpx;
 }
 
 .choice {
   flex: 1;
   padding: 22rpx;
-  text-align: center;
-  background: #f5f6f8;
+  background: #f7f8f9;
   border: 2rpx solid transparent;
-  border-radius: 8rpx;
+  border-radius: 12rpx;
 }
 
 .choice.selected {
-  color: #8c3b2e;
-  background: #fbf4f1;
+  background: #fbf5f2;
   border-color: #8c3b2e;
+}
+
+.choice-head {
+  display: flex;
+  gap: 10rpx;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.choice-title {
+  font-size: 28rpx;
+  font-weight: 600;
+}
+
+.choice.selected .choice-title {
+  color: #8c3b2e;
+}
+
+.choice-sub {
+  margin-top: 6rpx;
+  font-size: 21rpx;
+  color: #687080;
+}
+
+.choice-mark {
+  position: relative;
+  flex: none;
+  width: 28rpx;
+  height: 28rpx;
+  border: 2rpx solid #c7cbd1;
+  border-radius: 50%;
+}
+
+.choice-mark::after {
+  position: absolute;
+  top: 6rpx;
+  left: 6rpx;
+  width: 12rpx;
+  height: 12rpx;
+  content: '';
+  background: #fff;
+  border-radius: 50%;
+  opacity: 0;
+}
+
+.choice.selected .choice-mark {
+  background: #8c3b2e;
+  border-color: #8c3b2e;
+}
+
+.choice.selected .choice-mark::after {
+  opacity: 1;
+}
+
+.field {
+  margin-top: 24rpx;
+}
+
+.field-label {
+  margin-bottom: 12rpx;
+  font-size: 24rpx;
+  font-weight: 600;
+}
+
+.required {
+  color: #ad3932;
+}
+
+.field-control {
+  box-sizing: border-box;
+  min-height: 80rpx;
+  padding: 20rpx 24rpx;
+  font-size: 25rpx;
+  line-height: 1.45;
+  background: #f7f8f9;
+  border: 1rpx solid #e6e8eb;
+  border-radius: 12rpx;
+}
+
+.field-control-picker {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.field-chevron {
+  flex: none;
+  margin-left: 16rpx;
+  font-size: 30rpx;
+  color: #8b929c;
 }
 
 .reason {
   width: 100%;
   min-height: 140rpx;
+}
+
+.form-hint {
+  padding: 16rpx 20rpx;
+  margin-top: 20rpx;
+  font-size: 21rpx;
+  line-height: 1.5;
+  color: #687080;
+  background: #f7f8f9;
+  border-radius: 12rpx;
 }

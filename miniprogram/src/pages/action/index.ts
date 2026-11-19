@@ -15,6 +15,9 @@ Page({
     trip: null as Trip | null,
     loading: true,
     error: '',
+    status: '',
+    plateProvince: '',
+    plateNumber: '',
     formError: '',
     conclusion: '' as Conclusion | '',
     reason: '',
@@ -38,14 +41,18 @@ Page({
       }
       const dictionary = currentDictionary()
       const apply = (trip: Trip) => {
+        const status = tripStatus(trip)
         if (
-          tripStatus(trip).action !== this.data.action
+          status.action !== this.data.action
           || !['visual', 'unload'].includes(this.data.action)
         ) {
           throw new Error('当前状态已变化，请返回详情重新核对')
         }
         this.setData({
           trip,
+          status: status.label,
+          plateProvince: trip.plate.slice(0, 1),
+          plateNumber: trip.plate.slice(1),
           granaries: ['请选择卸货地点', ...dictionary.granaries.map(item => item.name)],
         })
         this.setData({ loading: false })

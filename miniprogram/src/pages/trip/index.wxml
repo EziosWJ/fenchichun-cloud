@@ -4,7 +4,7 @@
   <block wx:elif="{{trip}}">
     <view class="header-card">
       <view class="header-top">
-        <view class="plate-badge">{{trip.plate}}</view>
+        <view class="plate-badge"><text class="plate-province">{{plateProvince}}</text><text>{{plateNumber}}</text></view>
         <view class="status-chip {{waiting || trip.exitedAt ? 'neutral' : ''}}">{{status}}</view>
       </view>
       <view class="header-meta">

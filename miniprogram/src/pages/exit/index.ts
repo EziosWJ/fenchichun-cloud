@@ -17,6 +17,8 @@ Page({
     type: '',
     inspection: '',
     inspectionShort: '',
+    plateProvince: '',
+    plateNumber: '',
     evidenceExpanded: false,
     confirming: false,
   },
@@ -39,6 +41,8 @@ Page({
           type: exitType(trip),
           inspection: inspectionText(trip),
           inspectionShort: trip.inspection?.values?.split('/')[0]?.trim() || '',
+          plateProvince: trip.plate.slice(0, 1),
+          plateNumber: trip.plate.slice(1),
         })
         this.setData({ loading: false })
       }

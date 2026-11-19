@@ -42,6 +42,8 @@ Page({
     confirming: false,
     step: 1,
     inspectionShort: '',
+    plateProvince: '',
+    plateNumber: '',
   },
   onLoad(query: Record<string, string | undefined>) {
     this.setData({ id: query.id || '' })
@@ -101,6 +103,8 @@ Page({
           }
         }
         const inspectionShort = trip.inspection?.values?.split('/')[0]?.trim() || ''
+        const plateProvince = trip.plate.slice(0, 1)
+        const plateNumber = trip.plate.slice(1)
         this.setData({
           trip,
           events: trip.events.map((event, key) => ({ ...event, key })),
@@ -112,6 +116,8 @@ Page({
           editable: canEdit(trip),
           inspection: inspectionText(trip),
           inspectionShort,
+          plateProvince,
+          plateNumber,
           step,
           expanded,
         })

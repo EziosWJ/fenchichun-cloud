@@ -1,17 +1,67 @@
-<view class="screen">
+<view class="detail-screen screen-with-action">
   <loading-state wx:if="{{loading}}" text="正在加载车辆" />
   <error-state wx:elif="{{error}}" text="{{error}}" bind:retry="load" />
   <block wx:elif="{{trip}}">
-    <view class="screen-title">{{action === 'visual' ? '确认目测' : '确认卸货'}}</view>
-    <view class="detail-card"><view class="plate">{{trip.plate}}</view><view>{{trip.site}}　{{trip.material}}</view><view class="subtle">{{trip.id}}</view><view class="subtle">供应商：{{trip.supplier}}</view></view>
-    <block wx:if="{{action === 'visual'}}">
-      <view class="field-label choice-title">目测结论 *</view>
-      <view class="choices"><view class="choice {{conclusion === 'accept' ? 'selected' : ''}}" data-value="accept" bindtap="selectConclusion">接收</view><view class="choice {{conclusion === 'reject' ? 'selected' : ''}}" data-value="reject" bindtap="selectConclusion">拒收</view></view>
-      <view wx:if="{{conclusion === 'reject'}}" class="field"><view class="field-label">拒收原因 *</view><textarea class="field-control reason" value="{{reason}}" bindinput="inputReason" placeholder="请填写拒收原因" maxlength="200" auto-height /></view>
-      <view class="subtle choice-title">请核对货品和供应商；目测确认后不可覆盖。</view>
-    </block>
-    <block wx:else><view class="field"><view class="field-label">实际卸货地点 *</view><picker range="{{granaries}}" value="{{granaryIndex}}" bindchange="chooseGranary"><view class="field-control {{granaryIndex ? '' : 'field-placeholder'}}">{{granaries[granaryIndex] || '请选择卸货地点'}}　›</view></picker></view><view class="notice choice-title">请在现场首磅和卸货完成后确认，无需等待首磅上传。</view></block>
-    <view wx:if="{{formError}}" class="error-text">{{formError}}</view>
-    <view class="form-footer"><t-button block size="large" theme="primary" disabled="{{confirming}}" bindtap="submit">{{action === 'visual' ? '确认目测' : '确认卸货'}}</t-button></view>
+    <view class="header-card">
+      <view class="header-top">
+        <view class="plate-badge"><text class="plate-province">{{plateProvince}}</text><text>{{plateNumber}}</text></view>
+        <view class="status-chip">{{status}}</view>
+      </view>
+      <view class="header-meta">
+        <view>{{trip.site}} · {{trip.material}} · {{trip.id}}</view>
+        <view>{{trip.createdAt}} · {{trip.supplier || '供应商待核实'}}</view>
+      </view>
+    </view>
+
+    <view class="task-card">
+      <view class="task-kicker">当前任务</view>
+      <view class="task-title">{{action === 'visual' ? '确认目测' : '确认卸货'}}</view>
+      <view class="task-desc">{{action === 'visual' ? '核对货品与供应商，确认目测结论' : '现场首磅和卸货完成后，确认实际卸货地点'}}</view>
+    </view>
+
+    <view class="form-card">
+      <view class="form-title">{{action === 'visual' ? '目测结论' : '卸货信息'}}</view>
+
+      <block wx:if="{{action === 'visual'}}">
+        <view class="choices">
+          <view class="choice {{conclusion === 'accept' ? 'selected' : ''}}" data-value="accept" bindtap="selectConclusion">
+            <view class="choice-head"><text class="choice-title">接收</text><view class="choice-mark"></view></view>
+            <view class="choice-sub">货品状态正常</view>
+          </view>
+          <view class="choice {{conclusion === 'reject' ? 'selected' : ''}}" data-value="reject" bindtap="selectConclusion">
+            <view class="choice-head"><text class="choice-title">拒收</text><view class="choice-mark"></view></view>
+            <view class="choice-sub">需填写拒收原因</view>
+          </view>
+        </view>
+
+        <view wx:if="{{conclusion === 'reject'}}" class="field">
+          <view class="field-label">拒收原因 <text class="required">*</text></view>
+          <textarea class="field-control reason" value="{{reason}}" bindinput="inputReason" placeholder="请填写拒收原因" placeholder-class="field-placeholder" maxlength="200" auto-height />
+        </view>
+
+        <view class="form-hint">请核对货品和供应商；目测确认后不可覆盖。</view>
+      </block>
+
+      <block wx:else>
+        <view class="field">
+          <view class="field-label">实际卸货地点 <text class="required">*</text></view>
+          <picker range="{{granaries}}" value="{{granaryIndex}}" bindchange="chooseGranary">
+            <view class="field-control field-control-picker {{granaryIndex ? '' : 'field-placeholder'}}">
+              <text>{{granaries[granaryIndex] || '请选择卸货地点'}}</text>
+              <text class="field-chevron">›</text>
+            </view>
+          </picker>
+        </view>
+
+        <view class="form-hint">请在现场首磅和卸货完成后确认，无需等待首磅上传。</view>
+      </block>
+    </view>
+
+    <view wx:if="{{formError}}" class="notice-card reject">
+      <view class="notice-title">无法提交</view>
+      <view class="notice-text">{{formError}}</view>
+    </view>
+
+    <view class="fixed-action"><t-button block size="large" theme="primary" disabled="{{confirming}}" bindtap="submit">{{action === 'visual' ? '确认目测' : '确认卸货'}}</t-button></view>
   </block>
 </view>
