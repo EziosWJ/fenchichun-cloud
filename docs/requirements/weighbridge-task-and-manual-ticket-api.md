@@ -1,6 +1,6 @@
 # 待回磅任务与人工补单接口契约
 
-状态为设计稿。业务范围见[厂云同步契约](cloud-sync-contract.md)，总部展示规则见[云端过磅规格](weighbridge-cloud-spec.md)。下文的路径、字段名和协议编号是实施约定，尚未部署。
+已确认纳入本次发布。下文的路径、字段和协议编号为实施约定，当前状态为双端开发及待验收。业务范围见 [厂云同步契约](cloud-sync-contract.md)，总部展示规则见 [云端过磅规格](weighbridge-cloud-spec.md)。
 
 ## 待回磅任务上送
 
@@ -25,7 +25,7 @@
 
 ## 人工补单的过磅单扩展
 
-人工补单继续走正式单据的出单、作废和重开流程。拟新增 `POST /api/v1/weighbridge/sync/v6/changes`，人工补单及其后续变化使用 `schemaVersion: 6` 和 `digestVersion: 4`，沿用 v5 的请求结构、校验、回执和前序规则。保留已入队的旧协议载荷及原摘要。
+人工补单继续走正式单据的出单、作废和重开流程。使用 `POST /api/v1/weighbridge/sync/v6/changes`，人工补单及其后续变化使用 `schemaVersion: 6` 和 `digestVersion: 4`，沿用 v5 的请求结构、校验、回执和前序规则。保留已入队的旧协议载荷及原摘要。
 
 | `ticket` 显式新增字段 | 规则 |
 | --- | --- |

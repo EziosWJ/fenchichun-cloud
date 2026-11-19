@@ -4,7 +4,7 @@
 
 Accepted
 
-数据库兼容与部署策略中有关 SQLite 支持级别的内容，已由 [ADR-0010](0010-sqlite-production-support.md) 修订。
+当前汾池春只支持 PostgreSQL。下文的多数据库兼容目标属于早期背景，[ADR-0010](0010-sqlite-production-support.md) 记录脚手架当时的 SQLite 决策。
 
 ## Context
 
