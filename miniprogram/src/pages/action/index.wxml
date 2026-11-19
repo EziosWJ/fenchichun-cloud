@@ -2,15 +2,17 @@
   <loading-state wx:if="{{loading}}" text="正在加载车辆" />
   <error-state wx:elif="{{error}}" text="{{error}}" bind:retry="load" />
   <block wx:elif="{{trip}}">
-    <view class="header-card">
-      <view class="header-top">
-        <view class="plate-badge"><text class="plate-province">{{plateProvince}}</text><text>{{plateNumber}}</text></view>
+    <view class="detail-heading">
+      <view class="detail-heading__bar"></view>
+      <view class="detail-heading__title">{{action === 'visual' ? '目测登记' : '卸货确认'}}</view>
+    </view>
+
+    <view class="plate-hero plate-hero--compact">
+      <view class="plate-hero__top">
+        <view class="plate-hero__plate"><text class="plate-hero__province">{{plateProvince}}</text><text>{{plateNumber}}</text></view>
         <view class="status-chip">{{status}}</view>
       </view>
-      <view class="header-meta">
-        <view>{{trip.site}} · {{trip.material}} · {{trip.id}}</view>
-        <view>{{trip.createdAt}} · {{trip.supplier || '供应商待核实'}}</view>
-      </view>
+      <view class="plate-hero__meta">{{trip.site}} · {{trip.material}} · {{trip.supplier || '供应商待核实'}}</view>
     </view>
 
     <view class="task-card">
@@ -24,11 +26,11 @@
 
       <block wx:if="{{action === 'visual'}}">
         <view class="choices">
-          <view class="choice {{conclusion === 'accept' ? 'selected' : ''}}" data-value="accept" bindtap="selectConclusion">
+          <view class="choice {{conclusion === 'accept' ? 'selected' : ''}}" data-value="accept" bindtap="selectConclusion" aria-role="button" aria-pressed="{{conclusion === 'accept'}}">
             <view class="choice-head"><text class="choice-title">接收</text><view class="choice-mark"></view></view>
             <view class="choice-sub">货品状态正常</view>
           </view>
-          <view class="choice {{conclusion === 'reject' ? 'selected' : ''}}" data-value="reject" bindtap="selectConclusion">
+          <view class="choice {{conclusion === 'reject' ? 'selected' : ''}}" data-value="reject" bindtap="selectConclusion" aria-role="button" aria-pressed="{{conclusion === 'reject'}}">
             <view class="choice-head"><text class="choice-title">拒收</text><view class="choice-mark"></view></view>
             <view class="choice-sub">需填写拒收原因</view>
           </view>

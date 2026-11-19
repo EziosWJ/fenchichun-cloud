@@ -1,4 +1,4 @@
-import type { Trip } from '@/features/grain/types'
+import type { EventRecord, Trip } from '@/features/grain/types'
 import { grainService } from '@/features/grain/api-service'
 import { applyAsync, errorMessage, requireLogin } from '@/features/grain/page'
 import {
@@ -16,9 +16,10 @@ Page({
     eligible: false,
     type: '',
     inspection: '',
-    inspectionShort: '',
     plateProvince: '',
     plateNumber: '',
+    tab: 'current' as 'current' | 'timeline',
+    events: [] as Array<EventRecord & { key: number }>,
     evidenceExpanded: false,
     confirming: false,
   },
@@ -40,9 +41,10 @@ Page({
           eligible: exitEligible(trip),
           type: exitType(trip),
           inspection: inspectionText(trip),
-          inspectionShort: trip.inspection?.values?.split('/')[0]?.trim() || '',
           plateProvince: trip.plate.slice(0, 1),
           plateNumber: trip.plate.slice(1),
+          tab: trip.exitedAt ? 'timeline' : 'current',
+          events: trip.events.map((event, key) => ({ ...event, key })),
         })
         this.setData({ loading: false })
       }
@@ -52,6 +54,12 @@ Page({
     }
     catch (error) {
       this.setData({ error: errorMessage(error), loading: false })
+    }
+  },
+  switchTab(event: WechatMiniprogram.BaseEvent) {
+    const tab = event.currentTarget.dataset.tab
+    if (tab === 'current' || tab === 'timeline') {
+      this.setData({ tab })
     }
   },
   toggleEvidence() {

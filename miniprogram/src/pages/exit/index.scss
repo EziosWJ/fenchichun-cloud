@@ -12,6 +12,10 @@
   background: var(--fc-error);
 }
 
+.plate-hero .status-chip.danger {
+  background: var(--fc-error-soft);
+}
+
 .group-card > .record-sheet {
   margin-bottom: 16rpx;
 }

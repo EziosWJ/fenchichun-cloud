@@ -31,17 +31,15 @@ Page({
     actionLabel: '',
     editable: false,
     inspection: '',
+    tab: 'current' as 'current' | 'timeline',
     expanded: {
       registration: false,
       inspection: false,
       unload: false,
       ticket: false,
       permit: false,
-      events: false,
     },
     confirming: false,
-    step: 1,
-    inspectionShort: '',
     plateProvince: '',
     plateNumber: '',
   },
@@ -65,7 +63,6 @@ Page({
           unload: false,
           ticket: false,
           permit: false,
-          events: false,
         }
         if (status.action === 'visual' || trip.stage === 'pending_inspection' || trip.stage === 'rejected') {
           expanded.inspection = true
@@ -79,30 +76,6 @@ Page({
         else if (status.action === 'issue' || status.action === 'approve' || trip.stage === 'permit_approved') {
           expanded.permit = true
         }
-        const stepByAction: Record<string, number> = {
-          'visual': 2,
-          'unload': 3,
-          'ticket': 4,
-          'confirm-ticket': 4,
-          'issue': 5,
-          'approve': 5,
-        }
-        let step = stepByAction[status.action] || 0
-        if (!step) {
-          if (trip.stage === 'pending_inspection') {
-            step = 2
-          }
-          else if (trip.stage === 'permit_approved' || trip.stage === 'rejected' || trip.exitedAt) {
-            step = 6
-          }
-          else if (trip.stage === 'blocked') {
-            step = 0
-          }
-          else {
-            step = 1
-          }
-        }
-        const inspectionShort = trip.inspection?.values?.split('/')[0]?.trim() || ''
         const plateProvince = trip.plate.slice(0, 1)
         const plateNumber = trip.plate.slice(1)
         this.setData({
@@ -115,10 +88,8 @@ Page({
           actionLabel: actionLabels[status.action] || '',
           editable: canEdit(trip),
           inspection: inspectionText(trip),
-          inspectionShort,
           plateProvince,
           plateNumber,
-          step,
           expanded,
         })
         this.setData({ loading: false })
@@ -135,6 +106,12 @@ Page({
     wx.navigateTo({
       url: `${routes.registration}?id=${encodeURIComponent(this.data.id)}`,
     })
+  },
+  switchTab(event: WechatMiniprogram.BaseEvent) {
+    const tab = event.currentTarget.dataset.tab
+    if (tab === 'current' || tab === 'timeline') {
+      this.setData({ tab })
+    }
   },
   toggleSection(event: WechatMiniprogram.BaseEvent) {
     const section = event.currentTarget.dataset.section as keyof typeof this.data.expanded
