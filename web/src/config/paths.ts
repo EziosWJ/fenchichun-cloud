@@ -17,6 +17,7 @@ export const paths = Object.freeze({
   notificationAdmin: '/system/notification',
   announcementAdmin: '/system/announcement',
   monitorServer: '/monitor/server',
+  weighbridgeTasks: '/weighbridge/tasks',
   weighbridgeTickets: '/weighbridge/tickets',
   weighbridgeMaster: '/weighbridge/master',
   weighbridgeParties: '/weighbridge/master/parties',

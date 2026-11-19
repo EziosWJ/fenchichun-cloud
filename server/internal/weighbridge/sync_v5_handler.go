@@ -16,6 +16,10 @@ type ChangeV5Response struct {
 // and predecessor rules. Historical site codes remain read-only.
 func RegisterSyncV5Routes(api gin.IRouter, handler *Handler) {
 	api.POST("/weighbridge/sync/v5/changes", handler.applyChangeV5)
+	api.POST("/weighbridge/sync/v6/changes", handler.applyChangeV6)
+	api.GET("/weighbridge/sync/v6/changes", handler.lookupChange)
+	api.GET("/weighbridge/sync/v6/tickets", handler.reconcileTicket)
+	api.POST("/weighbridge/sync/v6/reconcile", handler.reconcileTickets)
 	api.GET("/weighbridge/sync/v5/changes", handler.lookupChange)
 	api.GET("/weighbridge/sync/v5/tickets", handler.reconcileTicket)
 	api.POST("/weighbridge/sync/v5/reconcile", handler.reconcileTickets)
@@ -35,6 +39,27 @@ func RegisterSyncV5Routes(api gin.IRouter, handler *Handler) {
 func (h *Handler) applyChangeV5(c *gin.Context) {
 	var input ChangeV5
 	if !bindSyncRequest(c, &input) {
+		return
+	}
+	if input.SchemaVersion != 5 {
+		writeSyncError(c, newSyncError(SyncCategoryConfigOrData, "invalid_request", "协议版本不匹配"))
+		return
+	}
+	receipt, err := h.service.ApplyChangeV5(c.Request.Context(), input)
+	if err != nil {
+		writeSyncError(c, err)
+		return
+	}
+	platformhttp.OK(c, receipt)
+}
+
+func (h *Handler) applyChangeV6(c *gin.Context) {
+	var input ChangeV5
+	if !bindSyncRequest(c, &input) {
+		return
+	}
+	if input.SchemaVersion != 6 {
+		writeSyncError(c, newSyncError(SyncCategoryConfigOrData, "invalid_request", "协议版本不匹配"))
 		return
 	}
 	receipt, err := h.service.ApplyChangeV5(c.Request.Context(), input)

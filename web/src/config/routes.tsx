@@ -118,6 +118,11 @@ export const routeDefinitions: AppRouteDefinition[] = [
     component: lazy(() => import('../pages/weighbridge/SitesPage')),
   },
   {
+    path: paths.weighbridgeTasks, label: '待回磅任务', title: '待回磅任务', icon: ClipboardList,
+    menuComponent: 'weighbridge/tasks/index', menuPath: paths.weighbridgeTasks,
+    component: lazy(() => import('../pages/weighbridge/TasksPage')),
+  },
+  {
     path: paths.weighbridgeTickets,
     label: '过磅单查询',
     title: '过磅单查询',

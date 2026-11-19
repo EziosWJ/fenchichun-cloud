@@ -115,6 +115,7 @@ type StatementTicket struct {
 	Direction               string    `json:"direction"`
 	Status                  string    `json:"status"`
 	IssuedAt                time.Time `json:"issuedAt"`
+	BusinessAt              time.Time `json:"businessAt"`
 	GrossMilliTonne         int64     `json:"grossMilliTonne"`
 	TareMilliTonne          int64     `json:"tareMilliTonne"`
 	NetAdjustmentMilliTonne int64     `json:"netAdjustmentMilliTonne"`
@@ -130,6 +131,7 @@ type statementRow struct {
 	MaterialCode       string
 	Direction          string
 	IssuedAt           time.Time
+	BusinessAt         time.Time
 	FinalNetMilliTonne int64
 	Snapshot           string
 }
@@ -149,6 +151,7 @@ type statementTicket struct {
 	direction          string
 	status             string
 	issuedAt           time.Time
+	businessAt         time.Time
 	gross              int64
 	tare               int64
 	adjustment         int64
@@ -199,7 +202,7 @@ func parseStatementTicket(row statementRow) (statementTicket, error) {
 		siteCode: row.SiteCode, siteName: siteName, partyCode: row.PartyCode, partyName: partyName,
 		ticketNo: snapshot.TicketNo, plate: snapshot.Plate,
 		materialCode: row.MaterialCode, materialName: materialName, materialSpec: snapshot.MaterialSpec,
-		direction: row.Direction, status: "valid", issuedAt: row.IssuedAt,
+		direction: row.Direction, status: "valid", issuedAt: row.IssuedAt, businessAt: row.BusinessAt,
 		gross: gross, tare: tare, adjustment: adjustment, net: row.FinalNetMilliTonne,
 	}, nil
 }
@@ -295,7 +298,11 @@ func aggregateStatementDetail(q StatementQuery, tickets []statementTicket) State
 		}
 		material.StatementTotals.add(ticket.gross, ticket.tare, ticket.adjustment, ticket.net)
 
-		date := ticket.issuedAt.In(statementZone).Format("2006-01-02")
+		businessAt := ticket.businessAt
+		if businessAt.IsZero() {
+			businessAt = ticket.issuedAt
+		}
+		date := businessAt.In(statementZone).Format("2006-01-02")
 		day := daily[date]
 		if day == nil {
 			day = &StatementDaily{Date: date}

@@ -214,14 +214,14 @@ func statementSummaryCSV(parties []StatementParty, summary StatementPageSummary,
 
 func statementDetailCSV(detail StatementDetail, tickets []StatementTicket) ([]byte, error) {
 	rows := [][]string{{
-		"厂区编码", "厂区名称", "往来方编码", "往来方名称", "方向", "出单时间", "单号", "车牌",
+		"厂区编码", "厂区名称", "往来方编码", "往来方名称", "方向", "出单时间", "对账时间", "单号", "车牌",
 		"物料编码", "物料名称", "规格", "毛重(吨)", "皮重(吨)", "净重调整(吨)", "最终净重(吨)", "状态",
 	}}
 	for _, ticket := range tickets {
 		rows = append(rows, []string{
 			statementCSVText(ticket.SiteCode), statementCSVText(ticket.SiteName),
 			statementCSVText(ticket.PartyCode), statementCSVText(ticket.PartyName),
-			statementDirectionLabel(ticket.Direction), statementDate(ticket.IssuedAt),
+			statementDirectionLabel(ticket.Direction), statementDate(ticket.IssuedAt), statementDate(ticket.BusinessAt),
 			statementCSVText(ticket.TicketNo), statementCSVText(ticket.Plate),
 			statementCSVText(ticket.MaterialCode), statementCSVText(ticket.MaterialName), statementCSVText(ticket.MaterialSpec),
 			FormatMilliTonne(ticket.GrossMilliTonne), FormatMilliTonne(ticket.TareMilliTonne),
@@ -230,7 +230,7 @@ func statementDetailCSV(detail StatementDetail, tickets []StatementTicket) ([]by
 	}
 	rows = append(rows, []string{
 		"合计", statementCSVText(detail.SiteName), statementCSVText(detail.PartyCode), statementCSVText(detail.PartyName),
-		statementDirectionLabel(detail.Direction), "", "", "", "", "", "",
+		statementDirectionLabel(detail.Direction), "", "", "", "", "", "", "",
 		FormatMilliTonne(detail.GrossMilliTonne), FormatMilliTonne(detail.TareMilliTonne),
 		FormatMilliTonne(detail.NetAdjustmentMilliTonne), FormatMilliTonne(detail.NetMilliTonne), "",
 	})

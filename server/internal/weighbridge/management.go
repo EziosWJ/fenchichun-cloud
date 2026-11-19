@@ -138,7 +138,13 @@ func (h *Handler) parties(c *gin.Context) {
 }
 
 func ticketQuery(c *gin.Context) (TicketQuery, error) {
-	q := TicketQuery{Page: 1, PageSize: 10, SiteCode: c.Query("siteCode"), Direction: c.Query("direction"), Status: c.Query("status"), Keyword: c.Query("keyword"), MaterialCode: c.Query("materialCode"), PartyCode: c.Query("partyCode")}
+	q := TicketQuery{EntryType: c.Query("entryType"), Page: 1, PageSize: 10, SiteCode: c.Query("siteCode"), Direction: c.Query("direction"), Status: c.Query("status"), Keyword: c.Query("keyword"), MaterialCode: c.Query("materialCode"), PartyCode: c.Query("partyCode")}
+	if v := c.Query("businessDate"); v != "" {
+		if v != "true" && v != "false" {
+			return q, ErrInvalid
+		}
+		q.BusinessDate = v == "true"
+	}
 	if s := strings.TrimSpace(c.Query("adjusted")); s != "" {
 		switch strings.ToLower(s) {
 		case "true", "1":

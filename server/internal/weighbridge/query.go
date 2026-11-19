@@ -12,6 +12,8 @@ import (
 type TicketQuery struct {
 	Page         int
 	PageSize     int
+	BusinessDate bool
+	EntryType    string
 	SiteCode     string
 	Direction    string
 	Status       string
@@ -56,6 +58,9 @@ func applyTicketFilter(tx *gorm.DB, q TicketQuery) *gorm.DB {
 	if q.SiteCode != "" {
 		tx = tx.Where("t.site_code = ?", q.SiteCode)
 	}
+	if q.EntryType != "" {
+		tx = tx.Where("t.snapshot::jsonb ->> 'entryType' = ?", q.EntryType)
+	}
 	if q.Direction != "" {
 		tx = tx.Where("t.direction = ?", q.Direction)
 	}
@@ -75,16 +80,20 @@ func applyTicketFilter(tx *gorm.DB, q TicketQuery) *gorm.DB {
 		term := "%" + q.Keyword + "%"
 		tx = tx.Where("t.ticket_no LIKE ? OR t.plate LIKE ?", term, term)
 	}
+	dateField := "t.issued_at"
+	if q.BusinessDate {
+		dateField = statementBusinessTime
+	}
 	if q.From != nil {
-		tx = tx.Where("t.issued_at >= ?", *q.From)
+		tx = tx.Where(dateField+" >= ?", *q.From)
 	}
 	if q.Until != nil {
-		tx = tx.Where("t.issued_at < ?", *q.Until)
+		tx = tx.Where(dateField+" < ?", *q.Until)
 	}
 	return tx
 }
 func (r *Repository) TicketPage(ctx context.Context, q TicketQuery) (TicketPage, error) {
-	if q.Page < 1 || q.PageSize < 1 || q.PageSize > 100 || (q.Direction != "" && q.Direction != "inbound" && q.Direction != "outbound") || (q.Status != "" && q.Status != "valid" && q.Status != "void") {
+	if (q.EntryType != "" && q.EntryType != "manual_supplement") || q.Page < 1 || q.PageSize < 1 || q.PageSize > 100 || (q.Direction != "" && q.Direction != "inbound" && q.Direction != "outbound") || (q.Status != "" && q.Status != "valid" && q.Status != "void") {
 		return TicketPage{}, ErrInvalid
 	}
 	page := TicketPage{Records: []TicketResult{}, Page: q.Page, PageSize: q.PageSize}

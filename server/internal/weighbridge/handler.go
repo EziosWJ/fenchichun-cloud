@@ -47,6 +47,7 @@ func NewHandler(service *Service) *Handler { return &Handler{service: service} }
 
 // RegisterRoutes registers factory synchronization endpoints. Site codes are not authentication.
 func RegisterRoutes(api gin.IRouter, handler *Handler) {
+	api.POST("/weighbridge/sync/tasks", handler.receiveTasks)
 	api.POST("/weighbridge/sync/changes", handler.change)
 	api.GET("/weighbridge/sync/master", handler.master)
 	api.POST("/weighbridge/sync/temporary-parties", handler.registerTemporaryParty)
@@ -58,6 +59,8 @@ func RegisterManagementRoutes(authenticated gin.IRouter, handler *Handler) {
 	authenticated.POST("/weighbridge/sites", handler.createSite)
 	authenticated.GET("/weighbridge/sites", handler.sites)
 	authenticated.PUT("/weighbridge/sites/:code", handler.updateSite)
+	authenticated.GET("/weighbridge/tasks", handler.taskPage)
+	authenticated.GET("/weighbridge/task-sync-status", handler.taskStatus)
 	authenticated.GET("/weighbridge/tickets", handler.ticketPage)
 	authenticated.GET("/weighbridge/ticket-totals", handler.ticketTotals)
 	authenticated.GET("/weighbridge/statements/parties", handler.statementParties)

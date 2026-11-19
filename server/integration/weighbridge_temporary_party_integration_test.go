@@ -209,7 +209,7 @@ func TestPostgresWeighbridgeTemporaryParty(t *testing.T) {
 	if err != nil || len(lines) != 7 {
 		t.Fatalf("expected headings, five tickets and totals, got %+v, %v", lines, err)
 	}
-	if lines[1][2] != code || lines[1][3] != "开单时临时名" || lines[6][2] != formal.Code || lines[6][14] != "100.000" {
+	if lines[1][2] != code || lines[1][3] != "开单时临时名" || lines[6][2] != formal.Code || lines[6][15] != "100.000" {
 		t.Fatalf("unexpected export data: %+v", lines)
 	}
 	rows, err = repo.TemporaryParties(ctx, 1)

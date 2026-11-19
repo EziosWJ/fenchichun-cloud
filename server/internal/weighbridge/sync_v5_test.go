@@ -358,3 +358,31 @@ func TestBindSyncV5AcceptsFactoryPayload(t *testing.T) {
 		t.Fatalf("details lost: %+v", input.Ticket.NetAdjustments)
 	}
 }
+
+func TestManualSupplementV6Validation(t *testing.T) {
+	c := v5ConsistentMulti(t)
+	c.SchemaVersion, c.DigestVersion = 6, 4
+	first := c.Ticket.IssuedAt.Add(-2 * time.Hour)
+	second := c.Ticket.IssuedAt.Add(-time.Hour)
+	c.Ticket.EntryType = "manual_supplement"
+	c.Ticket.FirstWeighedAt, c.Ticket.SecondWeighedAt = &first, &second
+	c.Ticket.GrossSource, c.Ticket.TareSource = "manual", "manual"
+	if _, err := c.Validate(); err != nil {
+		t.Fatalf("valid supplement: %v", err)
+	}
+	c.Ticket.SecondWeighedAt = &first
+	c.Ticket.FirstWeighedAt = &second
+	if _, err := c.Validate(); err == nil {
+		t.Fatal("accepted reversed weighing times")
+	}
+	c.Ticket.FirstWeighedAt, c.Ticket.SecondWeighedAt = &first, &second
+	c.Ticket.TareSource = "collected"
+	if _, err := c.Validate(); err == nil {
+		t.Fatal("accepted collected source")
+	}
+	c.Ticket.TareSource = "manual"
+	c.SchemaVersion, c.DigestVersion = 5, 3
+	if _, err := c.Validate(); err == nil {
+		t.Fatal("accepted v6 fields in v5")
+	}
+}
