@@ -372,7 +372,8 @@ func TestDepartmentAndUserContractRevokesSessions(t *testing.T) {
 
 	createdUser := serveJSON(router, http.MethodPost, "/api/v1/system/user", `{"username":"developer","nickname":"开发者","deptId":2,"status":1}`, adminToken)
 	assertEnvelopeCode(t, createdUser, http.StatusOK, 200, "success")
-	assignedRoles := serveJSON(router, http.MethodPut, "/api/v1/system/user/2/roles", `{"roleIds":[1]}`, adminToken)
+	createdID := integrationUserID(t, router, loginUser(t, router, "developer", "admin123"))
+	assignedRoles := serveJSON(router, http.MethodPut, fmt.Sprintf("/api/v1/system/user/%d/roles", createdID), `{"roleIds":[1]}`, adminToken)
 	assertEnvelopeCode(t, assignedRoles, http.StatusOK, 200, "success")
 	userPage := serveJSON(router, http.MethodGet, "/api/v1/system/user/page?page=1&pageSize=10", "", adminToken)
 	if userPage.Code != http.StatusOK || !strings.Contains(userPage.Body.String(), `"deptName":"研发部"`) || !strings.Contains(userPage.Body.String(), `"roleCode":"ADMIN"`) {
@@ -382,14 +383,14 @@ func TestDepartmentAndUserContractRevokesSessions(t *testing.T) {
 	assertEnvelopeCode(t, invalidPage, http.StatusBadRequest, 400, "参数错误")
 
 	userToken := loginUser(t, router, "developer", "admin123")
-	disabled := serveJSON(router, http.MethodPatch, "/api/v1/system/user/2/status", `{"status":0}`, adminToken)
+	disabled := serveJSON(router, http.MethodPatch, fmt.Sprintf("/api/v1/system/user/%d/status", createdID), `{"status":0}`, adminToken)
 	assertEnvelopeCode(t, disabled, http.StatusOK, 200, "success")
 	assertUnauthenticated(t, serveJSON(router, http.MethodGet, "/api/v1/auth/me", "", userToken))
 
-	enabled := serveJSON(router, http.MethodPatch, "/api/v1/system/user/2/status", `{"status":1}`, adminToken)
+	enabled := serveJSON(router, http.MethodPatch, fmt.Sprintf("/api/v1/system/user/%d/status", createdID), `{"status":1}`, adminToken)
 	assertEnvelopeCode(t, enabled, http.StatusOK, 200, "success")
 	userToken = loginUser(t, router, "developer", "admin123")
-	reset := serveJSON(router, http.MethodPut, "/api/v1/system/user/2/reset-password", "", adminToken)
+	reset := serveJSON(router, http.MethodPut, fmt.Sprintf("/api/v1/system/user/%d/reset-password", createdID), "", adminToken)
 	assertEnvelopeCode(t, reset, http.StatusOK, 200, "success")
 	if !strings.Contains(reset.Body.String(), `"password":"admin123"`) {
 		t.Fatalf("reset password response = %s", reset.Body.String())
@@ -402,7 +403,7 @@ func TestDepartmentAndUserContractRevokesSessions(t *testing.T) {
 	assertUnauthenticated(t, serveJSON(router, http.MethodGet, "/api/v1/auth/me", "", userToken))
 	_ = loginUser(t, router, "developer", "new-password")
 
-	invalidRole := serveJSON(router, http.MethodPut, "/api/v1/system/user/2/roles", `{"roleIds":[999]}`, adminToken)
+	invalidRole := serveJSON(router, http.MethodPut, fmt.Sprintf("/api/v1/system/user/%d/roles", createdID), `{"roleIds":[999]}`, adminToken)
 	assertEnvelopeCode(t, invalidRole, http.StatusOK, 404, "数据不存在")
 
 	var auditCount int64
@@ -685,11 +686,12 @@ func TestNotificationContractUsesPostgres(t *testing.T) {
 
 	createdUser := serveJSON(router, http.MethodPost, "/api/v1/system/user", `{"username":"postgres-notify-user","nickname":"PostgreSQL通知用户","status":1}`, adminToken)
 	assertEnvelopeCode(t, createdUser, http.StatusOK, 200, "success")
-	assignedRoles := serveJSON(router, http.MethodPut, "/api/v1/system/user/2/roles", `{"roleIds":[1]}`, adminToken)
+	createdID := integrationUserID(t, router, loginUser(t, router, "postgres-notify-user", "admin123"))
+	assignedRoles := serveJSON(router, http.MethodPut, fmt.Sprintf("/api/v1/system/user/%d/roles", createdID), `{"roleIds":[1]}`, adminToken)
 	assertEnvelopeCode(t, assignedRoles, http.StatusOK, 200, "success")
 	userToken := loginUser(t, router, "postgres-notify-user", "admin123")
 
-	published := serveJSON(router, http.MethodPost, "/api/v1/system/notification", `{"title":"PostgreSQL通知","content":"通知内容","userIds":[2]}`, adminToken)
+	published := serveJSON(router, http.MethodPost, "/api/v1/system/notification", fmt.Sprintf(`{"title":"PostgreSQL通知","content":"通知内容","userIds":[%d]}`, createdID), adminToken)
 	assertEnvelopeCode(t, published, http.StatusOK, 200, "success")
 
 	page := serveJSON(router, http.MethodGet, "/api/v1/system/notification/page?page=1&pageSize=20", "", userToken)

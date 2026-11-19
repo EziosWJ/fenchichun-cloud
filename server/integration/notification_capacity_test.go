@@ -35,7 +35,11 @@ func notificationCapacity(t *testing.T, db *database.Database, deps app.Dependen
 	if err := db.GORM.Table("sys_user").Where("id=1").Pluck("password", &password).Error; err != nil {
 		t.Fatal(err)
 	}
-	users := make([]map[string]any, 999)
+	var existing int64
+	if err := db.GORM.Table("sys_user").Where("status = 1 AND deleted = 0").Count(&existing).Error; err != nil {
+		t.Fatal(err)
+	}
+	users := make([]map[string]any, 1000-int(existing))
 	for i := range users {
 		users[i] = map[string]any{"username": fmt.Sprintf("capacity-%04d", i), "nickname": "容量测试用户", "password": password, "status": 1}
 	}

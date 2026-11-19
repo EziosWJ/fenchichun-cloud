@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fenchichun.local/server/internal/audit"
+	"fenchichun.local/server/internal/grainintake"
 	"fenchichun.local/server/internal/laboratory"
 	"fenchichun.local/server/internal/weighbridge"
 	"strings"
@@ -26,47 +27,28 @@ func TestPostgresLaboratoryLifecycle(t *testing.T) {
 	if err := db.GORM.Exec("INSERT INTO wb_cloud_site(code,name) VALUES ('LAB','测试厂')").Error; err != nil {
 		t.Fatal(err)
 	}
-	draft, err := service.Save(ctx, 0, 0, laboratory.Input{}, e)
-	if err != nil || draft.ID == 0 {
-		t.Fatalf("create: %+v %v", draft, err)
-	}
-	if _, err := service.Transition(ctx, draft.ID, draft.Version, "confirm", "", e); !errors.Is(err, laboratory.ErrInvalid) {
-		t.Fatalf("empty confirm: %v", err)
-	}
-	input := laboratory.Input{SiteCode: "LAB", Plate: "晋A12345", MaterialCode: "C-M-0010", PartyCode: "C-P-0001", Moisture: "14.1", BulkDensity: "750", Conclusion: "reject", Reason: "水分偏高"}
-	updated, err := service.Save(ctx, draft.ID, draft.Version, input, e)
+	flow := grainintake.NewService(grainintake.NewRepository(db.GORM))
+	trip, err := flow.Save(ctx, 0, 0, grainintake.Input{SiteCode: "LAB", Plate: "晋A12345", MaterialCode: "C-M-0010", PartyCode: "C-P-0001"}, e)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, err := service.Save(ctx, draft.ID, draft.Version, input, e); !errors.Is(err, laboratory.ErrConflict) {
-		t.Fatalf("stale update: %v", err)
+	if _, err := service.Create(ctx, laboratory.Input{}, e); !errors.Is(err, laboratory.ErrInvalid) {
+		t.Fatalf("missing trip: %v", err)
 	}
-	confirmed, err := service.Transition(ctx, updated.ID, updated.Version, "confirm", "", e)
+	input := laboratory.Input{TripID: &trip.Trip.ID, Moisture: "14.1", BulkDensity: "750", Conclusion: "reject", Reason: "水分偏高"}
+	confirmed, err := service.Create(ctx, input, e)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, err := service.Save(ctx, confirmed.ID, confirmed.Version, input, e); !errors.Is(err, laboratory.ErrConflict) {
-		t.Fatalf("confirmed edit: %v", err)
-	}
-	if _, err := service.Transition(ctx, confirmed.ID, confirmed.Version, "delete", "", e); !errors.Is(err, laboratory.ErrConflict) {
-		t.Fatalf("confirmed delete: %v", err)
-	}
-	retest, err := service.Retest(ctx, confirmed.ID, confirmed.Version, e)
-	if err != nil || retest.OriginalID == nil || *retest.OriginalID != confirmed.ID || retest.Moisture != "" || retest.Status != "draft" {
-		t.Fatalf("retest: %+v %v", retest, err)
-	}
-	if _, err := service.Transition(ctx, confirmed.ID, confirmed.Version, "void", "", e); !errors.Is(err, laboratory.ErrInvalid) {
+	if _, err := service.Void(ctx, 1, confirmed.ID, confirmed.Version, "", e); !errors.Is(err, laboratory.ErrInvalid) {
 		t.Fatalf("void reason: %v", err)
 	}
-	voided, err := service.Transition(ctx, confirmed.ID, confirmed.Version, "void", "录入错误", e)
+	if _, err := service.Void(ctx, 1, confirmed.ID, confirmed.Version+1, "录入错误", e); !errors.Is(err, laboratory.ErrConflict) {
+		t.Fatalf("stale void: %v", err)
+	}
+	voided, err := service.Void(ctx, 1, confirmed.ID, confirmed.Version, "录入错误", e)
 	if err != nil || voided.Moisture != input.Moisture || voided.VoidReason == "" {
 		t.Fatalf("void: %+v %v", voided, err)
-	}
-	if _, err := service.Transition(ctx, retest.ID, retest.Version, "delete", "", e); err != nil {
-		t.Fatal(err)
-	}
-	if _, err := service.Detail(ctx, 1, retest.ID); !errors.Is(err, laboratory.ErrNotFound) {
-		t.Fatalf("deleted: %v", err)
 	}
 	page, err := service.List(ctx, 1, laboratory.Query{Status: "void", Keyword: "晋A"})
 	if err != nil || page.Total != 1 {
@@ -76,7 +58,7 @@ func TestPostgresLaboratoryLifecycle(t *testing.T) {
 	if err := db.GORM.Table("sys_oper_log").Where("module_name=?", "laboratory-inspection").Count(&count).Error; err != nil {
 		t.Fatal(err)
 	}
-	if count != 6 {
+	if count != 2 {
 		t.Fatalf("audit writes: %d", count)
 	}
 	// Verify supplier identity uniqueness and that personal identity is not exported.
