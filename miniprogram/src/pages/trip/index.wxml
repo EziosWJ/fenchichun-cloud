@@ -1,4 +1,4 @@
-<view class="detail-screen {{action && !waiting ? 'screen-with-action' : ''}}">
+<view class="detail-screen {{!trip.exitedAt && action && !waiting ? 'screen-with-action' : ''}}">
   <loading-state wx:if="{{loading}}" text="正在加载流转单" />
   <error-state wx:elif="{{error}}" text="{{error}}" bind:retry="load" />
   <block wx:elif="{{trip}}">
@@ -22,37 +22,7 @@
       </view>
     </view>
 
-    <view wx:if="{{!trip.exitedAt}}" class="segmented" aria-role="tablist">
-      <view class="segmented__item {{tab === 'current' ? 'segmented__item--active' : ''}}" data-tab="current" bindtap="switchTab" aria-role="tab" aria-selected="{{tab === 'current'}}">当前步骤</view>
-      <view class="segmented__item {{tab === 'timeline' ? 'segmented__item--active' : ''}}" data-tab="timeline" bindtap="switchTab" aria-role="tab" aria-selected="{{tab === 'timeline'}}">时间线</view>
-    </view>
-
-    <block wx:if="{{!trip.exitedAt && tab === 'current'}}">
-      <view class="handoff" wx:if="{{trip.stage === 'pending_inspection'}}">
-        <view class="handoff-step waiting">
-          <view class="handoff-dot"></view>
-          <view><view class="handoff-label">化验员</view><view class="handoff-sub">出具结果</view></view>
-        </view>
-        <view class="handoff-line"></view>
-        <view class="handoff-step">
-          <view class="handoff-dot"></view>
-          <view><view class="handoff-label">库管</view><view class="handoff-sub">接收结果</view></view>
-        </view>
-      </view>
-      <view class="handoff" wx:elif="{{trip.stage === 'permit_approved' || trip.stage === 'rejected'}}">
-        <view class="handoff-step done">
-          <view class="handoff-dot"></view>
-          <view><view class="handoff-label">库管</view><view class="handoff-sub">{{trip.stage === 'rejected' ? '确认拒收' : '开证并审批'}}</view></view>
-        </view>
-        <view class="handoff-line"></view>
-        <view class="handoff-step waiting">
-          <view class="handoff-dot"></view>
-          <view><view class="handoff-label">门卫</view><view class="handoff-sub">{{trip.stage === 'rejected' ? '核验退厂' : '核验出厂'}}</view></view>
-        </view>
-      </view>
-    </block>
-
-    <block wx:if="{{trip.exitedAt || tab === 'current'}}">
+    <block wx:if="{{trip.exitedAt}}">
       <view wx:if="{{trip.ticketWarning}}" class="notice-card warning">
         <view class="notice-title">磅单需要核对</view>
         <view class="notice-text">{{trip.ticketWarning}}</view>
@@ -130,17 +100,16 @@
             <view class="record-sheet">
               <view class="record-header"><view><view class="record-title">正式过磅单</view><view class="record-caption">{{trip.ticket ? '磅单号 ' + trip.ticket.id : '磅单关联信息'}}</view></view><text class="record-badge">{{trip.ticket ? (trip.ticketConfirmedAt ? '已确认' : '待确认') : (trip.inspection && trip.inspection.conclusion === 'reject' ? '无需关联' : '未关联')}}</text></view>
               <view wx:if="{{!trip.ticket}}" class="record-empty">{{trip.inspection && trip.inspection.conclusion === 'reject' ? '本趟拒收退厂，无需关联磅单' : (trip.unload ? '尚未关联；等待同步不代表现场没有称重' : '尚未关联')}}</view>
-              <view wx:if="{{!trip.ticket && action === 'ticket'}}" class="record-action"><text class="text-link" bindtap="act">查看磅单候选 ›</text></view>
               <block wx:if="{{trip.ticket}}">
                 <view class="record-row"><text class="record-label">关联确认</text><text class="record-value">{{trip.ticketConfirmedAt ? '已确认' : '待确认'}}</text></view>
                 <view class="record-row"><text class="record-label">车牌 / 厂区</text><text class="record-value">{{trip.ticket.plate}} / {{trip.ticket.site}}</text></view>
                 <view class="record-row"><text class="record-label">货品 / 供应商</text><text class="record-value">{{trip.ticket.material}} / {{trip.ticket.supplier || '未提供'}}</text></view>
                 <view class="record-row"><text class="record-label">首磅时间</text><text class="record-value">{{trip.ticket.firstAt || '未提供'}}</text></view>
                 <view class="record-row"><text class="record-label">回磅时间</text><text class="record-value">{{trip.ticket.secondAt || '未提供'}}</text></view>
-                <view class="record-row"><text class="record-label">毛重</text><text class="record-value">{{trip.ticket.gross || '未提供'}}</text></view>
-                <view class="record-row"><text class="record-label">皮重</text><text class="record-value">{{trip.ticket.tare || '未提供'}}</text></view>
-                <view class="record-row record-row-emphasis"><text class="record-label">实际净重</text><text class="record-value">{{trip.ticket.net || '未提供'}}</text></view>
-                <view class="record-row"><text class="record-label">扣减后重量</text><text class="record-value">{{trip.ticket.deducted || '未提供'}}</text></view>
+                <view class="record-row"><text class="record-label">毛重</text><text class="record-value">{{trip.ticket.gross ? trip.ticket.gross + ' 吨' : '未提供'}}</text></view>
+                <view class="record-row"><text class="record-label">皮重</text><text class="record-value">{{trip.ticket.tare ? trip.ticket.tare + ' 吨' : '未提供'}}</text></view>
+                <view class="record-row record-row-emphasis"><text class="record-label">实际净重</text><text class="record-value">{{trip.ticket.net ? trip.ticket.net + ' 吨' : '未提供'}}</text></view>
+                <view class="record-row"><text class="record-label">扣减后重量</text><text class="record-value">{{trip.ticket.deducted ? trip.ticket.deducted + ' 吨' : '未提供'}}</text></view>
               </block>
             </view>
           </view>
@@ -165,21 +134,9 @@
           </view>
         </view>
       </view>
-    </block>
 
-    <block wx:if="{{trip.exitedAt || tab === 'timeline'}}">
       <view class="timeline-card">
-        <view wx:if="{{!trip.exitedAt}}" class="timeline__item timeline__item--current">
-          <view class="timeline__rail">
-            <view class="timeline__dot timeline__dot--current"></view>
-            <view wx:if="{{events.length}}" class="timeline__line"></view>
-          </view>
-          <view class="timeline__body {{events.length ? '' : 'timeline__body--last'}}">
-            <view class="timeline__title">{{status}}</view>
-            <view class="timeline__meta">当前 · {{next}}</view>
-          </view>
-        </view>
-        <view wx:if="{{trip.exitedAt && !events.length}}" class="record-empty">暂无过程记录</view>
+        <view wx:if="{{!events.length}}" class="record-empty">暂无过程记录</view>
         <view wx:for="{{events}}" wx:key="key" class="timeline__item">
           <view class="timeline__rail">
             <view class="timeline__dot"></view>
@@ -193,6 +150,117 @@
       </view>
     </block>
 
-    <view wx:if="{{!trip.exitedAt && action && !waiting}}" class="fixed-action"><t-button block size="large" theme="primary" disabled="{{confirming}}" bindtap="act">{{actionLabel}}</t-button></view>
+    <block wx:else>
+      <view class="segmented" aria-role="tablist">
+        <view class="segmented__item {{tab === 'current' ? 'segmented__item--active' : ''}}" data-tab="current" bindtap="switchTab" aria-role="tab" aria-selected="{{tab === 'current'}}">当前步骤</view>
+        <view class="segmented__item {{tab === 'timeline' ? 'segmented__item--active' : ''}}" data-tab="timeline" bindtap="switchTab" aria-role="tab" aria-selected="{{tab === 'timeline'}}">时间线</view>
+      </view>
+
+      <view wx:if="{{tab === 'current'}}" class="step-card">
+        <view class="step-card__header">
+          <text class="step-card__kicker">当前步骤</text>
+          <text class="step-card__title">{{stepTitle}}</text>
+        </view>
+        <view class="step-card__body">
+          <block wx:if="{{action === 'visual'}}">
+            <view class="choices">
+              <view class="choice {{conclusion === 'accept' ? 'selected' : ''}}" data-value="accept" bindtap="selectConclusion" aria-role="button" aria-pressed="{{conclusion === 'accept'}}">
+                <view class="choice-head"><text class="choice-title">接收</text><view class="choice-mark"></view></view>
+                <view class="choice-sub">货品状态正常</view>
+              </view>
+              <view class="choice {{conclusion === 'reject' ? 'selected' : ''}}" data-value="reject" bindtap="selectConclusion" aria-role="button" aria-pressed="{{conclusion === 'reject'}}">
+                <view class="choice-head"><text class="choice-title">拒收</text><view class="choice-mark"></view></view>
+                <view class="choice-sub">需填写拒收原因</view>
+              </view>
+            </view>
+
+            <view wx:if="{{conclusion === 'reject'}}" class="field">
+              <view class="field-label">拒收原因 <text class="required">*</text></view>
+              <textarea class="field-control reason" value="{{reason}}" bindinput="inputReason" placeholder="请填写拒收原因" placeholder-class="field-placeholder" maxlength="200" auto-height />
+            </view>
+
+            <view class="form-hint">请核对货品和供应商；目测确认后不可覆盖。</view>
+          </block>
+
+          <block wx:elif="{{action === 'unload'}}">
+            <picker range="{{granaries}}" value="{{granaryIndex}}" bindchange="chooseGranary">
+              <view class="field-control field-control-picker {{granaries.length ? '' : 'field-placeholder'}}">
+                <text>{{granaries[granaryIndex] || '请选择卸货地点'}}</text>
+                <text class="field-chevron">›</text>
+              </view>
+            </picker>
+            <view class="form-hint">请在现场首磅和卸货完成后确认，无需等待首磅上传。</view>
+          </block>
+
+          <block wx:elif="{{action === 'ticket'}}">
+            <view class="step-waiting">{{next}}</view>
+            <view wx:if="{{trip.ticketWarning}}" class="notice-card warning">
+              <view class="notice-title">磅单需要核对</view>
+              <view class="notice-text">{{trip.ticketWarning}}</view>
+            </view>
+          </block>
+
+          <block wx:elif="{{action === 'confirm-ticket' || action === 'issue'}}">
+            <view wx:if="{{trip.ticket}}" class="step-rows">
+              <view class="record-row"><text class="record-label">磅单号</text><text class="record-value">{{trip.ticket.id}}</text></view>
+              <view class="record-row"><text class="record-label">车牌 / 厂区</text><text class="record-value">{{trip.ticket.plate}} / {{trip.ticket.site}}</text></view>
+              <view class="record-row"><text class="record-label">货品 / 供应商</text><text class="record-value">{{trip.ticket.material}} / {{trip.ticket.supplier || '未提供'}}</text></view>
+              <view class="record-row record-row-emphasis"><text class="record-label">实际净重</text><text class="record-value">{{trip.ticket.net ? trip.ticket.net + ' 吨' : '未提供'}}</text></view>
+            </view>
+            <view wx:else class="step-waiting">暂无磅单信息，请刷新后重试。</view>
+            <view wx:if="{{trip.ticketWarning}}" class="notice-card warning">
+              <view class="notice-title">磅单需要核对</view>
+              <view class="notice-text">{{trip.ticketWarning}}</view>
+            </view>
+          </block>
+
+          <block wx:elif="{{action === 'approve'}}">
+            <view wx:if="{{trip.permit}}" class="step-rows">
+              <view class="record-row"><text class="record-label">出门证号</text><text class="record-value">{{trip.permit.id}}</text></view>
+              <view class="record-row"><text class="record-label">开具时间</text><text class="record-value">{{trip.permit.issuedAt}}</text></view>
+            </view>
+            <view wx:if="{{trip.ticket}}" class="step-rows">
+              <view class="record-row"><text class="record-label">磅单号</text><text class="record-value">{{trip.ticket.id}}</text></view>
+              <view class="record-row record-row-emphasis"><text class="record-label">实际净重</text><text class="record-value">{{trip.ticket.net ? trip.ticket.net + ' 吨' : '未提供'}}</text></view>
+            </view>
+            <view wx:if="{{trip.ticketWarning}}" class="notice-card warning">
+              <view class="notice-title">磅单需要核对</view>
+              <view class="notice-text">{{trip.ticketWarning}}</view>
+            </view>
+          </block>
+
+          <block wx:else>
+            <view class="step-waiting">{{next}}</view>
+          </block>
+
+          <view wx:if="{{formError}}" class="notice-card reject">
+            <view class="notice-title">无法提交</view>
+            <view class="notice-text">{{formError}}</view>
+          </view>
+        </view>
+      </view>
+
+      <view wx:else class="step-timeline-card">
+        <view wx:for="{{timeline}}" wx:key="key" class="step-timeline__item {{item.current ? 'step-timeline__item--current' : ''}}">
+          <view class="step-timeline__rail">
+            <view class="step-timeline__dot {{item.current ? 'step-timeline__dot--current' : ''}}">
+              <t-icon wx:if="{{!item.current}}" name="check" size="20rpx" color="#ffffff" />
+            </view>
+            <view wx:if="{{index < timeline.length - 1}}" class="step-timeline__line"></view>
+          </view>
+          <view class="step-timeline__body {{index === timeline.length - 1 ? 'step-timeline__body--last' : ''}}">
+            <view class="step-timeline__row">
+              <text class="step-timeline__title">{{item.title}}</text>
+              <text class="step-timeline__time">{{item.time}}</text>
+            </view>
+            <view class="step-timeline__detail" data-step="{{item.detail}}" bindtap="openStepDetail" aria-role="button" aria-label="查看{{item.title}}详情">详情<text class="chevron">›</text></view>
+          </view>
+        </view>
+      </view>
+
+      <view wx:if="{{action && !waiting}}" class="fixed-action">
+        <t-button block size="large" theme="primary" disabled="{{confirming}}" bindtap="act">{{actionLabel}}</t-button>
+      </view>
+    </block>
   </block>
 </view>

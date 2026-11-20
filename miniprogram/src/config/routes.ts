@@ -6,7 +6,7 @@ export const routes = {
   registration: '/pages/registration/index',
   plateCamera: '/pages/plate-camera/index',
   trip: '/pages/trip/index',
-  action: '/pages/action/index',
+  tripRecord: '/pages/trip-record/index',
   tickets: '/pages/tickets/index',
   exit: '/pages/exit/index',
   components: '/pages/ui/index',

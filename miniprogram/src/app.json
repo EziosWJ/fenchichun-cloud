@@ -8,7 +8,7 @@
     "pages/registration/index",
     "pages/plate-camera/index",
     "pages/trip/index",
-    "pages/action/index",
+    "pages/trip-record/index",
     "pages/tickets/index",
     "pages/exit/index",
     "pages/ui/index"

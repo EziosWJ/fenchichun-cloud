@@ -1,0 +1,21 @@
+/* stylelint-disable-next-line at-rule-no-unknown -- Sass module */
+@use '../../styles/record';
+
+.record-page {
+  box-sizing: border-box;
+  min-height: 100vh;
+  padding: 24rpx 32rpx calc(48rpx + env(safe-area-inset-bottom));
+  background: var(--fc-bg);
+}
+
+.record-block {
+  margin-top: 24rpx;
+  border-top: 1rpx solid var(--fc-border);
+}
+
+.record-block__title {
+  padding: 20rpx 0 4rpx;
+  font-size: 26rpx;
+  font-weight: 600;
+  color: var(--fc-text-secondary);
+}
