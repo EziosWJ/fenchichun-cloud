@@ -1,3 +1,8 @@
 {
+  "navigationStyle": "custom",
+  "navigationBarTitleText": "汾池春",
+  "navigationBarBackgroundColor": "#241a14",
+  "navigationBarTextStyle": "white",
+  "backgroundColor": "#f7f6f3",
   "usingComponents": {}
 }

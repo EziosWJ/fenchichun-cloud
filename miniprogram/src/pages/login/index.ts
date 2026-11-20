@@ -4,12 +4,24 @@ import { applyAsync, errorMessage } from '@/features/grain/page'
 
 Page({
   data: {
+    statusBarHeight: 20,
     account: '',
     password: '',
     showPassword: false,
     passwordFocus: false,
     error: '',
     submitting: false,
+  },
+  onLoad() {
+    try {
+      const statusBarHeight = wx.getWindowInfo().statusBarHeight
+      if (statusBarHeight) {
+        this.setData({ statusBarHeight })
+      }
+    }
+    catch {
+      // 旧基础库取不到窗口信息时沿用默认值，不影响登录
+    }
   },
   onShow() {
     try {
