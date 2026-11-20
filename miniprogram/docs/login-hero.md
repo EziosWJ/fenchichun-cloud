@@ -28,8 +28,12 @@ CC BY-SA 3.0 要求署名并以相同方式共享；若正式上线保留该图�
 
 ## 页面结构
 
-- 照片层：`.login-hero`，高度 `68vh`，`mode="aspectFill"`。
+- 照片层：`.login-hero`，高度 `68vh`，`mode="aspectFill"`，可见部分只有上方 `42vh`。
 - 遮罩层：`.login-hero__scrim`，暖棕黑 `rgb(30 24 20)` 渐变。
-- 品牌层：象牙白粮穗标记 + 宋体「汾池春」+ 细分隔线。
-- 抽屉层：`.login-drawer`，暖白底、顶部 `48rpx` 圆角，内放白色登录卡。
+- 品牌层：`.login-brand`，绝对定位、固定 `42vh`，象牙白粮穗标记 + 宋体「汾池春」+ 细分隔线，键盘弹出时保持不动。
+- 占位与过渡层：`.login-top`，初始 `42vh`，承载照片下缘的暖棕黑过渡，并作为抽屉上滑的布局占位。
+- 抽屉层：`.login-drawer`，层级高于品牌层，暖白底、顶部 `48rpx` 圆角、撑满剩余高度，内放白色登录卡。
 - 登录页 `navigationStyle` 为 `custom`，状态栏高度取自 `wx.getWindowInfo().statusBarHeight`。
+- 键盘弹出时照片与品牌保持不动：`.login-top` 高度从 `42vh` 过渡到 `calc(状态栏 + 96rpx)`，抽屉随布局上滑盖住品牌层；顶部只留状态栏与胶囊所在的深色照片条。
+- 展开由输入框 `focus`/`blur` 控制，失焦后延迟 `200ms` 再收起；切换账号/密码时新焦点会取消收起，页面不会回落再升起。输入框 `adjust-position` 关闭，避免系统二次滚动照片。
+- 抽屉上滑使用布局高度过渡而不是整页 `transform`，输入框和 placeholder 与卡片同步移动。

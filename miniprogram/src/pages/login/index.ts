@@ -2,9 +2,13 @@ import { routes } from '@/config/routes'
 import { grainService } from '@/features/grain/api-service'
 import { applyAsync, errorMessage } from '@/features/grain/page'
 
+let collapseTimer: ReturnType<typeof setTimeout> | null = null
+
 Page({
   data: {
     statusBarHeight: 20,
+    typing: false,
+    focused: false,
     account: '',
     password: '',
     showPassword: false,
@@ -21,6 +25,30 @@ Page({
     }
     catch {
       // 旧基础库取不到窗口信息时沿用默认值，不影响登录
+    }
+  },
+  handleInputFocus() {
+    this.setData({ focused: true, typing: true })
+  },
+  handleInputBlur() {
+    this.setData({ focused: false })
+    this.collapseWhenKeyboardClosed()
+  },
+  collapseWhenKeyboardClosed() {
+    if (collapseTimer) {
+      clearTimeout(collapseTimer)
+    }
+    collapseTimer = setTimeout(() => {
+      collapseTimer = null
+      if (!this.data.focused) {
+        this.setData({ typing: false })
+      }
+    }, 200)
+  },
+  onUnload() {
+    if (collapseTimer) {
+      clearTimeout(collapseTimer)
+      collapseTimer = null
     }
   },
   onShow() {
@@ -43,7 +71,8 @@ Page({
     this.setData({ passwordFocus: true })
   },
   blurPassword() {
-    this.setData({ passwordFocus: false })
+    this.setData({ passwordFocus: false, focused: false })
+    this.collapseWhenKeyboardClosed()
   },
   togglePassword() {
     this.setData({ showPassword: !this.data.showPassword })

@@ -1,16 +1,18 @@
-<view class="login-page" style="--login-status-bar: {{statusBarHeight}}px">
+<view class="login-page {{typing ? 'login-page--typing' : ''}}" style="--login-status-bar: {{statusBarHeight}}px">
   <view class="login-hero">
     <image class="login-hero__image" src="/ui-kit/login-hero-sorghum.jpg" mode="aspectFill" aria-hidden="true" />
     <view class="login-hero__scrim"></view>
   </view>
 
-  <view class="login-top">
+  <view class="login-brand">
     <view class="brand-seal">
       <image class="brand-seal__grain" src="/ui-kit/icons/icon-grain-light.png" mode="aspectFit" aria-hidden="true" />
     </view>
     <view class="brand-name">汾池春</view>
     <view class="brand-divider"></view>
   </view>
+
+  <view class="login-top"></view>
 
   <view class="login-drawer">
     <view class="login-card">
@@ -25,11 +27,12 @@
             placeholder-class="login-placeholder"
             value="{{account}}"
             bindinput="accountInput"
+            bindfocus="handleInputFocus"
+            bindblur="handleInputBlur"
             confirm-type="next"
             bindconfirm="focusPassword"
             maxlength="40"
-            cursor-spacing="32"
-            adjust-position="{{true}}"
+            adjust-position="{{false}}"
             aria-label="员工账号"
           />
         </view>
@@ -45,13 +48,13 @@
             password="{{!showPassword}}"
             value="{{password}}"
             bindinput="passwordInput"
-            focus="{{passwordFocus}}"
+            bindfocus="handleInputFocus"
             bindblur="blurPassword"
+            focus="{{passwordFocus}}"
             confirm-type="done"
             bindconfirm="login"
             maxlength="64"
-            cursor-spacing="32"
-            adjust-position="{{true}}"
+            adjust-position="{{false}}"
             aria-label="登录密码"
           />
           <view class="password-toggle" bindtap="togglePassword" aria-role="button" aria-label="{{showPassword ? '隐藏密码' : '显示密码'}}">{{showPassword ? '隐藏' : '显示'}}</view>
