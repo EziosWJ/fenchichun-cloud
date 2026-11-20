@@ -36,6 +36,9 @@ Page({
         return
       }
       const apply = (trip: Trip) => {
+        wx.setNavigationBarTitle({
+          title: trip.exitedAt ? '放行记录' : '核验放行',
+        })
         this.setData({
           trip,
           eligible: exitEligible(trip),

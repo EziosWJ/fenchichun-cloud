@@ -3,19 +3,6 @@
 /* stylelint-disable-next-line at-rule-no-unknown -- Sass module */
 @use '../../styles/detail-ui';
 
-.status-chip.danger {
-  color: var(--fc-error);
-  background: var(--fc-error-soft);
-}
-
-.status-chip.danger::before {
-  background: var(--fc-error);
-}
-
-.plate-hero .status-chip.danger {
-  background: var(--fc-error-soft);
-}
-
 .group-card > .record-sheet {
   margin-bottom: 16rpx;
 }

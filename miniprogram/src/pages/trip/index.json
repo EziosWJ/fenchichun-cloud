@@ -1,1 +1,7 @@
-{ "navigationBarTitleText": "流转单详情", "usingComponents": { "loading-state": "/components/loading-state/index", "error-state": "/components/error-state/index" } }
+{
+  "navigationBarTitleText": "库管作业详情",
+  "usingComponents": {
+    "loading-state": "/components/loading-state/index",
+    "error-state": "/components/error-state/index"
+  }
+}

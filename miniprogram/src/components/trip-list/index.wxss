@@ -7,11 +7,11 @@
 
 .trip-row {
   display: flex;
-  gap: 24rpx;
+  gap: 16rpx;
   align-items: center;
   justify-content: space-between;
   min-height: 160rpx;
-  padding: 24rpx 28rpx;
+  padding: 24rpx;
   border-bottom: 1rpx solid var(--fc-border);
 }
 
@@ -63,10 +63,12 @@
   flex: none;
   gap: 8rpx;
   align-items: center;
+  justify-content: center;
   min-height: 88rpx;
   padding: 0 24rpx;
   font-size: 28rpx;
   font-weight: 600;
+  line-height: 1;
   color: #fff;
   white-space: nowrap;
   border-radius: 24rpx;
@@ -85,14 +87,19 @@
 }
 
 .trip-action__arrow {
-  font-size: 30rpx;
-  line-height: 1;
-  opacity: 0.9;
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 28rpx;
+  height: 28rpx;
 }
 
 .trip-chevron {
+  display: flex;
   flex: none;
-  font-size: 36rpx;
-  line-height: 1;
-  color: var(--fc-text-placeholder);
+  align-items: center;
+  justify-content: center;
+  width: 32rpx;
+  height: 32rpx;
 }
