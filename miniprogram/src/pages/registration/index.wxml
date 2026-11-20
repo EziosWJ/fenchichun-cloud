@@ -2,11 +2,7 @@
   <loading-state wx:if="{{loading}}" text="正在加载登记信息" />
   <error-state wx:elif="{{error}}" text="{{error}}" bind:retry="load" />
   <block wx:else>
-    <page-header title="{{edit ? '更正登记' : '登记流转单'}}" description="记录本趟车辆和货品，带 * 的项目必填" />
-
     <view class="form-card">
-      <view class="form-card__title">车辆信息</view>
-
       <view class="field">
         <view class="field-label">厂区 <text class="required">*</text></view>
         <picker range="{{sites}}" value="{{siteIndex}}" bindchange="chooseSite">

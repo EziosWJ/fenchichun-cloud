@@ -43,19 +43,19 @@
         </view>
         <view class="ticket-item">
           <view class="ticket-k">毛重</view>
-          <view class="ticket-v">{{item.gross}}</view>
+          <view class="ticket-v">{{item.gross ? item.gross + ' 吨' : '未提供'}}</view>
         </view>
         <view class="ticket-item">
           <view class="ticket-k">皮重</view>
-          <view class="ticket-v">{{item.tare}}</view>
+          <view class="ticket-v">{{item.tare ? item.tare + ' 吨' : '未提供'}}</view>
         </view>
         <view class="ticket-item">
           <view class="ticket-k">实际净重</view>
-          <view class="ticket-v ticket-v--emphasis">{{item.net || '未提供'}}</view>
+          <view class="ticket-v ticket-v--emphasis">{{item.net ? item.net + ' 吨' : '未提供'}}</view>
         </view>
         <view class="ticket-item">
           <view class="ticket-k">扣减后重量</view>
-          <view class="ticket-v">{{item.deducted || '未提供'}}</view>
+          <view class="ticket-v">{{item.deducted ? item.deducted + ' 吨' : '未提供'}}</view>
         </view>
       </view>
 
