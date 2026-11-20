@@ -18,9 +18,6 @@
       <view class="info-row"><text class="info-k">可用岗位</text><text class="info-v">{{roles}}</text></view>
     </view>
 
-    <view class="logout-card">
-      <button class="logout-btn" hover-class="logout-btn-hover" bindtap="logout">退出登录</button>
-      <view class="logout-hint">退出后需要重新输入账号密码</view>
-    </view>
+    <button class="logout-btn" hover-class="logout-btn-hover" bindtap="logout">退出登录</button>
   </block>
 </view>
