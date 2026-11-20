@@ -18,7 +18,6 @@ Page({
     error: '',
     role: 'warehouse' as Role,
     roleName: '',
-    canSwitch: false,
     query: '',
     gateHistory: false,
     trips: cards([]),
@@ -48,7 +47,6 @@ Page({
           trips: cards(sortTrips(trips, current.role)),
           role: current.role,
           roleName: roleLabels[current.role],
-          canSwitch: current.user.roles.length > 1,
         })
         this.setData({ loading: false })
       }
@@ -70,31 +68,6 @@ Page({
     }
     this.setData({ query: '' })
     this.load()
-  },
-  switchRole() {
-    try {
-      const current = requireLogin()
-      if (!current || current.user.roles.length < 2) {
-        return
-      }
-      const roles = current.user.roles
-      wx.showActionSheet({
-        itemList: roles.map(role => roleLabels[role]),
-        success: ({ tapIndex }) => {
-          try {
-            grainService.switchRole(roles[tapIndex])
-            this.setData({ query: '', gateHistory: false })
-            this.load()
-          }
-          catch (error) {
-            wx.showToast({ title: errorMessage(error), icon: 'none' })
-          }
-        },
-      })
-    }
-    catch (error) {
-      wx.showToast({ title: errorMessage(error), icon: 'none' })
-    }
   },
   showPending() {
     this.setData({ gateHistory: false })

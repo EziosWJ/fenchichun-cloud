@@ -36,10 +36,6 @@
   padding: 0 32rpx;
 }
 
-.workbench-banner--switchable .workbench-banner__main {
-  max-width: 52%;
-}
-
 .workbench-banner__icon {
   flex: none;
 }
@@ -52,20 +48,4 @@
   color: var(--fc-text);
   letter-spacing: -0.5rpx;
   overflow-wrap: anywhere;
-}
-
-.workbench-banner__switch {
-  position: absolute;
-  top: 22rpx;
-  right: 22rpx;
-  z-index: 3;
-  display: flex;
-  align-items: center;
-  min-height: 72rpx;
-  padding: 0 16rpx;
-  font-size: 24rpx;
-  color: var(--fc-brand);
-  background: var(--fc-surface);
-  border: 1rpx solid var(--fc-border);
-  border-radius: 999rpx;
 }

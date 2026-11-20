@@ -21,7 +21,6 @@ function runtime() {
   const storage = new Map<string, unknown>()
   let registered: Data | undefined
   let navigation = ''
-  let actionIndex = 0
   const responses = new Map<string, { data: unknown, statusCode: number }>()
   const requests: Request[] = []
   const unexpectedRequests: string[] = []
@@ -70,9 +69,6 @@ function runtime() {
       options.success?.({ confirm: true })
       options.complete?.()
     },
-    showActionSheet: (options: {
-      success: (result: { tapIndex: number }) => void
-    }) => options.success({ tapIndex: actionIndex }),
   }
   const context = vm.createContext({
     wx,
@@ -137,8 +133,12 @@ function runtime() {
   return {
     page,
     navigation: () => navigation,
-    select: (index: number) => {
-      actionIndex = index
+    setRole(role: string) {
+      const auth = storage.get('grain.auth.v1') as { role: string } | undefined
+      if (!auth) {
+        throw new Error('尚未登录，无法设置岗位')
+      }
+      storage.set('grain.auth.v1', { ...auth, role })
     },
     respond(method: string, path: string, data: unknown, statusCode = 200) {
       responses.set(`${method} /api/v1${path}`, { data, statusCode })
@@ -305,9 +305,8 @@ test('页面控制器通过后端接口登记、关联磅单并跨岗位确认�
   assert.equal(detail.data.status, '等待出厂')
 
   const workbench = app.page('index')
+  app.setRole('guard')
   await call(workbench, 'onShow')
-  app.select(1)
-  await call(workbench, 'switchRole')
   assert.equal(workbench.data.role, 'guard')
   assert.equal((workbench.data.trips as TripCard[])[0]?.id, tripNumber)
   const exit = app.page('exit')
@@ -364,10 +363,7 @@ test('目测拒收退厂显示依据并由门卫通过后端接口确认出厂',
   assert.equal((detail.data.trip as { inspection: { reason: string } }).inspection.reason, '含有明显异物')
   assert.equal(detail.data.action, '')
 
-  const workbench = app.page('index')
-  await call(workbench, 'onShow')
-  app.select(1)
-  await call(workbench, 'switchRole')
+  app.setRole('guard')
   const exit = app.page('exit')
   await call(exit, 'onLoad', { id: '41' })
   await call(exit, 'onShow')

@@ -371,16 +371,6 @@ export const grainService = {
       clearAuth()
     }
   },
-  switchRole(role: Role) {
-    const current = readAuth()
-    if (!current) {
-      finish('请先登录')
-    }
-    if (!current.user.roles.includes(role)) {
-      finish('当前账号没有这个岗位')
-    }
-    writeAuth({ ...current, role })
-  },
   async listTrips() {
     if (!readAuth()) {
       finish('请先登录')

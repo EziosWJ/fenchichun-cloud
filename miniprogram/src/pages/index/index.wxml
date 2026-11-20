@@ -3,8 +3,6 @@
     <workbench-banner
       role="{{role}}"
       title="{{roleName}}工作台"
-      can-switch="{{canSwitch}}"
-      bind:switchrole="switchRole"
     />
   </view>
 

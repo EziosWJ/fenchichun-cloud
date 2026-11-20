@@ -8,14 +8,5 @@ Component({
       type: String,
       value: '',
     },
-    canSwitch: {
-      type: Boolean,
-      value: false,
-    },
-  },
-  methods: {
-    switchRole() {
-      this.triggerEvent('switchrole')
-    },
   },
 })
