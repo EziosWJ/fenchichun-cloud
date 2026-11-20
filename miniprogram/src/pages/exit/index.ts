@@ -19,8 +19,7 @@ Page({
     plateProvince: '',
     plateNumber: '',
     tab: 'current' as 'current' | 'timeline',
-    events: [] as Array<EventRecord & { key: number }>,
-    evidenceExpanded: false,
+    events: [] as Array<EventRecord & { key: number, note?: string }>,
     confirming: false,
   },
   onLoad(query: Record<string, string | undefined>) {
@@ -37,7 +36,7 @@ Page({
       }
       const apply = (trip: Trip) => {
         wx.setNavigationBarTitle({
-          title: trip.exitedAt ? '放行记录' : '核验放行',
+          title: trip.exitedAt ? '放行记录' : '确认出厂',
         })
         this.setData({
           trip,
@@ -47,7 +46,11 @@ Page({
           plateProvince: trip.plate.slice(0, 1),
           plateNumber: trip.plate.slice(1),
           tab: trip.exitedAt ? 'timeline' : 'current',
-          events: trip.events.map((event, key) => ({ ...event, key })),
+          events: trip.events.map((event, key) => ({
+            ...event,
+            key,
+            note: event.text.includes('登记流转单') ? `流转单号 ${trip.id}` : '',
+          })),
         })
         this.setData({ loading: false })
       }
@@ -64,9 +67,6 @@ Page({
     if (tab === 'current' || tab === 'timeline') {
       this.setData({ tab })
     }
-  },
-  toggleEvidence() {
-    this.setData({ evidenceExpanded: !this.data.evidenceExpanded })
   },
   confirmExit() {
     const trip = this.data.trip

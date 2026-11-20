@@ -3,6 +3,85 @@
 /* stylelint-disable-next-line at-rule-no-unknown -- Sass module */
 @use '../../styles/detail-ui';
 
-.group-card > .record-sheet {
-  margin-bottom: 16rpx;
+.exit-screen {
+  --td-button-large-height: 104rpx;
+  --td-button-large-font: 600 32rpx / 1 var(--td-font-family);
+}
+
+.exit-screen .record-sheet {
+  margin-top: 24rpx;
+}
+
+.exit-screen .detail-plate__province,
+.exit-screen .detail-plate__number {
+  font-size: 60rpx;
+}
+
+.exit-screen .summary-card__label,
+.exit-screen .summary-card__sub {
+  font-size: 26rpx;
+}
+
+.exit-screen .summary-card__value {
+  font-size: 34rpx;
+}
+
+.exit-screen .summary-card--status .summary-card__value {
+  font-size: 40rpx;
+  line-height: 1.25;
+}
+
+.exit-screen .segmented__item {
+  min-height: 88rpx;
+  font-size: 30rpx;
+}
+
+.exit-screen .status-title {
+  font-size: 38rpx;
+}
+
+.exit-screen .status-desc {
+  font-size: 30rpx;
+}
+
+.exit-screen .record-title {
+  font-size: 32rpx;
+}
+
+.exit-screen .record-badge {
+  font-size: 26rpx;
+}
+
+.exit-screen .record-row {
+  font-size: 30rpx;
+}
+
+.exit-screen .record-label {
+  font-size: 28rpx;
+}
+
+.exit-screen .record-value {
+  font-size: 30rpx;
+}
+
+.exit-screen .record-note {
+  font-size: 30rpx;
+}
+
+.exit-screen .record-note-label {
+  font-size: 26rpx;
+}
+
+.exit-screen .timeline__title {
+  font-size: 30rpx;
+}
+
+.exit-screen .timeline__note {
+  margin-top: 4rpx;
+  font-size: 28rpx;
+  color: var(--fc-text);
+}
+
+.exit-screen .timeline__meta {
+  font-size: 26rpx;
 }

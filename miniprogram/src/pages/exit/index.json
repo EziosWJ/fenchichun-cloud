@@ -1,5 +1,5 @@
 {
-  "navigationBarTitleText": "核验放行",
+  "navigationBarTitleText": "确认出厂",
   "usingComponents": {
     "loading-state": "/components/loading-state/index",
     "error-state": "/components/error-state/index"
