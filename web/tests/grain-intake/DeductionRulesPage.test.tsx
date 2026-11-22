@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import DeductionRulesPage from '../../src/pages/grain-intake/DeductionRulesPage';
+import { checkRanges, deductionMilliTonnes, matchRange } from '../../src/pages/grain-intake/deductionRuleDraft';
 import { renderWithProviders } from '../utils/renderWithProviders';
 import { useAuthStore } from '../../src/stores/useAuthStore';
 
@@ -44,7 +45,7 @@ describe('deduction rules page', () => {
   it('shows delete action and removes a rule version after confirmation', async () => {
     const user = userEvent.setup();
     renderWithProviders(<DeductionRulesPage />);
-    await screen.findByText('13~14 → 1.00%');
+    await screen.findByText('[13%, 14%) 扣 1.00%');
     expect(screen.queryByText(/按物料配置水分、杂质等扣减类别/)).not.toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: '删除' }));
     const dialog = await screen.findByRole('dialog');
@@ -55,7 +56,7 @@ describe('deduction rules page', () => {
   it('keeps the rule form focused on category, percentage and enabled state', async () => {
     const user = userEvent.setup();
     renderWithProviders(<DeductionRulesPage />);
-    await screen.findByText('13~14 → 1.00%');
+    await screen.findByText('[13%, 14%) 扣 1.00%');
     await user.click(screen.getByRole('button', { name: '新增规则' }));
     const dialog = await screen.findByRole('dialog');
     expect(within(dialog).queryByText('检测值依据')).not.toBeInTheDocument();
@@ -76,4 +77,17 @@ describe('deduction rules page', () => {
     const dialog = await screen.findByRole('dialog');
     expect(within(dialog).getByText('该物料的扣减规则不会生效')).toBeInTheDocument();
   });
+});
+
+it('试算采用左闭右开区间，断档不匹配，扣减在半千克处向上舍入', () => {
+  const first = { minValue: '14', maxValue: '16', ratePercent: 2 };
+  const second = { minValue: '17', maxValue: '', ratePercent: 3 };
+  expect(checkRanges([first, second])).toEqual({ complete: true, gaps: ['[16%, 17%)'], error: undefined });
+  expect(matchRange([first, second], 14)).toBe(0);
+  expect(matchRange([first, second], 16)).toBe(-1);
+  expect(matchRange([first, second], 17)).toBe(1);
+  expect(checkRanges([first, { ...second, minValue: '16' }]).gaps).toEqual([]);
+  expect(checkRanges([first, { ...second, minValue: '15.999999' }]).error).toContain('重叠');
+  expect(checkRanges([{ ...first, maxValue: '' }, second]).error).toContain('只有最后一个区间');
+  expect(deductionMilliTonnes(20.025, 2)).toBe(401);
 });

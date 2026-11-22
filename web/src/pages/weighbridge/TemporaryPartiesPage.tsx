@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Alert, App, Button, Descriptions, Input, Modal, Radio, Select, Space, Tag, Typography } from 'antd';
+import { Alert, App, Button, Input, Modal, Radio, Select, Space, Tag, Typography } from 'antd';
 import type { TableColumnsType } from 'antd';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { DataTable } from '../../components/DataTable';
@@ -9,7 +9,9 @@ import {
   type PartyIdentities, type TemporaryParty, type TemporaryPartyDecision, type TemporaryPartyStatus,
 } from '../../features/weighbridge/api';
 import { useListUrlState } from '../../hooks/useListUrlState';
+import { useListDraft } from '../../hooks/useListDraft';
 import { ApiError, getApiErrorMessage } from '../../lib/api/errors';
+import styles from './TemporaryPartiesPage.module.css';
 
 const queryKey = ['weighbridge', 'temporary-parties'];
 const identities = [
@@ -43,6 +45,8 @@ function identityLabel(party: PartyIdentities) {
   return identities.filter(([field]) => party[field]).map(([, label]) => label).join('、');
 }
 
+const natureLabel = (nature: string) => nature === 'enterprise' ? '企业' : '个人';
+
 function canProcess(row: TemporaryParty) {
   return row.status === 'pending' || row.status === 'needs_info';
 }
@@ -58,7 +62,7 @@ export default function TemporaryPartiesPage() {
   const { message } = App.useApp();
   const client = useQueryClient();
   const { state, actions } = useListUrlState(listConfig);
-  const [keyword, setKeyword] = useState(state.keyword);
+  const { draft, setKeyword } = useListDraft(state.keyword, state.filters);
   const [selected, setSelected] = useState<TemporaryParty | null>(null);
   const [decision, setDecision] = useState<DecisionStatus>('merged');
   const [formalCode, setFormalCode] = useState<string>();
@@ -129,7 +133,7 @@ export default function TemporaryPartiesPage() {
         <Space wrap align="end">
           <FilterField label="主体或厂区" wide>
             <Input.Search aria-label="主体或厂区" placeholder="名称或编码" allowClear
-              value={keyword} onChange={(event) => setKeyword(event.target.value)}
+              value={draft.keyword} onChange={(event) => setKeyword(event.target.value)}
               onSearch={(value) => actions.setKeyword(value)} />
           </FilterField>
           <FilterField label="状态">
@@ -144,7 +148,7 @@ export default function TemporaryPartiesPage() {
           page={state.page} pageSize={state.pageSize} onPageChange={actions.setPage}
           loading={registrations.isLoading} onRefresh={() => void registrations.refetch()} />
       </Space>
-      <Modal title="核对临时主体" open={!!selected} destroyOnHidden width={680} cancelText="取消"
+      <Modal title="核对临时主体" open={!!selected} destroyOnHidden width={760} centered cancelText="取消"
         okText={decisionLabels[decision]} confirmLoading={save.isPending}
         cancelButtonProps={{ disabled: save.isPending }}
         okButtonProps={{
@@ -161,15 +165,11 @@ export default function TemporaryPartiesPage() {
           } });
         }}>
         {selected && (
-          <Space orientation="vertical" size="middle" style={{ width: '100%' }}>
-            <Descriptions size="small" bordered column={{ xs: 1, sm: 2 }} items={[
-              { key: 'site', label: '发起厂区', children: `${selected.siteName}（${selected.siteCode}）` },
-              { key: 'version', label: '登记版本', children: selected.version },
-              { key: 'party', label: '临时主体', children: selected.name },
-              { key: 'code', label: '临时编码', children: selected.temporaryCode },
-              { key: 'nature', label: '主体性质', children: selected.nature === 'enterprise' ? '企业' : '个人' },
-              { key: 'identities', label: '业务身份', children: identityLabel(selected) },
-            ]} />
+          <div className={styles.reviewBody}>
+            <Space wrap size={[16, 4]}>
+              <Typography.Text type="secondary">发起厂区 <strong>{selected.siteName}（{selected.siteCode}）</strong></Typography.Text>
+              <Typography.Text type="secondary">登记版本 {selected.version}</Typography.Text>
+            </Space>
             {modalError && <Alert type="error" title={modalError} />}
             {stale && <Alert type="warning" title="登记已更新，请核对最新资料。"
               action={<Button onClick={() => { if (latest && canProcess(latest)) review(latest); else setSelected(null); }}>
@@ -195,7 +195,7 @@ export default function TemporaryPartiesPage() {
                     description="正式主体须已启用，并覆盖临时主体的全部业务身份。" />
                 )}
                 <FilterField label="拟归并的正式主体">
-                  <Select aria-label="拟归并的正式主体" showSearch={{ optionFilterProp: 'label' }}
+                  <Select className={styles.formalSelect} aria-label="拟归并的正式主体" showSearch={{ optionFilterProp: 'label' }}
                     placeholder="搜索正式主体名称或编码" value={formalCode} onChange={setFormalCode}
                     allowClear loading={formalParties.isFetching} disabled={save.isPending}
                     options={candidates.map((party) => ({
@@ -205,19 +205,45 @@ export default function TemporaryPartiesPage() {
                     }))}
                     notFoundContent={formalParties.isFetching ? '正在加载正式主体…' : '没有匹配的正式主体'} />
                 </FilterField>
-                {formal && <Alert type="info" title={`归并至 ${formal.name}（${formal.code}）`}
-                  description={`正式主体业务身份：${identityLabel(formal)}。确认后关联固定。`} />}
               </>
+            ) : null}
+            <table className={styles.comparison} aria-label="主体资料核对">
+              <thead><tr>
+                <th scope="col">核对项</th>
+                <th scope="col">临时主体</th>
+                {decision === 'merged' && <th scope="col">正式主体</th>}
+              </tr></thead>
+              <tbody>
+                {[
+                  ['名称', selected.name, formal?.name],
+                  ['编码', selected.temporaryCode, formal?.code],
+                  ['主体性质', natureLabel(selected.nature), formal && natureLabel(formal.nature)],
+                  ['业务身份', identityLabel(selected), formal && identityLabel(formal)],
+                ].map(([label, temporaryValue, formalValue]) => (
+                  <tr key={label}>
+                    <th scope="row">{label}</th>
+                    <td>{temporaryValue}</td>
+                    {decision === 'merged' && <td>{formalValue ?? (label === '名称' ? '请先选择正式主体' : '—')}</td>}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            {decision === 'merged' ? (
+              <Alert type="info" title="结算与对账影响"
+                description="确认后，本厂该临时主体的磅单纳入正式主体的汇总、对账和重新导出。磅单明细保留原主体编码和名称。厂端同步且正式主体可用后，新开单改选正式主体。确认后归并关系固定。" />
             ) : (
               <>
-                {decision === 'disabled' && <Alert type="warning" title="厂端下次同步后，此临时主体将移出新开单候选。" />}
+                {decision === 'disabled'
+                  ? <Alert type="warning" title="厂端下次成功同步后，临时主体将移出新开单候选。"
+                    description="已首磅任务可按原主体完成回磅，历史磅单保留原主体记录。" />
+                  : <Alert type="info" title="待补资料期间，厂端可继续使用该临时主体办理普通过磅。" />}
                 <FilterField label={decision === 'needs_info' ? '待补资料原因（必填）' : '停用原因（选填）'} wide>
                   <Input.TextArea aria-label="处理原因" value={reason} maxLength={500} rows={3}
                     disabled={save.isPending} onChange={(event) => setReason(event.target.value)} />
                 </FilterField>
               </>
             )}
-          </Space>
+          </div>
         )}
       </Modal>
     </>

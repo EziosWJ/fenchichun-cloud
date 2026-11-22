@@ -6,12 +6,14 @@ import { Plus } from 'lucide-react';
 import { DataTable } from '../../components/DataTable';
 import { PageHeader } from '../../components/PageHeader';
 import { useListUrlState } from '../../hooks/useListUrlState';
+import { useListDraft } from '../../hooks/useListDraft';
 import { usePermissions } from '../../hooks/usePermissions';
 import { deleteGranary, granaries, saveGranary, type Granary, type GranaryInput } from '../../features/granary/api';
 import { getApiErrorMessage } from '../../lib/api/errors';
 
 const config = { filters: {}, sortKeys: [], pageSizeOptions: [10, 20, 50], defaultPageSize: 10 } as const;
 const blank: GranaryInput = { name: '', enabled: true, remark: '' };
+const deactivationImpact = '停用后，确认卸粮时无法选择此仓库。已确认的实际卸粮地点继续保留。';
 
 export default function GranariesPage() {
   const { message, modal } = App.useApp();
@@ -19,8 +21,9 @@ export default function GranariesPage() {
   const { state, actions } = useListUrlState(config);
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Granary | null>(null);
-  const [keyword, setKeyword] = useState('');
+  const { draft, setKeyword } = useListDraft(state.keyword, state.filters);
   const [form] = Form.useForm<GranaryInput>();
+  const enabled = Form.useWatch('enabled', form);
   const { has } = usePermissions();
   const canManage = has('grain-intake:granaries:manage');
   const list = useQuery({ queryKey: ['granaries'], queryFn: () => granaries() });
@@ -35,6 +38,22 @@ export default function GranariesPage() {
     onSuccess: () => { message.success('已删除'); refresh(); },
     onError: (error) => message.error(getApiErrorMessage(error)),
   });
+  const submit = async () => {
+    const values = await form.validateFields().catch(() => undefined);
+    if (!values) return;
+    if (editing?.enabled && !values.enabled) {
+      modal.confirm({
+        title: `停用仓库「${editing.name}」？`,
+        content: deactivationImpact,
+        okText: '确认停用',
+        okButtonProps: { danger: true },
+        cancelText: '取消',
+        onOk: async () => { await save.mutateAsync(values); },
+      });
+    } else {
+      save.mutate(values);
+    }
+  };
   const columns: ColumnsType<Granary> = [
     { title: '仓库名称', dataIndex: 'name', key: 'name' },
     { title: '状态', dataIndex: 'enabled', key: 'enabled', width: 100, render: (value: boolean) => value ? <Tag color="green">启用</Tag> : <Tag>停用</Tag> },
@@ -44,19 +63,23 @@ export default function GranariesPage() {
         <Button type="link" size="small" onClick={() => { setEditing(row); form.setFieldsValue({ name: row.name, enabled: row.enabled, remark: row.remark }); setOpen(true); }}>编辑</Button>
         <Button type="link" size="small" danger onClick={() => modal.confirm({
           title: `删除仓库「${row.name}」？`,
-          content: '已办理的流转单保留原卸货地点记录，不受影响。',
+          content: '删除后，确认卸粮时无法选择此仓库。已确认的实际卸粮地点继续保留。',
           okText: '删除', okButtonProps: { danger: true }, cancelText: '取消',
           onOk: () => remove.mutateAsync(row.id).then(() => undefined),
         })}>删除</Button>
       </Space>,
     }] : []),
   ];
-  const rows = (list.data ?? []).filter((row) => !keyword || row.name.toLowerCase().includes(keyword.trim().toLowerCase()));
+  const rows = (list.data ?? []).filter((row) => row.name.toLowerCase().includes(state.keyword.toLowerCase()));
   return <>
     <PageHeader title="仓库维护" />
     <Space orientation="vertical" size="middle" style={{ width: '100%', marginTop: 20 }}>
       <Space wrap align="end" style={{ width: '100%', justifyContent: 'space-between' }}>
-        <Input.Search aria-label="仓库名称" placeholder="搜索仓库名称" allowClear value={keyword} onChange={(e) => { setKeyword(e.target.value); actions.setPage(1); }} style={{ maxWidth: 320 }} />
+        <Input.Search aria-label="仓库名称" placeholder="搜索仓库名称" allowClear value={draft.keyword}
+          onChange={(event) => {
+            setKeyword(event.target.value);
+            actions.setKeyword(event.target.value, true);
+          }} style={{ maxWidth: 320 }} />
         {canManage && <Button type="primary" icon={<Plus size={16} />} onClick={() => { setEditing(null); form.resetFields(); form.setFieldsValue(blank); setOpen(true); }}>新增仓库</Button>}
       </Space>
       {list.isError && <Alert type="error" title={getApiErrorMessage(list.error)} action={<Button onClick={() => void list.refetch()}>重试</Button>} />}
@@ -76,8 +99,8 @@ export default function GranariesPage() {
     <Modal
       title={editing ? '编辑仓库' : '新增仓库'}
       open={open}
-      onCancel={() => setOpen(false)}
-      onOk={() => void form.validateFields().then((v) => save.mutate(v))}
+      onCancel={() => { if (!save.isPending) setOpen(false); }}
+      onOk={() => void submit()}
       confirmLoading={save.isPending}
       destroyOnHidden
     >
@@ -86,6 +109,7 @@ export default function GranariesPage() {
           <Input maxLength={100} placeholder="例如：1 号仓" />
         </Form.Item>
         <Form.Item name="enabled" label="启用" valuePropName="checked"><Switch /></Form.Item>
+        {enabled === false && <Alert type="warning" showIcon title="停用影响" description={deactivationImpact} />}
         <Form.Item name="remark" label="备注"><Input.TextArea maxLength={500} rows={2} /></Form.Item>
       </Form>
     </Modal>

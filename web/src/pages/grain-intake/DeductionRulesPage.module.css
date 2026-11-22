@@ -1,5 +1,5 @@
 .ruleForm {
-  max-height: min(68vh, 720px);
+  max-height: min(calc(100dvh - 144px), 720px);
   overflow-y: auto;
   padding-right: 6px;
 }
@@ -42,6 +42,18 @@
 
 .formSection :global(.ant-form-item) {
   margin-bottom: 12px;
+}
+
+.formNote {
+  margin: 0 0 12px;
+  color: var(--ant-color-text-secondary);
+}
+
+.trialResult {
+  padding: 9px 12px;
+  border-inline-start: 3px solid var(--ant-color-primary);
+  background: var(--ant-color-fill-quaternary);
+  font-variant-numeric: tabular-nums;
 }
 
 .ranges {
