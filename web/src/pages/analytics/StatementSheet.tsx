@@ -15,7 +15,7 @@ import {
   Tooltip,
   type TableColumnsType,
 } from 'antd';
-import { keepPreviousData, useQuery } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import dayjs from 'dayjs';
 import { ChevronDown, Download, Printer, X } from 'lucide-react';
 import type { EChartsOption } from 'echarts';
@@ -24,6 +24,7 @@ import { getApiErrorMessage } from '../../lib/api/errors';
 import { downloadBlob } from '../../features/analytics/download';
 import { exportStatementDetail, statementDetail } from '../../features/analytics/api';
 import {
+  formatBeijingTime,
   formatMilliTonneCompact,
   formatTonneCompact,
   statementDirectionLabel,
@@ -34,7 +35,7 @@ import {
   type StatementChartPoint,
 } from '../../features/analytics/statementChart';
 import { tickets, type Ticket, type TicketRecord } from '../../features/weighbridge/api';
-import { formatDateTime, formatPercent } from '../../utils/format';
+import { formatPercent } from '../../utils/format';
 import styles from './StatementSheet.module.css';
 
 const { RangePicker } = DatePicker;
@@ -76,7 +77,16 @@ function adjustmentModeLabel(value: string | null | undefined): string {
   return value || '—';
 }
 
-function TicketDetails({ record }: { record: TicketRecord }) {
+function accountingDate(ticket: Ticket): string {
+  const businessAt = ticket.entryType === 'manual_supplement' ? ticket.secondWeighedAt : ticket.issuedAt;
+  return formatBeijingTime(businessAt).slice(0, 10);
+}
+
+function partyLabel(name: string, code: string): string {
+  return [name === code ? '' : name, code].filter(Boolean).join(' / ') || '—';
+}
+
+function TicketDetails({ record, settlementParty }: { record: TicketRecord; settlementParty: string }) {
   const ticket = record.ticket;
   const material = [ticket.materialName, ticket.materialSpec].filter(Boolean).join(' / ');
   return (
@@ -88,7 +98,14 @@ function TicketDetails({ record }: { record: TicketRecord }) {
         { key: 'ticketNo', label: '单号', children: ticket.ticketNo },
         { key: 'plate', label: '车牌', children: ticket.plate || '—' },
         { key: 'direction', label: '方向', children: statementDirectionLabel(ticket.direction) },
-        { key: 'issuedAt', label: '出单时间', children: formatDateTime(ticket.issuedAt) },
+        { key: 'businessDate', label: '对账归属日', children: accountingDate(ticket) },
+        { key: 'issuedAt', label: '实际出单时间', children: formatBeijingTime(ticket.issuedAt) },
+        ...(ticket.entryType === 'manual_supplement' ? [
+          { key: 'firstWeighedAt', label: '实际首磅时间', children: formatBeijingTime(ticket.firstWeighedAt) },
+          { key: 'secondWeighedAt', label: '实际回磅时间', children: formatBeijingTime(ticket.secondWeighedAt) },
+        ] : []),
+        { key: 'originalParty', label: '原主体', children: partyLabel(ticket.partyName, ticket.partyCode) },
+        { key: 'settlementParty', label: '结算主体', children: settlementParty },
         { key: 'issuer', label: '司磅员', children: ticket.issuerName || '—' },
         { key: 'material', label: '物料', children: material || '—' },
         { key: 'gross', label: '毛重（吨）', children: weightText(ticket.finalGross) },
@@ -102,12 +119,12 @@ function TicketDetails({ record }: { record: TicketRecord }) {
         {
           key: 'firstConfirmed',
           label: '第一次确认',
-          children: formatDateTime(ticket.firstConfirmedAt),
+          children: formatBeijingTime(ticket.firstConfirmedAt),
         },
         {
           key: 'secondConfirmed',
           label: '第二次确认',
-          children: formatDateTime(ticket.secondConfirmedAt),
+          children: formatBeijingTime(ticket.secondConfirmedAt),
         },
         { key: 'grossSource', label: '毛重来源', children: sourceLabel(ticket.grossSource) },
         { key: 'tareSource', label: '皮重来源', children: sourceLabel(ticket.tareSource) },
@@ -123,7 +140,7 @@ function TicketDetails({ record }: { record: TicketRecord }) {
         },
         { key: 'adjustmentRemark', label: '调整原因', children: ticket.adjustmentRemark || '—' },
         { key: 'adjustedBy', label: '调整经办人', children: ticket.adjustedBy || '—' },
-        { key: 'adjustedAt', label: '调整时间', children: formatDateTime(ticket.adjustedAt) },
+        { key: 'adjustedAt', label: '调整时间', children: formatBeijingTime(ticket.adjustedAt) },
         { key: 'driver', label: '司机', children: ticket.driver || '—' },
         { key: 'driverPhone', label: '司机电话', children: ticket.driverPhone || '—' },
         { key: 'contact', label: '联系人', children: ticket.contactName || '—' },
@@ -230,7 +247,6 @@ export function StatementSheet({
     queryKey: ['weighbridge', 'statement-tickets', ticketParams],
     queryFn: () => tickets(ticketParams),
     enabled: Boolean(siteCode && partyCode && direction),
-    placeholderData: keepPreviousData,
   });
 
   const data = detail.data;
@@ -426,16 +442,34 @@ export function StatementSheet({
 
   const ticketColumns: TableColumnsType<TicketRecord> = [
     {
-      title: '对账时间',
+      title: '对账归属日',
+      key: 'businessDate',
+      width: 175,
+      render: (_, { ticket }) => (
+        <>
+          <div>{accountingDate(ticket)}</div>
+          {ticket.entryType === 'manual_supplement' && (
+            <div className={styles.ticketMeta}>回磅 {formatBeijingTime(ticket.secondWeighedAt)}</div>
+          )}
+        </>
+      ),
+    },
+    {
+      title: '实际出单时间',
       key: 'issuedAt',
-      width: 140,
-      render: (_, row) => formatDateTime(row.ticket.entryType === 'manual_supplement' && row.ticket.secondWeighedAt ? row.ticket.secondWeighedAt : row.ticket.issuedAt),
+      width: 155,
+      render: (_, { ticket }) => <span className={styles.ticketDateTime}>{formatBeijingTime(ticket.issuedAt)}</span>,
     },
     {
       title: '单号',
       key: 'ticketNo',
       width: 180,
-      render: (_, row) => <span className={styles.ticketNo}>{row.ticket.ticketNo}</span>,
+      render: (_, { ticket }) => (
+        <>
+          <div className={styles.ticketNo}>{ticket.ticketNo}</div>
+          {ticket.entryType === 'manual_supplement' && <Tag color="gold">人工补单</Tag>}
+        </>
+      ),
     },
     {
       title: '车牌',
@@ -444,11 +478,11 @@ export function StatementSheet({
       render: (_, row) => <span className={styles.plate}>{row.ticket.plate}</span>,
     },
     {
-      title: '开单时往来主体',
+      title: '原主体（出单快照）',
       key: 'party',
       width: 190,
       render: (_, { ticket }) => {
-        const label = [ticket.partyName, ticket.partyCode].filter(Boolean).join(' / ');
+        const label = partyLabel(ticket.partyName, ticket.partyCode);
         return <span className={styles.ellipsis} title={label}>{label || '—'}</span>;
       },
     },
@@ -501,7 +535,7 @@ export function StatementSheet({
       <header className={styles.header}>
         <div className={styles.identity}>
           <div className={styles.eyebrow}>
-            {statementDirectionLabel(direction)} · 对账单
+            {statementDirectionLabel(direction)} · 结算主体
           </div>
           <h2 className={styles.partyName}>
             {resolvedPartyName}
@@ -729,7 +763,7 @@ export function StatementSheet({
               </section>
             </div>
 
-            <p className={styles.filterHint}>点击物料条或净重柱，筛选下方过磅单明细</p>
+            <p className={styles.filterHint}>净重按对账归属日汇总。点击物料条或净重柱筛选明细。</p>
 
             <section ref={ticketSectionRef} className={styles.ticketsSection}>
               <div className={styles.sectionHead}>
@@ -741,6 +775,7 @@ export function StatementSheet({
                 </span>
               </div>
 
+              <p className={styles.filterHint}>北京时间 · 人工补单归实际回磅日，其他单据归出单日。</p>
               <div className={styles.ticketFilters} role="group" aria-label="过磅单明细筛选">
                 <Input.Search
                   className={styles.ticketSearch}
@@ -830,11 +865,15 @@ export function StatementSheet({
                 dataSource={ticketList.data?.items ?? []}
                 loading={ticketList.isFetching}
                 size="small"
-                scroll={{ x: 1140 }}
+                tableLayout="fixed"
+                scroll={{ x: 1390 }}
                 expandable={{
                   columnWidth: 40,
+                  fixed: 'left',
                   expandRowByClick: true,
-                  expandedRowRender: (row) => <TicketDetails record={row} />,
+                  expandedRowRender: (row) => (
+                    <TicketDetails record={row} settlementParty={partyLabel(resolvedPartyName, resolvedPartyCode)} />
+                  ),
                 }}
                 pagination={{
                   current: page,

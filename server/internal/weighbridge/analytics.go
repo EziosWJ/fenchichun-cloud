@@ -25,13 +25,16 @@ type AnalyticsQuery struct {
 }
 
 type AnalyticsFreshness struct {
-	DataThrough    *time.Time             `json:"dataThrough"`
-	LastReceivedAt *time.Time             `json:"lastReceivedAt"`
-	HistoryStart   *time.Time             `json:"historyStart"`
-	SiteReceipts   []AnalyticsSiteReceipt `json:"siteReceipts"`
+	// Latest ticket issue time included by the report filters, in contrast to the global history.
+	FilteredDataThrough *time.Time             `json:"filteredDataThrough"`
+	DataThrough         *time.Time             `json:"dataThrough"`
+	LastReceivedAt      *time.Time             `json:"lastReceivedAt"`
+	HistoryStart        *time.Time             `json:"historyStart"`
+	SiteReceipts        []AnalyticsSiteReceipt `json:"siteReceipts"`
 }
 
 type AnalyticsSiteReceipt struct {
+	Enabled         bool       `json:"enabled"`
 	SiteCode        string     `json:"siteCode"`
 	SiteName        string     `json:"siteName"`
 	LastReceivedAt  *time.Time `json:"lastReceivedAt"`
@@ -62,6 +65,7 @@ type AnalyticsComparison struct {
 }
 
 type AnalyticsOverviewSummary struct {
+	AdjustmentKnownTickets    int64  `json:"adjustmentKnownTickets"`
 	ValidTickets              int64  `json:"validTickets"`
 	InboundTickets            int64  `json:"inboundTickets"`
 	InboundNetMilliTonne      int64  `json:"inboundNetMilliTonne"`
@@ -179,6 +183,8 @@ type AnalyticsFlowData struct {
 }
 
 type AnalyticsMaterialSummary struct {
+	TotalTickets            int64      `json:"totalTickets"`
+	AdjustmentKnownTickets  int64      `json:"adjustmentKnownTickets"`
 	MaterialCount           int64      `json:"materialCount"`
 	InboundNetMilliTonne    int64      `json:"inboundNetMilliTonne"`
 	OutboundNetMilliTonne   int64      `json:"outboundNetMilliTonne"`
@@ -307,6 +313,7 @@ type AnalyticsRecentTicket struct {
 }
 
 type AnalyticsQualitySummary struct {
+	AdjustmentKnownTickets  int64  `json:"adjustmentKnownTickets"`
 	TotalTickets            int64  `json:"totalTickets"`
 	ValidTickets            int64  `json:"validTickets"`
 	VoidTickets             int64  `json:"voidTickets"`

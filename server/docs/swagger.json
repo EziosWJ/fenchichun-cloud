@@ -5015,11 +5015,31 @@
                         "BearerAuth": []
                     }
                 ],
+                "description": "数据截止使用筛选内最后出单时间，厂区接收状态使用全时段接收记录。",
                 "tags": [
                     "统计与分析"
                 ],
                 "summary": "进出厂分析",
-                "responses": {}
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/weighbridge.ApiEnvelope"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/weighbridge.AnalyticsFlowData"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
             }
         },
         "/api/v1/weighbridge/analytics/flow/export": {
@@ -5043,11 +5063,31 @@
                         "BearerAuth": []
                     }
                 ],
+                "description": "数据截止使用筛选内最后出单时间，厂区接收状态使用全时段接收记录。",
                 "tags": [
                     "统计与分析"
                 ],
                 "summary": "物料分析",
-                "responses": {}
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/weighbridge.ApiEnvelope"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/weighbridge.AnalyticsMaterialsData"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
             }
         },
         "/api/v1/weighbridge/analytics/materials/byproduct-flow": {
@@ -5057,11 +5097,31 @@
                         "BearerAuth": []
                     }
                 ],
+                "description": "数据截止使用筛选内最后出单时间，厂区接收状态使用全时段接收记录。",
                 "tags": [
                     "统计与分析"
                 ],
                 "summary": "副产品出库流向",
-                "responses": {}
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/weighbridge.ApiEnvelope"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/weighbridge.AnalyticsByproductData"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
             }
         },
         "/api/v1/weighbridge/analytics/materials/export": {
@@ -5085,11 +5145,31 @@
                         "BearerAuth": []
                     }
                 ],
+                "description": "数据截止使用筛选内最后出单时间，厂区接收状态使用全时段接收记录。",
                 "tags": [
                     "统计与分析"
                 ],
                 "summary": "核心原料供应商扣量稳定性",
-                "responses": {}
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/weighbridge.ApiEnvelope"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/weighbridge.AnalyticsSupplierQualityData"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
             }
         },
         "/api/v1/weighbridge/analytics/overview": {
@@ -5099,11 +5179,31 @@
                         "BearerAuth": []
                     }
                 ],
+                "description": "数据截止使用筛选内最后出单时间，厂区接收状态使用全时段接收记录。",
                 "tags": [
                     "统计与分析"
                 ],
                 "summary": "经营总览",
-                "responses": {}
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/weighbridge.ApiEnvelope"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/weighbridge.AnalyticsOverviewData"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
             }
         },
         "/api/v1/weighbridge/analytics/parties": {
@@ -5113,11 +5213,31 @@
                         "BearerAuth": []
                     }
                 ],
+                "description": "数据截止使用筛选内最后出单时间，厂区接收状态使用全时段接收记录。",
                 "tags": [
                     "统计与分析"
                 ],
                 "summary": "供收方分析",
-                "responses": {}
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/weighbridge.ApiEnvelope"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/weighbridge.AnalyticsPartiesData"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
             }
         },
         "/api/v1/weighbridge/analytics/parties/detail": {
@@ -5155,11 +5275,31 @@
                         "BearerAuth": []
                     }
                 ],
+                "description": "数据截止使用筛选内最后出单时间，厂区接收状态使用全时段接收记录。",
                 "tags": [
                     "统计与分析"
                 ],
                 "summary": "数据质量",
-                "responses": {}
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/weighbridge.ApiEnvelope"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/weighbridge.AnalyticsQualityData"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
             }
         },
         "/api/v1/weighbridge/analytics/quality/export": {
@@ -5522,6 +5662,7 @@
                         "BearerAuth": []
                     }
                 ],
+                "description": "按对账归属日筛选，返回结算主体、归属日期范围和实际出单时间范围。",
                 "tags": [
                     "统计与分析"
                 ],
@@ -5575,13 +5716,31 @@
                         "description": "每页条数，1-100",
                         "name": "pageSize",
                         "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "排序字段（businessDate 按最晚归属日，issued 按最后出单时间）",
+                        "name": "sortBy",
+                        "in": "query"
                     }
                 ],
                 "responses": {
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/weighbridge.ApiEnvelope"
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/weighbridge.ApiEnvelope"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/weighbridge.StatementPartyPage"
+                                        }
+                                    }
+                                }
+                            ]
                         }
                     }
                 }
@@ -5594,6 +5753,7 @@
                         "BearerAuth": []
                     }
                 ],
+                "description": "使用结算主体查询，日汇总按北京时间对账归属日。",
                 "tags": [
                     "统计与分析"
                 ],
@@ -5643,7 +5803,19 @@
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/weighbridge.ApiEnvelope"
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/weighbridge.ApiEnvelope"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/weighbridge.StatementDetail"
+                                        }
+                                    }
+                                }
+                            ]
                         }
                     }
                 }
@@ -5656,6 +5828,7 @@
                         "BearerAuth": []
                     }
                 ],
+                "description": "包含原主体、结算主体、对账归属日、实际回磅时间和出单时间，采用北京时间。",
                 "produces": [
                     "text/csv"
                 ],
@@ -5680,6 +5853,7 @@
                         "BearerAuth": []
                     }
                 ],
+                "description": "包含对账归属日期范围与实际出单时间范围，采用北京时间。",
                 "produces": [
                     "text/csv"
                 ],
@@ -8715,6 +8889,1496 @@
                 }
             }
         },
+        "weighbridge.AnalyticsAdjustmentCategoryRow": {
+            "type": "object",
+            "properties": {
+                "adjustmentNetMilliTonne": {
+                    "type": "integer"
+                },
+                "category": {
+                    "type": "string"
+                },
+                "categoryName": {
+                    "type": "string"
+                },
+                "rateBp": {
+                    "type": "integer"
+                },
+                "tickets": {
+                    "type": "integer"
+                }
+            }
+        },
+        "weighbridge.AnalyticsAdjustmentModeRow": {
+            "type": "object",
+            "properties": {
+                "mode": {
+                    "type": "string"
+                },
+                "shareBp": {
+                    "type": "integer"
+                },
+                "tickets": {
+                    "type": "integer"
+                }
+            }
+        },
+        "weighbridge.AnalyticsAlert": {
+            "type": "object",
+            "properties": {
+                "count": {
+                    "type": "integer"
+                },
+                "level": {
+                    "type": "string"
+                },
+                "message": {
+                    "type": "string"
+                },
+                "type": {
+                    "type": "string"
+                }
+            }
+        },
+        "weighbridge.AnalyticsAnomaly": {
+            "type": "object",
+            "properties": {
+                "detail": {
+                    "type": "string"
+                },
+                "issuedAt": {
+                    "type": "string"
+                },
+                "siteCode": {
+                    "type": "string"
+                },
+                "ticketNo": {
+                    "type": "string"
+                },
+                "type": {
+                    "type": "string"
+                }
+            }
+        },
+        "weighbridge.AnalyticsByproductData": {
+            "type": "object",
+            "properties": {
+                "concentration": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/weighbridge.AnalyticsPartyConcentration"
+                    }
+                },
+                "freshness": {
+                    "$ref": "#/definitions/weighbridge.AnalyticsFreshness"
+                },
+                "materials": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/weighbridge.AnalyticsByproductMaterial"
+                    }
+                },
+                "page": {
+                    "type": "integer"
+                },
+                "pageSize": {
+                    "type": "integer"
+                },
+                "records": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/weighbridge.AnalyticsByproductRow"
+                    }
+                },
+                "summary": {
+                    "$ref": "#/definitions/weighbridge.AnalyticsByproductSummary"
+                },
+                "top": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/weighbridge.AnalyticsByproductRow"
+                    }
+                },
+                "total": {
+                    "type": "integer"
+                },
+                "trend": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/weighbridge.AnalyticsByproductTrendPoint"
+                    }
+                }
+            }
+        },
+        "weighbridge.AnalyticsByproductMaterial": {
+            "type": "object",
+            "properties": {
+                "materialCode": {
+                    "type": "string"
+                },
+                "materialName": {
+                    "type": "string"
+                },
+                "netMilliTonne": {
+                    "type": "integer"
+                },
+                "shareBp": {
+                    "type": "integer"
+                },
+                "ticketCount": {
+                    "type": "integer"
+                }
+            }
+        },
+        "weighbridge.AnalyticsByproductRow": {
+            "type": "object",
+            "properties": {
+                "avgNetPerTicketMilliTonne": {
+                    "type": "integer"
+                },
+                "firstIssuedAt": {
+                    "type": "string"
+                },
+                "lastIssuedAt": {
+                    "type": "string"
+                },
+                "materialCount": {
+                    "type": "integer"
+                },
+                "materialNames": {
+                    "type": "string"
+                },
+                "nature": {
+                    "type": "string"
+                },
+                "netMilliTonne": {
+                    "type": "integer"
+                },
+                "partyCode": {
+                    "type": "string"
+                },
+                "partyName": {
+                    "type": "string"
+                },
+                "shareBp": {
+                    "type": "integer"
+                },
+                "ticketCount": {
+                    "type": "integer"
+                }
+            }
+        },
+        "weighbridge.AnalyticsByproductSummary": {
+            "type": "object",
+            "properties": {
+                "activeCustomers": {
+                    "type": "integer"
+                },
+                "avgNetPerCustomerMilliTonne": {
+                    "type": "integer"
+                },
+                "cr10Bp": {
+                    "type": "integer"
+                },
+                "cr3Bp": {
+                    "type": "integer"
+                },
+                "cr5Bp": {
+                    "type": "integer"
+                },
+                "hhi": {
+                    "type": "integer"
+                },
+                "materialCount": {
+                    "type": "integer"
+                },
+                "ticketCount": {
+                    "type": "integer"
+                },
+                "topCustomerShareBp": {
+                    "type": "integer"
+                },
+                "totalNetMilliTonne": {
+                    "type": "integer"
+                }
+            }
+        },
+        "weighbridge.AnalyticsByproductTrendPoint": {
+            "type": "object",
+            "properties": {
+                "netMilliTonne": {
+                    "type": "integer"
+                },
+                "period": {
+                    "type": "string"
+                },
+                "periodEnd": {
+                    "type": "string"
+                },
+                "periodStart": {
+                    "type": "string"
+                },
+                "ticketCount": {
+                    "type": "integer"
+                }
+            }
+        },
+        "weighbridge.AnalyticsComparison": {
+            "type": "object",
+            "properties": {
+                "previous": {
+                    "$ref": "#/definitions/weighbridge.AnalyticsComparisonSummary"
+                },
+                "year": {
+                    "$ref": "#/definitions/weighbridge.AnalyticsComparisonSummary"
+                }
+            }
+        },
+        "weighbridge.AnalyticsComparisonMetric": {
+            "type": "object",
+            "properties": {
+                "current": {
+                    "type": "integer"
+                },
+                "delta": {
+                    "type": "integer"
+                },
+                "deltaBp": {
+                    "type": "integer"
+                },
+                "previous": {
+                    "type": "integer"
+                }
+            }
+        },
+        "weighbridge.AnalyticsComparisonSummary": {
+            "type": "object",
+            "properties": {
+                "adjustmentNetMilliTonne": {
+                    "$ref": "#/definitions/weighbridge.AnalyticsComparisonMetric"
+                },
+                "inboundNetMilliTonne": {
+                    "$ref": "#/definitions/weighbridge.AnalyticsComparisonMetric"
+                },
+                "inboundTickets": {
+                    "$ref": "#/definitions/weighbridge.AnalyticsComparisonMetric"
+                },
+                "netFlowMilliTonne": {
+                    "$ref": "#/definitions/weighbridge.AnalyticsComparisonMetric"
+                },
+                "outboundNetMilliTonne": {
+                    "$ref": "#/definitions/weighbridge.AnalyticsComparisonMetric"
+                },
+                "outboundTickets": {
+                    "$ref": "#/definitions/weighbridge.AnalyticsComparisonMetric"
+                },
+                "validTickets": {
+                    "$ref": "#/definitions/weighbridge.AnalyticsComparisonMetric"
+                },
+                "voidTickets": {
+                    "$ref": "#/definitions/weighbridge.AnalyticsComparisonMetric"
+                }
+            }
+        },
+        "weighbridge.AnalyticsCorrectionSiteRow": {
+            "type": "object",
+            "properties": {
+                "grossCorrectionMilliTonne": {
+                    "type": "integer"
+                },
+                "siteCode": {
+                    "type": "string"
+                },
+                "siteName": {
+                    "type": "string"
+                },
+                "tareCorrectionMilliTonne": {
+                    "type": "integer"
+                },
+                "tickets": {
+                    "type": "integer"
+                }
+            }
+        },
+        "weighbridge.AnalyticsDuration": {
+            "type": "object",
+            "properties": {
+                "crossDayRateBp": {
+                    "type": "integer"
+                },
+                "crossDayTickets": {
+                    "type": "integer"
+                },
+                "maxSeconds": {
+                    "type": "integer"
+                },
+                "medianSeconds": {
+                    "type": "number"
+                },
+                "p90Seconds": {
+                    "type": "number"
+                },
+                "reopenedExcludedTickets": {
+                    "type": "integer"
+                },
+                "sampleTickets": {
+                    "type": "integer"
+                }
+            }
+        },
+        "weighbridge.AnalyticsFlowData": {
+            "type": "object",
+            "properties": {
+                "comparison": {
+                    "$ref": "#/definitions/weighbridge.AnalyticsComparison"
+                },
+                "duration": {
+                    "$ref": "#/definitions/weighbridge.AnalyticsDuration"
+                },
+                "freshness": {
+                    "$ref": "#/definitions/weighbridge.AnalyticsFreshness"
+                },
+                "siteComparison": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/weighbridge.AnalyticsFlowSiteRow"
+                    }
+                },
+                "summary": {
+                    "$ref": "#/definitions/weighbridge.AnalyticsFlowSummary"
+                },
+                "trend": {
+                    "$ref": "#/definitions/weighbridge.AnalyticsTrend"
+                }
+            }
+        },
+        "weighbridge.AnalyticsFlowSiteRow": {
+            "type": "object",
+            "properties": {
+                "adjustedTickets": {
+                    "type": "integer"
+                },
+                "adjustmentCoverageBp": {
+                    "type": "integer"
+                },
+                "adjustmentWeightRateBp": {
+                    "type": "integer"
+                },
+                "avgNetPerTicketMilliTonne": {
+                    "type": "integer"
+                },
+                "inboundNetMilliTonne": {
+                    "type": "integer"
+                },
+                "inboundTickets": {
+                    "type": "integer"
+                },
+                "netFlowMilliTonne": {
+                    "type": "integer"
+                },
+                "outboundNetMilliTonne": {
+                    "type": "integer"
+                },
+                "outboundTickets": {
+                    "type": "integer"
+                },
+                "siteCode": {
+                    "type": "string"
+                },
+                "siteName": {
+                    "type": "string"
+                },
+                "voidRateBp": {
+                    "type": "integer"
+                },
+                "voidTickets": {
+                    "type": "integer"
+                }
+            }
+        },
+        "weighbridge.AnalyticsFlowSummary": {
+            "type": "object",
+            "properties": {
+                "activeCustomers": {
+                    "type": "integer"
+                },
+                "activeSites": {
+                    "type": "integer"
+                },
+                "activeSuppliers": {
+                    "type": "integer"
+                },
+                "adjustedTickets": {
+                    "type": "integer"
+                },
+                "adjustmentCoverageBp": {
+                    "type": "integer"
+                },
+                "adjustmentKnownTickets": {
+                    "type": "integer"
+                },
+                "adjustmentNetMilliTonne": {
+                    "type": "integer"
+                },
+                "adjustmentWeightRateBp": {
+                    "type": "integer"
+                },
+                "avgNetPerTicketMilliTonne": {
+                    "type": "integer"
+                },
+                "inboundAvgNetMilliTonne": {
+                    "type": "integer"
+                },
+                "inboundNetMilliTonne": {
+                    "type": "integer"
+                },
+                "inboundTickets": {
+                    "type": "integer"
+                },
+                "netFlowMilliTonne": {
+                    "type": "integer"
+                },
+                "outboundAvgNetMilliTonne": {
+                    "type": "integer"
+                },
+                "outboundNetMilliTonne": {
+                    "type": "integer"
+                },
+                "outboundTickets": {
+                    "type": "integer"
+                },
+                "validTickets": {
+                    "type": "integer"
+                },
+                "voidRateBp": {
+                    "type": "integer"
+                },
+                "voidTickets": {
+                    "type": "integer"
+                }
+            }
+        },
+        "weighbridge.AnalyticsFreshness": {
+            "type": "object",
+            "properties": {
+                "dataThrough": {
+                    "type": "string"
+                },
+                "filteredDataThrough": {
+                    "description": "Latest ticket issue time included by the report filters, in contrast to the global history.",
+                    "type": "string"
+                },
+                "historyStart": {
+                    "type": "string"
+                },
+                "lastReceivedAt": {
+                    "type": "string"
+                },
+                "siteReceipts": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/weighbridge.AnalyticsSiteReceipt"
+                    }
+                }
+            }
+        },
+        "weighbridge.AnalyticsIssuerStat": {
+            "type": "object",
+            "properties": {
+                "adjustedTickets": {
+                    "type": "integer"
+                },
+                "adjustmentTicketRateBp": {
+                    "type": "integer"
+                },
+                "issuerName": {
+                    "type": "string"
+                },
+                "reopenedTickets": {
+                    "type": "integer"
+                },
+                "tickets": {
+                    "type": "integer"
+                },
+                "voidRateBp": {
+                    "type": "integer"
+                },
+                "voidTickets": {
+                    "type": "integer"
+                }
+            }
+        },
+        "weighbridge.AnalyticsMaterialRow": {
+            "type": "object",
+            "properties": {
+                "adjustedTickets": {
+                    "type": "integer"
+                },
+                "adjustmentCoverageBp": {
+                    "type": "integer"
+                },
+                "adjustmentNetMilliTonne": {
+                    "type": "integer"
+                },
+                "adjustmentWeightRateBp": {
+                    "type": "integer"
+                },
+                "avgNetPerTicketMilliTonne": {
+                    "type": "integer"
+                },
+                "categoryCode": {
+                    "type": "string"
+                },
+                "categoryName": {
+                    "type": "string"
+                },
+                "inboundNetMilliTonne": {
+                    "type": "integer"
+                },
+                "inboundTickets": {
+                    "type": "integer"
+                },
+                "lastIssuedAt": {
+                    "type": "string"
+                },
+                "materialCode": {
+                    "type": "string"
+                },
+                "materialName": {
+                    "type": "string"
+                },
+                "materialSpec": {
+                    "type": "string"
+                },
+                "outboundNetMilliTonne": {
+                    "type": "integer"
+                },
+                "outboundTickets": {
+                    "type": "integer"
+                },
+                "shareBp": {
+                    "type": "integer"
+                },
+                "totalNetMilliTonne": {
+                    "type": "integer"
+                },
+                "totalTickets": {
+                    "type": "integer"
+                }
+            }
+        },
+        "weighbridge.AnalyticsMaterialSummary": {
+            "type": "object",
+            "properties": {
+                "adjustmentCoverageBp": {
+                    "type": "integer"
+                },
+                "adjustmentKnownTickets": {
+                    "type": "integer"
+                },
+                "adjustmentNetMilliTonne": {
+                    "type": "integer"
+                },
+                "adjustmentWeightRateBp": {
+                    "type": "integer"
+                },
+                "inboundNetMilliTonne": {
+                    "type": "integer"
+                },
+                "lastIssuedAt": {
+                    "type": "string"
+                },
+                "materialCount": {
+                    "type": "integer"
+                },
+                "outboundNetMilliTonne": {
+                    "type": "integer"
+                },
+                "totalTickets": {
+                    "type": "integer"
+                }
+            }
+        },
+        "weighbridge.AnalyticsMaterialTrendSeries": {
+            "type": "object",
+            "properties": {
+                "materialCode": {
+                    "type": "string"
+                },
+                "materialName": {
+                    "type": "string"
+                },
+                "points": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "netMilliTonne": {
+                                "type": "integer"
+                            },
+                            "period": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "weighbridge.AnalyticsMaterialsData": {
+            "type": "object",
+            "properties": {
+                "freshness": {
+                    "$ref": "#/definitions/weighbridge.AnalyticsFreshness"
+                },
+                "page": {
+                    "type": "integer"
+                },
+                "pageSize": {
+                    "type": "integer"
+                },
+                "records": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/weighbridge.AnalyticsMaterialRow"
+                    }
+                },
+                "structure": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/weighbridge.AnalyticsStructureRow"
+                    }
+                },
+                "summary": {
+                    "$ref": "#/definitions/weighbridge.AnalyticsMaterialSummary"
+                },
+                "topAdjustments": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/weighbridge.AnalyticsMaterialRow"
+                    }
+                },
+                "total": {
+                    "type": "integer"
+                },
+                "trend": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/weighbridge.AnalyticsMaterialTrendSeries"
+                    }
+                }
+            }
+        },
+        "weighbridge.AnalyticsMissingField": {
+            "type": "object",
+            "properties": {
+                "field": {
+                    "type": "string"
+                },
+                "label": {
+                    "type": "string"
+                },
+                "missingCount": {
+                    "type": "integer"
+                },
+                "missingRateBp": {
+                    "type": "integer"
+                }
+            }
+        },
+        "weighbridge.AnalyticsOverviewData": {
+            "type": "object",
+            "properties": {
+                "alerts": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/weighbridge.AnalyticsAlert"
+                    }
+                },
+                "comparison": {
+                    "$ref": "#/definitions/weighbridge.AnalyticsComparison"
+                },
+                "freshness": {
+                    "$ref": "#/definitions/weighbridge.AnalyticsFreshness"
+                },
+                "materialStructure": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/weighbridge.AnalyticsStructureRow"
+                    }
+                },
+                "summary": {
+                    "$ref": "#/definitions/weighbridge.AnalyticsOverviewSummary"
+                },
+                "topMaterials": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/weighbridge.AnalyticsTopRow"
+                    }
+                },
+                "topParties": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/weighbridge.AnalyticsTopRow"
+                    }
+                },
+                "trend": {
+                    "$ref": "#/definitions/weighbridge.AnalyticsTrend"
+                }
+            }
+        },
+        "weighbridge.AnalyticsOverviewSummary": {
+            "type": "object",
+            "properties": {
+                "activeCustomers": {
+                    "type": "integer"
+                },
+                "activeSites": {
+                    "type": "integer"
+                },
+                "activeSuppliers": {
+                    "type": "integer"
+                },
+                "adjustedTickets": {
+                    "type": "integer"
+                },
+                "adjustmentCoverageBp": {
+                    "type": "integer"
+                },
+                "adjustmentKnownTickets": {
+                    "type": "integer"
+                },
+                "adjustmentNetMilliTonne": {
+                    "type": "integer"
+                },
+                "adjustmentWeightRateBp": {
+                    "type": "integer"
+                },
+                "avgNetPerTicketMilliTonne": {
+                    "type": "integer"
+                },
+                "inboundNetMilliTonne": {
+                    "type": "integer"
+                },
+                "inboundTickets": {
+                    "type": "integer"
+                },
+                "netFlowMilliTonne": {
+                    "type": "integer"
+                },
+                "outboundNetMilliTonne": {
+                    "type": "integer"
+                },
+                "outboundTickets": {
+                    "type": "integer"
+                },
+                "validTickets": {
+                    "type": "integer"
+                },
+                "voidRateBp": {
+                    "type": "integer"
+                },
+                "voidTickets": {
+                    "type": "integer"
+                }
+            }
+        },
+        "weighbridge.AnalyticsPartiesData": {
+            "type": "object",
+            "properties": {
+                "freshness": {
+                    "$ref": "#/definitions/weighbridge.AnalyticsFreshness"
+                },
+                "page": {
+                    "type": "integer"
+                },
+                "pageSize": {
+                    "type": "integer"
+                },
+                "ranking": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/weighbridge.AnalyticsPartyRow"
+                    }
+                },
+                "records": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/weighbridge.AnalyticsPartyRow"
+                    }
+                },
+                "summary": {
+                    "$ref": "#/definitions/weighbridge.AnalyticsPartySummary"
+                },
+                "total": {
+                    "type": "integer"
+                }
+            }
+        },
+        "weighbridge.AnalyticsPartyConcentration": {
+            "type": "object",
+            "properties": {
+                "label": {
+                    "type": "string"
+                },
+                "netMilliTonne": {
+                    "type": "integer"
+                },
+                "shareBp": {
+                    "type": "integer"
+                }
+            }
+        },
+        "weighbridge.AnalyticsPartyRow": {
+            "type": "object",
+            "properties": {
+                "activeMonths": {
+                    "type": "integer"
+                },
+                "adjustedTickets": {
+                    "type": "integer"
+                },
+                "adjustmentCoverageBp": {
+                    "type": "integer"
+                },
+                "adjustmentNetMilliTonne": {
+                    "type": "integer"
+                },
+                "adjustmentWeightRateBp": {
+                    "type": "integer"
+                },
+                "avgIntervalSeconds": {
+                    "type": "integer"
+                },
+                "avgNetPerTicketMilliTonne": {
+                    "type": "integer"
+                },
+                "direction": {
+                    "type": "string"
+                },
+                "firstIssuedAt": {
+                    "type": "string"
+                },
+                "lastIssuedAt": {
+                    "type": "string"
+                },
+                "medianIntervalSeconds": {
+                    "type": "integer"
+                },
+                "monthlyNetCvBp": {
+                    "type": "integer"
+                },
+                "nature": {
+                    "type": "string"
+                },
+                "netMilliTonne": {
+                    "type": "integer"
+                },
+                "partyCode": {
+                    "type": "string"
+                },
+                "partyName": {
+                    "type": "string"
+                },
+                "shareBp": {
+                    "type": "integer"
+                },
+                "ticketCount": {
+                    "type": "integer"
+                },
+                "voidRateBp": {
+                    "type": "integer"
+                },
+                "voidTickets": {
+                    "type": "integer"
+                }
+            }
+        },
+        "weighbridge.AnalyticsPartySummary": {
+            "type": "object",
+            "properties": {
+                "activeParties": {
+                    "type": "integer"
+                },
+                "avgNetPerPartyMilliTonne": {
+                    "type": "integer"
+                },
+                "coverageComplete": {
+                    "type": "boolean"
+                },
+                "dormantParties": {
+                    "type": "integer"
+                },
+                "historyStart": {
+                    "type": "string"
+                },
+                "newParties": {
+                    "type": "integer"
+                },
+                "returningParties": {
+                    "type": "integer"
+                },
+                "totalNetMilliTonne": {
+                    "type": "integer"
+                }
+            }
+        },
+        "weighbridge.AnalyticsQualityAdjustment": {
+            "type": "object",
+            "properties": {
+                "byCategory": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/weighbridge.AnalyticsAdjustmentCategoryRow"
+                    }
+                },
+                "byMaterial": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/weighbridge.AnalyticsMaterialRow"
+                    }
+                },
+                "byParty": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/weighbridge.AnalyticsPartyRow"
+                    }
+                },
+                "modes": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/weighbridge.AnalyticsAdjustmentModeRow"
+                    }
+                },
+                "trend": {
+                    "$ref": "#/definitions/weighbridge.AnalyticsTrend"
+                }
+            }
+        },
+        "weighbridge.AnalyticsQualityCorrection": {
+            "type": "object",
+            "properties": {
+                "bySite": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/weighbridge.AnalyticsCorrectionSiteRow"
+                    }
+                },
+                "grossCorrectionMilliTonne": {
+                    "type": "integer"
+                },
+                "tareCorrectionMilliTonne": {
+                    "type": "integer"
+                },
+                "tickets": {
+                    "type": "integer"
+                }
+            }
+        },
+        "weighbridge.AnalyticsQualityData": {
+            "type": "object",
+            "properties": {
+                "adjustmentAnalysis": {
+                    "$ref": "#/definitions/weighbridge.AnalyticsQualityAdjustment"
+                },
+                "anomalies": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/weighbridge.AnalyticsAnomaly"
+                    }
+                },
+                "correctionAnalysis": {
+                    "$ref": "#/definitions/weighbridge.AnalyticsQualityCorrection"
+                },
+                "freshness": {
+                    "$ref": "#/definitions/weighbridge.AnalyticsFreshness"
+                },
+                "issuerStats": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/weighbridge.AnalyticsIssuerStat"
+                    }
+                },
+                "missingFields": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/weighbridge.AnalyticsMissingField"
+                    }
+                },
+                "reopenAnalysis": {
+                    "$ref": "#/definitions/weighbridge.AnalyticsQualityReopen"
+                },
+                "summary": {
+                    "$ref": "#/definitions/weighbridge.AnalyticsQualitySummary"
+                },
+                "voidAnalysis": {
+                    "$ref": "#/definitions/weighbridge.AnalyticsQualityVoid"
+                }
+            }
+        },
+        "weighbridge.AnalyticsQualityGroupRow": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "tickets": {
+                    "type": "integer"
+                },
+                "voidRateBp": {
+                    "type": "integer"
+                },
+                "voidTickets": {
+                    "type": "integer"
+                }
+            }
+        },
+        "weighbridge.AnalyticsQualityReopen": {
+            "type": "object",
+            "properties": {
+                "chains": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/weighbridge.AnalyticsReopenChain"
+                    }
+                },
+                "medianReopenLagSeconds": {
+                    "type": "number"
+                },
+                "trend": {
+                    "$ref": "#/definitions/weighbridge.AnalyticsTrend"
+                }
+            }
+        },
+        "weighbridge.AnalyticsQualitySummary": {
+            "type": "object",
+            "properties": {
+                "adjustedTickets": {
+                    "type": "integer"
+                },
+                "adjustmentCoverageBp": {
+                    "type": "integer"
+                },
+                "adjustmentKnownTickets": {
+                    "type": "integer"
+                },
+                "adjustmentNetMilliTonne": {
+                    "type": "integer"
+                },
+                "adjustmentTicketRateBp": {
+                    "type": "integer"
+                },
+                "adjustmentWeightRateBp": {
+                    "type": "integer"
+                },
+                "anomalyTickets": {
+                    "type": "integer"
+                },
+                "correctionTickets": {
+                    "type": "integer"
+                },
+                "manualWeightRateBp": {
+                    "type": "integer"
+                },
+                "manualWeightTickets": {
+                    "type": "integer"
+                },
+                "reopenRateBp": {
+                    "type": "integer"
+                },
+                "reopenedTickets": {
+                    "type": "integer"
+                },
+                "totalTickets": {
+                    "type": "integer"
+                },
+                "validTickets": {
+                    "type": "integer"
+                },
+                "voidRateBp": {
+                    "type": "integer"
+                },
+                "voidTickets": {
+                    "type": "integer"
+                }
+            }
+        },
+        "weighbridge.AnalyticsQualityVoid": {
+            "type": "object",
+            "properties": {
+                "byMaterial": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/weighbridge.AnalyticsQualityGroupRow"
+                    }
+                },
+                "byParty": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/weighbridge.AnalyticsQualityGroupRow"
+                    }
+                },
+                "bySite": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/weighbridge.AnalyticsQualityGroupRow"
+                    }
+                },
+                "reasons": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/weighbridge.AnalyticsReasonRow"
+                    }
+                },
+                "trend": {
+                    "$ref": "#/definitions/weighbridge.AnalyticsTrend"
+                }
+            }
+        },
+        "weighbridge.AnalyticsRateTrendPoint": {
+            "type": "object",
+            "properties": {
+                "avgRateBp": {
+                    "type": "integer"
+                },
+                "period": {
+                    "type": "string"
+                },
+                "periodEnd": {
+                    "type": "string"
+                },
+                "periodStart": {
+                    "type": "string"
+                },
+                "sampleCount": {
+                    "type": "integer"
+                }
+            }
+        },
+        "weighbridge.AnalyticsReasonRow": {
+            "type": "object",
+            "properties": {
+                "reason": {
+                    "type": "string"
+                },
+                "shareBp": {
+                    "type": "integer"
+                },
+                "tickets": {
+                    "type": "integer"
+                }
+            }
+        },
+        "weighbridge.AnalyticsReopenChain": {
+            "type": "object",
+            "properties": {
+                "crossDay": {
+                    "type": "boolean"
+                },
+                "newIssuedAt": {
+                    "type": "string"
+                },
+                "newTicketNo": {
+                    "type": "string"
+                },
+                "originalIssuedAt": {
+                    "type": "string"
+                },
+                "originalTicketNo": {
+                    "type": "string"
+                },
+                "originalVoidedAt": {
+                    "type": "string"
+                },
+                "reopenLagSeconds": {
+                    "type": "integer"
+                },
+                "siteCode": {
+                    "type": "string"
+                }
+            }
+        },
+        "weighbridge.AnalyticsSiteReceipt": {
+            "type": "object",
+            "properties": {
+                "enabled": {
+                    "type": "boolean"
+                },
+                "lastReceivedAt": {
+                    "type": "string"
+                },
+                "receivedChanges": {
+                    "type": "integer"
+                },
+                "siteCode": {
+                    "type": "string"
+                },
+                "siteName": {
+                    "type": "string"
+                }
+            }
+        },
+        "weighbridge.AnalyticsStructureRow": {
+            "type": "object",
+            "properties": {
+                "key": {
+                    "type": "string"
+                },
+                "label": {
+                    "type": "string"
+                },
+                "netMilliTonne": {
+                    "type": "integer"
+                },
+                "shareBp": {
+                    "type": "integer"
+                }
+            }
+        },
+        "weighbridge.AnalyticsSupplierQualityData": {
+            "type": "object",
+            "properties": {
+                "freshness": {
+                    "$ref": "#/definitions/weighbridge.AnalyticsFreshness"
+                },
+                "page": {
+                    "type": "integer"
+                },
+                "pageSize": {
+                    "type": "integer"
+                },
+                "records": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/weighbridge.AnalyticsSupplierQualityRow"
+                    }
+                },
+                "summary": {
+                    "$ref": "#/definitions/weighbridge.AnalyticsSupplierQualitySummary"
+                },
+                "top": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/weighbridge.AnalyticsSupplierQualityRow"
+                    }
+                },
+                "total": {
+                    "type": "integer"
+                },
+                "trend": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/weighbridge.AnalyticsSupplierQualityTrend"
+                    }
+                }
+            }
+        },
+        "weighbridge.AnalyticsSupplierQualityRow": {
+            "type": "object",
+            "properties": {
+                "adjustedTickets": {
+                    "type": "integer"
+                },
+                "adjustmentCoverageBp": {
+                    "type": "integer"
+                },
+                "avgRateBp": {
+                    "type": "integer"
+                },
+                "cvBp": {
+                    "type": "integer"
+                },
+                "firstIssuedAt": {
+                    "type": "string"
+                },
+                "lastIssuedAt": {
+                    "type": "string"
+                },
+                "materialCount": {
+                    "type": "integer"
+                },
+                "materialNames": {
+                    "type": "string"
+                },
+                "maxRateBp": {
+                    "type": "integer"
+                },
+                "medianRateBp": {
+                    "type": "integer"
+                },
+                "minRateBp": {
+                    "type": "integer"
+                },
+                "nature": {
+                    "type": "string"
+                },
+                "p90RateBp": {
+                    "type": "integer"
+                },
+                "partyCode": {
+                    "type": "string"
+                },
+                "partyName": {
+                    "type": "string"
+                },
+                "sampleCount": {
+                    "type": "integer"
+                },
+                "stddevRateBp": {
+                    "type": "integer"
+                },
+                "ticketCount": {
+                    "type": "integer"
+                },
+                "totalAdjustmentMilliTonne": {
+                    "type": "integer"
+                },
+                "totalPreAdjustmentNetMilliTonne": {
+                    "type": "integer"
+                },
+                "weightedRateBp": {
+                    "type": "integer"
+                }
+            }
+        },
+        "weighbridge.AnalyticsSupplierQualitySummary": {
+            "type": "object",
+            "properties": {
+                "adjustedTickets": {
+                    "type": "integer"
+                },
+                "adjustmentCoverageBp": {
+                    "type": "integer"
+                },
+                "avgRateBp": {
+                    "type": "integer"
+                },
+                "medianRateBp": {
+                    "type": "integer"
+                },
+                "p90RateBp": {
+                    "type": "integer"
+                },
+                "sampleCount": {
+                    "type": "integer"
+                },
+                "supplierCount": {
+                    "type": "integer"
+                },
+                "ticketCount": {
+                    "type": "integer"
+                },
+                "weightedRateBp": {
+                    "type": "integer"
+                }
+            }
+        },
+        "weighbridge.AnalyticsSupplierQualityTrend": {
+            "type": "object",
+            "properties": {
+                "partyCode": {
+                    "type": "string"
+                },
+                "partyName": {
+                    "type": "string"
+                },
+                "points": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/weighbridge.AnalyticsRateTrendPoint"
+                    }
+                }
+            }
+        },
+        "weighbridge.AnalyticsTopRow": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "string"
+                },
+                "direction": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "netMilliTonne": {
+                    "type": "integer"
+                },
+                "shareBp": {
+                    "type": "integer"
+                },
+                "ticketCount": {
+                    "type": "integer"
+                }
+            }
+        },
+        "weighbridge.AnalyticsTrend": {
+            "type": "object",
+            "properties": {
+                "granularity": {
+                    "type": "string"
+                },
+                "points": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/weighbridge.AnalyticsTrendPoint"
+                    }
+                }
+            }
+        },
+        "weighbridge.AnalyticsTrendPoint": {
+            "type": "object",
+            "properties": {
+                "adjustedTickets": {
+                    "type": "integer"
+                },
+                "adjustmentNetMilliTonne": {
+                    "type": "integer"
+                },
+                "adjustmentWeightRateBp": {
+                    "type": "integer"
+                },
+                "avgNetPerTicketMilliTonne": {
+                    "type": "integer"
+                },
+                "inboundNetMilliTonne": {
+                    "type": "integer"
+                },
+                "inboundTickets": {
+                    "type": "integer"
+                },
+                "netFlowMilliTonne": {
+                    "type": "integer"
+                },
+                "outboundNetMilliTonne": {
+                    "type": "integer"
+                },
+                "outboundTickets": {
+                    "type": "integer"
+                },
+                "period": {
+                    "type": "string"
+                },
+                "periodEnd": {
+                    "type": "string"
+                },
+                "periodStart": {
+                    "type": "string"
+                },
+                "reopenedTickets": {
+                    "type": "integer"
+                },
+                "voidRateBp": {
+                    "type": "integer"
+                },
+                "voidTickets": {
+                    "type": "integer"
+                }
+            }
+        },
         "weighbridge.ApiEnvelope": {
             "type": "object",
             "properties": {
@@ -9206,6 +10870,219 @@
                 },
                 "name": {
                     "type": "string"
+                }
+            }
+        },
+        "weighbridge.StatementDaily": {
+            "type": "object",
+            "properties": {
+                "date": {
+                    "type": "string"
+                },
+                "grossMilliTonne": {
+                    "type": "integer"
+                },
+                "netAdjustmentMilliTonne": {
+                    "type": "integer"
+                },
+                "netMilliTonne": {
+                    "type": "integer"
+                },
+                "tareMilliTonne": {
+                    "type": "integer"
+                },
+                "ticketCount": {
+                    "type": "integer"
+                }
+            }
+        },
+        "weighbridge.StatementDetail": {
+            "type": "object",
+            "properties": {
+                "daily": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/weighbridge.StatementDaily"
+                    }
+                },
+                "direction": {
+                    "type": "string"
+                },
+                "from": {
+                    "type": "string"
+                },
+                "grossMilliTonne": {
+                    "type": "integer"
+                },
+                "materials": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/weighbridge.StatementMaterial"
+                    }
+                },
+                "netAdjustmentMilliTonne": {
+                    "type": "integer"
+                },
+                "netMilliTonne": {
+                    "type": "integer"
+                },
+                "partyCode": {
+                    "type": "string"
+                },
+                "partyName": {
+                    "type": "string"
+                },
+                "siteCode": {
+                    "type": "string"
+                },
+                "siteName": {
+                    "type": "string"
+                },
+                "tareMilliTonne": {
+                    "type": "integer"
+                },
+                "ticketCount": {
+                    "type": "integer"
+                },
+                "to": {
+                    "type": "string"
+                }
+            }
+        },
+        "weighbridge.StatementFreshness": {
+            "type": "object",
+            "properties": {
+                "dataThrough": {
+                    "type": "string"
+                },
+                "historyStart": {
+                    "type": "string"
+                },
+                "lastReceivedAt": {
+                    "type": "string"
+                }
+            }
+        },
+        "weighbridge.StatementMaterial": {
+            "type": "object",
+            "properties": {
+                "grossMilliTonne": {
+                    "type": "integer"
+                },
+                "materialCode": {
+                    "type": "string"
+                },
+                "materialName": {
+                    "type": "string"
+                },
+                "materialSpec": {
+                    "type": "string"
+                },
+                "netAdjustmentMilliTonne": {
+                    "type": "integer"
+                },
+                "netMilliTonne": {
+                    "type": "integer"
+                },
+                "tareMilliTonne": {
+                    "type": "integer"
+                },
+                "ticketCount": {
+                    "type": "integer"
+                }
+            }
+        },
+        "weighbridge.StatementPageSummary": {
+            "type": "object",
+            "properties": {
+                "grossMilliTonne": {
+                    "type": "integer"
+                },
+                "netAdjustmentMilliTonne": {
+                    "type": "integer"
+                },
+                "netMilliTonne": {
+                    "type": "integer"
+                },
+                "partyCount": {
+                    "type": "integer"
+                },
+                "tareMilliTonne": {
+                    "type": "integer"
+                },
+                "ticketCount": {
+                    "type": "integer"
+                }
+            }
+        },
+        "weighbridge.StatementParty": {
+            "type": "object",
+            "properties": {
+                "firstBusinessDate": {
+                    "description": "Inclusive accounting day, Asia/Shanghai.",
+                    "type": "string"
+                },
+                "firstIssuedAt": {
+                    "type": "string"
+                },
+                "grossMilliTonne": {
+                    "type": "integer"
+                },
+                "lastBusinessDate": {
+                    "type": "string"
+                },
+                "lastIssuedAt": {
+                    "type": "string"
+                },
+                "netAdjustmentMilliTonne": {
+                    "type": "integer"
+                },
+                "netMilliTonne": {
+                    "type": "integer"
+                },
+                "partyCode": {
+                    "type": "string"
+                },
+                "partyName": {
+                    "type": "string"
+                },
+                "siteCode": {
+                    "type": "string"
+                },
+                "siteName": {
+                    "type": "string"
+                },
+                "tareMilliTonne": {
+                    "type": "integer"
+                },
+                "ticketCount": {
+                    "type": "integer"
+                }
+            }
+        },
+        "weighbridge.StatementPartyPage": {
+            "type": "object",
+            "properties": {
+                "freshness": {
+                    "$ref": "#/definitions/weighbridge.StatementFreshness"
+                },
+                "page": {
+                    "type": "integer"
+                },
+                "pageSize": {
+                    "type": "integer"
+                },
+                "records": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/weighbridge.StatementParty"
+                    }
+                },
+                "summary": {
+                    "$ref": "#/definitions/weighbridge.StatementPageSummary"
+                },
+                "total": {
+                    "type": "integer"
                 }
             }
         },

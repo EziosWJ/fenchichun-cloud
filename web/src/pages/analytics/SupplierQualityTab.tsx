@@ -3,12 +3,13 @@ import type { ColumnsType } from 'antd/es/table';
 import { DataTable } from '../../components/DataTable';
 import { EChart } from '../../components/charts/EChart';
 import { ChartCard, FreshnessNote, KpiCard } from '../../features/analytics/ui';
-import { formatBp, formatMilliTonne } from '../../features/analytics/format';
+import { formatBeijingTime, formatBp, formatMilliTonne } from '../../features/analytics/format';
 import { supplierQualityTrendOption, supplierRateBarOption } from '../../features/analytics/charts';
 import type { SupplierQualityData, SupplierQualityRow } from '../../features/analytics/api';
-import { formatDateTime, formatNumber } from '../../utils/format';
+import { formatNumber } from '../../utils/format';
 
 interface SupplierQualityTabProps {
+  siteCode?: string;
   data: SupplierQualityData | undefined;
   loading: boolean;
   error?: string | null;
@@ -27,6 +28,7 @@ function natureLabel(nature: string) {
 }
 
 export function SupplierQualityTab({
+  siteCode,
   data,
   loading,
   error,
@@ -67,7 +69,7 @@ export function SupplierQualityTab({
     },
     { title: '调整量（吨）', key: 'adjustment', align: 'right', width: 130, render: (_, row) => formatMilliTonne(row.totalAdjustmentMilliTonne) },
     { title: '物料', key: 'materials', width: 180, render: (_, row) => row.materialNames || '—' },
-    { title: '最后过磅', key: 'lastIssuedAt', width: 150, sorter: true, render: (_, row) => formatDateTime(row.lastIssuedAt) },
+    { title: '最后出单', key: 'lastIssuedAt', width: 150, sorter: true, render: (_, row) => formatBeijingTime(row.lastIssuedAt) },
   ];
 
   return (
@@ -79,11 +81,12 @@ export function SupplierQualityTab({
         description="统计酿酒原料和酿酒辅料的入厂单据，以每车扣量率为样本聚合供应商稳定性；扣量率 = 净重调整 /（最终毛重 - 最终皮重）。仅统计调整字段已知的有效单，旧协议未知单不进入样本，页面显示覆盖率。"
       />
       {error && <Alert type="error" showIcon message={`核心原料扣量稳定性加载失败：${error}`} />}
+      <FreshnessNote freshness={data?.freshness} siteCode={siteCode} />
       <Row gutter={[16, 16]}>
         <Col xs={24} sm={12} xl={4}><KpiCard label="供应商" value={summary ? formatNumber(summary.supplierCount) : '—'} suffix="家" /></Col>
         <Col xs={24} sm={12} xl={4}><KpiCard label="样本车次" value={summary ? formatNumber(summary.sampleCount) : '—'} suffix="车" hint={summary ? `总车次 ${formatNumber(summary.ticketCount)}` : undefined} /></Col>
         <Col xs={24} sm={12} xl={4}><KpiCard label="调整车次" value={summary ? formatNumber(summary.adjustedTickets) : '—'} suffix="车" /></Col>
-        <Col xs={24} sm={12} xl={4}><KpiCard label="加权扣量率" value={formatBp(summary?.weightedRateBp)} /></Col>
+        <Col xs={24} sm={12} xl={4}><KpiCard label="加权扣量率" value={formatBp(summary?.weightedRateBp)} hint="调整已知、扣前净重大于 0 的入厂有效单" /></Col>
         <Col xs={24} sm={12} xl={4}><KpiCard label="样本中位数" value={formatBp(summary?.medianRateBp)} hint={`P90 ${formatBp(summary?.p90RateBp)}`} /></Col>
         <Col xs={24} sm={12} xl={4}><KpiCard label="调整覆盖率" value={formatBp(summary?.adjustmentCoverageBp)} /></Col>
       </Row>
@@ -125,7 +128,6 @@ export function SupplierQualityTab({
         title="供应商扣量稳定性"
         emptyDescription="当前期间没有符合条件的核心原料入厂单据"
       />
-      <FreshnessNote freshness={data?.freshness} />
     </Space>
   );
 }

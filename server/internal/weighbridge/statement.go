@@ -51,8 +51,10 @@ type StatementParty struct {
 	PartyCode string `json:"partyCode"`
 	PartyName string `json:"partyName"`
 	StatementTotals
-	FirstIssuedAt time.Time `json:"firstIssuedAt"`
-	LastIssuedAt  time.Time `json:"lastIssuedAt"`
+	FirstIssuedAt     time.Time `json:"firstIssuedAt"`
+	LastIssuedAt      time.Time `json:"lastIssuedAt"`
+	FirstBusinessDate string    `json:"firstBusinessDate"` // Inclusive accounting day, Asia/Shanghai.
+	LastBusinessDate  string    `json:"lastBusinessDate"`
 }
 
 type StatementPageSummary struct {
@@ -103,23 +105,25 @@ type StatementDetail struct {
 // StatementTicket is one valid ticket inside a counterparty statement. It is
 // also the source for the detail CSV export.
 type StatementTicket struct {
-	SiteCode                string    `json:"siteCode"`
-	SiteName                string    `json:"siteName"`
-	PartyCode               string    `json:"partyCode"`
-	PartyName               string    `json:"partyName"`
-	TicketNo                string    `json:"ticketNo"`
-	Plate                   string    `json:"plate"`
-	MaterialCode            string    `json:"materialCode"`
-	MaterialName            string    `json:"materialName"`
-	MaterialSpec            string    `json:"materialSpec"`
-	Direction               string    `json:"direction"`
-	Status                  string    `json:"status"`
-	IssuedAt                time.Time `json:"issuedAt"`
-	BusinessAt              time.Time `json:"businessAt"`
-	GrossMilliTonne         int64     `json:"grossMilliTonne"`
-	TareMilliTonne          int64     `json:"tareMilliTonne"`
-	NetAdjustmentMilliTonne int64     `json:"netAdjustmentMilliTonne"`
-	NetMilliTonne           int64     `json:"netMilliTonne"`
+	SiteCode                string     `json:"siteCode"`
+	SiteName                string     `json:"siteName"`
+	PartyCode               string     `json:"partyCode"`
+	PartyName               string     `json:"partyName"`
+	TicketNo                string     `json:"ticketNo"`
+	Plate                   string     `json:"plate"`
+	MaterialCode            string     `json:"materialCode"`
+	MaterialName            string     `json:"materialName"`
+	MaterialSpec            string     `json:"materialSpec"`
+	Direction               string     `json:"direction"`
+	Status                  string     `json:"status"`
+	IssuedAt                time.Time  `json:"issuedAt"`
+	BusinessAt              time.Time  `json:"businessAt"`
+	EntryType               string     `json:"entryType,omitempty"`
+	SecondWeighedAt         *time.Time `json:"secondWeighedAt,omitempty"`
+	GrossMilliTonne         int64      `json:"grossMilliTonne"`
+	TareMilliTonne          int64      `json:"tareMilliTonne"`
+	NetAdjustmentMilliTonne int64      `json:"netAdjustmentMilliTonne"`
+	NetMilliTonne           int64      `json:"netMilliTonne"`
 }
 
 type statementRow struct {
@@ -152,6 +156,8 @@ type statementTicket struct {
 	status             string
 	issuedAt           time.Time
 	businessAt         time.Time
+	entryType          string
+	secondWeighedAt    *time.Time
 	gross              int64
 	tare               int64
 	adjustment         int64
@@ -203,8 +209,16 @@ func parseStatementTicket(row statementRow) (statementTicket, error) {
 		ticketNo: snapshot.TicketNo, plate: snapshot.Plate,
 		materialCode: row.MaterialCode, materialName: materialName, materialSpec: snapshot.MaterialSpec,
 		direction: row.Direction, status: "valid", issuedAt: row.IssuedAt, businessAt: row.BusinessAt,
+		entryType: snapshot.EntryType, secondWeighedAt: snapshot.SecondWeighedAt,
 		gross: gross, tare: tare, adjustment: adjustment, net: row.FinalNetMilliTonne,
 	}, nil
+}
+
+func (t statementTicket) accountingTime() time.Time {
+	if t.businessAt.IsZero() {
+		return t.issuedAt
+	}
+	return t.businessAt
 }
 
 func (t statementTicket) reportingParty() (string, string) {
@@ -227,6 +241,13 @@ func aggregateStatementParties(tickets []statementTicket, keyword string) ([]Sta
 				FirstIssuedAt: ticket.issuedAt, LastIssuedAt: ticket.issuedAt,
 			}
 			groups[key] = party
+		}
+		day := ticket.accountingTime().In(statementZone).Format("2006-01-02")
+		if party.FirstBusinessDate == "" || day < party.FirstBusinessDate {
+			party.FirstBusinessDate = day
+		}
+		if day > party.LastBusinessDate {
+			party.LastBusinessDate = day
 		}
 		party.StatementTotals.add(ticket.gross, ticket.tare, ticket.adjustment, ticket.net)
 		if ticket.issuedAt.Before(party.FirstIssuedAt) {
@@ -298,11 +319,7 @@ func aggregateStatementDetail(q StatementQuery, tickets []statementTicket) State
 		}
 		material.StatementTotals.add(ticket.gross, ticket.tare, ticket.adjustment, ticket.net)
 
-		businessAt := ticket.businessAt
-		if businessAt.IsZero() {
-			businessAt = ticket.issuedAt
-		}
-		date := businessAt.In(statementZone).Format("2006-01-02")
+		date := ticket.accountingTime().In(statementZone).Format("2006-01-02")
 		day := daily[date]
 		if day == nil {
 			day = &StatementDaily{Date: date}
@@ -345,6 +362,8 @@ func sortStatementParties(parties []StatementParty, sortBy, sortOrder string) {
 			compare = compareInt64(left.TicketCount, right.TicketCount)
 		case "adjustment":
 			compare = compareInt64(left.NetAdjustmentMilliTonne, right.NetAdjustmentMilliTonne)
+		case "businessDate":
+			compare = strings.Compare(left.LastBusinessDate, right.LastBusinessDate)
 		case "issued":
 			if left.LastIssuedAt.Before(right.LastIssuedAt) {
 				compare = -1

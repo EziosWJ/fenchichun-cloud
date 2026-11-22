@@ -378,6 +378,7 @@
 }
 
 .ticketDetail {
+  overflow-wrap: anywhere;
   padding: 4px 8px 8px;
   border-radius: 8px;
   background: var(--ant-color-fill-quaternary);
@@ -521,4 +522,14 @@
   :global(body.statement-printing) .printArea .materialFill {
     background: #1677ff !important;
   }
+}
+
+.ticketMeta {
+  color: var(--ant-color-text-secondary);
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.ticketDateTime {
+  white-space: nowrap;
 }

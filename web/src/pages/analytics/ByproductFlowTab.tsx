@@ -3,12 +3,13 @@ import type { ColumnsType } from 'antd/es/table';
 import { DataTable } from '../../components/DataTable';
 import { EChart } from '../../components/charts/EChart';
 import { ChartCard, FreshnessNote, KpiCard } from '../../features/analytics/ui';
-import { formatBp, formatMilliTonne } from '../../features/analytics/format';
+import { formatBeijingTime, formatBp, formatMilliTonne } from '../../features/analytics/format';
 import { byproductTrendOption, topBarChartOption } from '../../features/analytics/charts';
 import type { ByproductData, ByproductMaterial, ByproductRow, TopRow } from '../../features/analytics/api';
-import { formatDateTime, formatNumber } from '../../utils/format';
+import { formatNumber } from '../../utils/format';
 
 interface ByproductFlowTabProps {
+  siteCode?: string;
   data: ByproductData | undefined;
   loading: boolean;
   error?: string | null;
@@ -37,6 +38,7 @@ function toTopRows(rows: ByproductRow[] | undefined): TopRow[] {
 }
 
 export function ByproductFlowTab({
+  siteCode,
   data,
   loading,
   error,
@@ -64,8 +66,8 @@ export function ByproductFlowTab({
     { title: '出库净重（吨）', key: 'net', align: 'right', width: 150, sorter: true, render: (_, row) => <Typography.Text strong>{formatMilliTonne(row.netMilliTonne)}</Typography.Text> },
     { title: '平均单车（吨）', key: 'avg', align: 'right', width: 130, sorter: true, render: (_, row) => row.avgNetPerTicketMilliTonne == null ? '—' : formatMilliTonne(row.avgNetPerTicketMilliTonne) },
     { title: '占比', key: 'share', align: 'right', width: 100, render: (_, row) => formatBp(row.shareBp) },
-    { title: '首次采购', key: 'firstIssuedAt', width: 150, render: (_, row) => formatDateTime(row.firstIssuedAt) },
-    { title: '最后采购', key: 'lastIssuedAt', width: 150, sorter: true, render: (_, row) => formatDateTime(row.lastIssuedAt) },
+    { title: '首次采购', key: 'firstIssuedAt', width: 150, render: (_, row) => formatBeijingTime(row.firstIssuedAt) },
+    { title: '最后采购', key: 'lastIssuedAt', width: 150, sorter: true, render: (_, row) => formatBeijingTime(row.lastIssuedAt) },
     { title: '物料', key: 'materials', width: 180, render: (_, row) => row.materialNames || '—' },
   ];
   const materialColumns: ColumnsType<ByproductMaterial> = [
@@ -84,6 +86,7 @@ export function ByproductFlowTab({
         description="统计副产品（酒糟等）出厂方向的客户采购量、占比和集中度。当前系统没有价格/金额字段，核心客户按采购量和频次识别，不代表利润贡献。"
       />
       {error && <Alert type="error" showIcon message={`副产品出库流向加载失败：${error}`} />}
+      <FreshnessNote freshness={data?.freshness} siteCode={siteCode} />
       <Row gutter={[16, 16]}>
         <Col xs={24} sm={12} xl={4}><KpiCard label="活跃客户" value={summary ? formatNumber(summary.activeCustomers) : '—'} suffix="家" /></Col>
         <Col xs={24} sm={12} xl={4}><KpiCard label="出库车次" value={summary ? formatNumber(summary.ticketCount) : '—'} suffix="车" /></Col>
@@ -150,7 +153,6 @@ export function ByproductFlowTab({
         title="客户流向"
         emptyDescription="当前期间没有副产品出库单据"
       />
-      <FreshnessNote freshness={data?.freshness} />
     </Space>
   );
 }

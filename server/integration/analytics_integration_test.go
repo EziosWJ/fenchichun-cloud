@@ -118,6 +118,19 @@ func TestPostgresWeighbridgeAnalyticsReadModel(t *testing.T) {
 		t.Fatalf("freshness = %+v", freshness)
 	}
 
+	filtered := q
+	filtered.SiteCode = "B"
+	report, err := weighbridge.NewService(repo).AnalyticsOverview(ctx, filtered)
+	if err != nil || report.Freshness.FilteredDataThrough == nil || !report.Freshness.FilteredDataThrough.Equal(first) ||
+		report.Freshness.DataThrough == nil || !report.Freshness.DataThrough.Equal(second) {
+		t.Fatalf("filtered freshness = %+v, %v", report.Freshness, err)
+	}
+	filtered.From = second
+	report, err = weighbridge.NewService(repo).AnalyticsOverview(ctx, filtered)
+	if err != nil || report.Freshness.FilteredDataThrough != nil {
+		t.Fatalf("empty filtered freshness = %+v, %v", report.Freshness, err)
+	}
+
 	router := gin.New()
 	authenticated := router.Group("/api/v1")
 	authenticated.Use(func(c *gin.Context) {
@@ -139,5 +152,9 @@ func TestPostgresWeighbridgeAnalyticsReadModel(t *testing.T) {
 	response = serve("/api/v1/weighbridge/analytics/parties?direction=outbound&from=2026-11-01&to=2026-11-30")
 	if response.Code != 200 || !strings.Contains(response.Body.String(), `"partyCode":"P1"`) || !strings.Contains(response.Body.String(), `"netMilliTonne":53500`) {
 		t.Fatalf("HTTP parties: %d %s", response.Code, response.Body.String())
+	}
+	response = serve("/api/v1/weighbridge/analytics/quality/export?siteCode=B&from=2026-11-01&to=2026-11-30")
+	if response.Code != 200 || !strings.HasSuffix(strings.TrimSpace(response.Body.String()), ",2026-11-01 10:00:00") {
+		t.Fatalf("filtered quality CSV cutoff: %d %s", response.Code, response.Body.String())
 	}
 }

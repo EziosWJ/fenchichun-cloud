@@ -650,3 +650,13 @@
     gap: 2px 8px;
   }
 }
+
+a.rankName,
+a.legendName {
+  color: var(--ant-color-link);
+}
+
+a.rankName:hover,
+a.legendName:hover {
+  color: var(--ant-color-link-hover);
+}

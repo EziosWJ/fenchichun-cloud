@@ -142,6 +142,7 @@ type analyticsFreshnessRow struct {
 }
 
 type analyticsSiteReceiptRow struct {
+	Enabled         bool
 	SiteCode        string
 	SiteName        string
 	LastReceivedAt  *time.Time
@@ -377,11 +378,13 @@ func (r *Repository) AnalyticsFreshness(ctx context.Context) (AnalyticsFreshness
 	receiptQuery := `SELECT
 		s.code AS site_code,
 		s.name AS site_name,
+		s.enabled,
 		COUNT(sc.id) AS received_changes,
 		MAX(sc.received_at) AS last_received_at
 		FROM wb_cloud_site s
-		LEFT JOIN wb_cloud_ticket_change sc ON sc.issued_site_code = s.code
-		GROUP BY s.code, s.name
+		LEFT JOIN wb_cloud_site_code a ON a.site_code = s.code
+		LEFT JOIN wb_cloud_ticket_change sc ON sc.issued_site_code = a.code
+		GROUP BY s.code, s.name, s.enabled
 		ORDER BY s.code`
 	receipts := []analyticsSiteReceiptRow{}
 	if err := r.db.WithContext(ctx).Raw(receiptQuery).Scan(&receipts).Error; err != nil {
@@ -395,9 +398,24 @@ func (r *Repository) AnalyticsFreshness(ctx context.Context) (AnalyticsFreshness
 	}
 	for _, item := range receipts {
 		result.SiteReceipts = append(result.SiteReceipts, AnalyticsSiteReceipt{
-			SiteCode: item.SiteCode, SiteName: item.SiteName,
+			SiteCode: item.SiteCode, SiteName: item.SiteName, Enabled: item.Enabled,
 			LastReceivedAt: item.LastReceivedAt, ReceivedChanges: item.ReceivedChanges,
 		})
 	}
 	return result, nil
+}
+
+func (r *Repository) AnalyticsFilteredFreshness(ctx context.Context, q AnalyticsQuery, includeVoid bool, keywordScope string) (AnalyticsFreshness, error) {
+	freshness, err := r.AnalyticsFreshness(ctx)
+	if err != nil {
+		return AnalyticsFreshness{}, err
+	}
+	where, args := analyticsWhere(q, includeVoid, keywordScope)
+	query := "SELECT MAX(t.issued_at) AS data_through" + analyticsFrom + " WHERE " + where
+	var row analyticsFreshnessRow
+	if err := r.db.WithContext(ctx).Raw(query, args...).Scan(&row).Error; err != nil {
+		return AnalyticsFreshness{}, err
+	}
+	freshness.FilteredDataThrough = row.DataThrough
+	return freshness, nil
 }

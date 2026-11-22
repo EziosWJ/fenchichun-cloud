@@ -72,7 +72,7 @@ func statementQuery(c *gin.Context, detail bool) (StatementQuery, error) {
 		return q, ErrInvalid
 	}
 	switch q.SortBy {
-	case "", "net", "ticketCount", "adjustment", "issued":
+	case "", "net", "ticketCount", "adjustment", "issued", "businessDate":
 	default:
 		return q, ErrInvalid
 	}
@@ -89,6 +89,7 @@ func statementQuery(c *gin.Context, detail bool) (StatementQuery, error) {
 
 // statementParties godoc
 // @Summary 客户对账往来方汇总
+// @Description 按对账归属日筛选，返回结算主体、归属日期范围和实际出单时间范围。
 // @Tags 统计与分析
 // @Security BearerAuth
 // @Param direction query string true "inbound/outbound"
@@ -99,7 +100,8 @@ func statementQuery(c *gin.Context, detail bool) (StatementQuery, error) {
 // @Param to query string false "结束日期 YYYY-MM-DD（北京时间，包含当天）"
 // @Param page query int false "页码"
 // @Param pageSize query int false "每页条数，1-100"
-// @Success 200 {object} ApiEnvelope
+// @Param sortBy query string false "排序字段（businessDate 按最晚归属日，issued 按最后出单时间）"
+// @Success 200 {object} ApiEnvelope{data=StatementPartyPage}
 // @Router /api/v1/weighbridge/statements/parties [get]
 func (h *Handler) statementParties(c *gin.Context) {
 	q, err := statementQuery(c, false)
@@ -113,6 +115,7 @@ func (h *Handler) statementParties(c *gin.Context) {
 
 // statementDetail godoc
 // @Summary 单个厂区与往来方的对账单汇总
+// @Description 使用结算主体查询，日汇总按北京时间对账归属日。
 // @Tags 统计与分析
 // @Security BearerAuth
 // @Param direction query string true "inbound/outbound"
@@ -121,7 +124,7 @@ func (h *Handler) statementParties(c *gin.Context) {
 // @Param materialCode query string false "物料编码"
 // @Param from query string false "开始日期 YYYY-MM-DD（北京时间）"
 // @Param to query string false "结束日期 YYYY-MM-DD（北京时间，包含当天）"
-// @Success 200 {object} ApiEnvelope
+// @Success 200 {object} ApiEnvelope{data=StatementDetail}
 // @Router /api/v1/weighbridge/statements/parties/detail [get]
 func (h *Handler) statementDetail(c *gin.Context) {
 	q, err := statementQuery(c, true)
@@ -135,6 +138,7 @@ func (h *Handler) statementDetail(c *gin.Context) {
 
 // statementPartiesExport godoc
 // @Summary 导出客户对账往来方汇总 CSV
+// @Description 包含对账归属日期范围与实际出单时间范围，采用北京时间。
 // @Tags 统计与分析
 // @Security BearerAuth
 // @Produce text/csv
@@ -163,6 +167,7 @@ func (h *Handler) statementPartiesExport(c *gin.Context) {
 
 // statementDetailExport godoc
 // @Summary 导出单个往来方对账单明细 CSV
+// @Description 包含原主体、结算主体、对账归属日、实际回磅时间和出单时间，采用北京时间。
 // @Tags 统计与分析
 // @Security BearerAuth
 // @Produce text/csv
@@ -191,8 +196,8 @@ func (h *Handler) statementDetailExport(c *gin.Context) {
 
 func statementSummaryCSV(parties []StatementParty, summary StatementPageSummary, direction string) ([]byte, error) {
 	rows := [][]string{{
-		"厂区编码", "厂区名称", "往来方编码", "往来方名称", "方向", "有效车次",
-		"毛重(吨)", "皮重(吨)", "净重调整(吨)", "最终净重(吨)", "首次出单时间", "最后出单时间",
+		"厂区编码", "厂区名称", "结算主体编码", "结算主体名称", "方向", "有效车次",
+		"毛重(吨)", "皮重(吨)", "净重调整(吨)", "最终净重(吨)", "首次出单时间（北京时间）", "最后出单时间（北京时间）", "最早对账归属日", "最晚对账归属日",
 	}}
 	for _, party := range parties {
 		rows = append(rows, []string{
@@ -201,23 +206,31 @@ func statementSummaryCSV(parties []StatementParty, summary StatementPageSummary,
 			statementDirectionLabel(direction), strconv.FormatInt(party.TicketCount, 10),
 			FormatMilliTonne(party.GrossMilliTonne), FormatMilliTonne(party.TareMilliTonne),
 			FormatMilliTonne(party.NetAdjustmentMilliTonne), FormatMilliTonne(party.NetMilliTonne),
-			statementDate(party.FirstIssuedAt), statementDate(party.LastIssuedAt),
+			statementDate(party.FirstIssuedAt), statementDate(party.LastIssuedAt), party.FirstBusinessDate, party.LastBusinessDate,
 		})
 	}
 	rows = append(rows, []string{
 		"合计", "", "", "", statementDirectionLabel(direction), strconv.FormatInt(summary.TicketCount, 10),
 		FormatMilliTonne(summary.GrossMilliTonne), FormatMilliTonne(summary.TareMilliTonne),
-		FormatMilliTonne(summary.NetAdjustmentMilliTonne), FormatMilliTonne(summary.NetMilliTonne), "", "",
+		FormatMilliTonne(summary.NetAdjustmentMilliTonne), FormatMilliTonne(summary.NetMilliTonne), "", "", "", "",
 	})
 	return encodeStatementCSV(rows)
 }
 
 func statementDetailCSV(detail StatementDetail, tickets []StatementTicket) ([]byte, error) {
 	rows := [][]string{{
-		"厂区编码", "厂区名称", "往来方编码", "往来方名称", "方向", "出单时间", "对账时间", "单号", "车牌",
+		"厂区编码", "厂区名称", "原主体编码", "原主体名称", "方向", "出单时间（北京时间）", "对账时间（北京时间）", "单号", "车牌",
 		"物料编码", "物料名称", "规格", "毛重(吨)", "皮重(吨)", "净重调整(吨)", "最终净重(吨)", "状态",
+		"对账归属日", "实际回磅时间（北京时间）", "单据类型", "结算主体编码", "结算主体名称",
 	}}
 	for _, ticket := range tickets {
+		var secondWeighedAt, entryType string
+		if ticket.EntryType == "manual_supplement" {
+			entryType = "人工补单"
+			if ticket.SecondWeighedAt != nil {
+				secondWeighedAt = statementDate(*ticket.SecondWeighedAt)
+			}
+		}
 		rows = append(rows, []string{
 			statementCSVText(ticket.SiteCode), statementCSVText(ticket.SiteName),
 			statementCSVText(ticket.PartyCode), statementCSVText(ticket.PartyName),
@@ -226,13 +239,16 @@ func statementDetailCSV(detail StatementDetail, tickets []StatementTicket) ([]by
 			statementCSVText(ticket.MaterialCode), statementCSVText(ticket.MaterialName), statementCSVText(ticket.MaterialSpec),
 			FormatMilliTonne(ticket.GrossMilliTonne), FormatMilliTonne(ticket.TareMilliTonne),
 			FormatMilliTonne(ticket.NetAdjustmentMilliTonne), FormatMilliTonne(ticket.NetMilliTonne), ticket.Status,
+			ticket.BusinessAt.In(statementZone).Format("2006-01-02"), secondWeighedAt, entryType,
+			statementCSVText(detail.PartyCode), statementCSVText(detail.PartyName),
 		})
 	}
 	rows = append(rows, []string{
-		"合计", statementCSVText(detail.SiteName), statementCSVText(detail.PartyCode), statementCSVText(detail.PartyName),
+		"合计", statementCSVText(detail.SiteName), "", "",
 		statementDirectionLabel(detail.Direction), "", "", "", "", "", "", "",
 		FormatMilliTonne(detail.GrossMilliTonne), FormatMilliTonne(detail.TareMilliTonne),
-		FormatMilliTonne(detail.NetAdjustmentMilliTonne), FormatMilliTonne(detail.NetMilliTonne), "",
+		FormatMilliTonne(detail.NetAdjustmentMilliTonne), FormatMilliTonne(detail.NetMilliTonne), "", "", "", "",
+		statementCSVText(detail.PartyCode), statementCSVText(detail.PartyName),
 	})
 	return encodeStatementCSV(rows)
 }

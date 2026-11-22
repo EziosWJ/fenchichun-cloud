@@ -48,7 +48,7 @@ type AnalyticsStore interface {
 	AnalyticsQualityAnomalies(context.Context, AnalyticsQuery, int) ([]analyticsAnomalyRow, error)
 	AnalyticsQualityIssuerStats(context.Context, AnalyticsQuery) ([]analyticsIssuerRow, error)
 
-	AnalyticsFreshness(context.Context) (AnalyticsFreshness, error)
+	AnalyticsFilteredFreshness(context.Context, AnalyticsQuery, bool, string) (AnalyticsFreshness, error)
 }
 
 func (s *Service) AnalyticsOverview(ctx context.Context, q AnalyticsQuery) (AnalyticsOverviewData, error) {
@@ -84,7 +84,7 @@ func (s *Service) AnalyticsOverview(ctx context.Context, q AnalyticsQuery) (Anal
 	if err != nil {
 		return AnalyticsOverviewData{}, err
 	}
-	freshness, err := s.store.AnalyticsFreshness(ctx)
+	freshness, err := s.store.AnalyticsFilteredFreshness(ctx, q, true, "all")
 	if err != nil {
 		return AnalyticsOverviewData{}, err
 	}
@@ -132,7 +132,7 @@ func (s *Service) AnalyticsFlow(ctx context.Context, q AnalyticsQuery) (Analytic
 	if err != nil {
 		return AnalyticsFlowData{}, err
 	}
-	freshness, err := s.store.AnalyticsFreshness(ctx)
+	freshness, err := s.store.AnalyticsFilteredFreshness(ctx, q, true, "all")
 	if err != nil {
 		return AnalyticsFlowData{}, err
 	}
@@ -206,13 +206,14 @@ func (s *Service) AnalyticsMaterials(ctx context.Context, q AnalyticsQuery) (Ana
 	if err != nil {
 		return AnalyticsMaterialsData{}, err
 	}
-	freshness, err := s.store.AnalyticsFreshness(ctx)
+	freshness, err := s.store.AnalyticsFilteredFreshness(ctx, q, false, "material")
 	if err != nil {
 		return AnalyticsMaterialsData{}, err
 	}
 	totalNet := summaryRow.InboundNetMilliTonne + summaryRow.OutboundNetMilliTonne
 	result := AnalyticsMaterialsData{
 		Summary: AnalyticsMaterialSummary{
+			TotalTickets: summaryRow.TotalTickets, AdjustmentKnownTickets: summaryRow.AdjustmentKnownTickets,
 			MaterialCount:           summaryRow.MaterialCount,
 			InboundNetMilliTonne:    summaryRow.InboundNetMilliTonne,
 			OutboundNetMilliTonne:   summaryRow.OutboundNetMilliTonne,
@@ -253,7 +254,7 @@ func (s *Service) AnalyticsParties(ctx context.Context, q AnalyticsQuery) (Analy
 	if err != nil {
 		return AnalyticsPartiesData{}, err
 	}
-	freshness, err := s.store.AnalyticsFreshness(ctx)
+	freshness, err := s.store.AnalyticsFilteredFreshness(ctx, q, true, "party")
 	if err != nil {
 		return AnalyticsPartiesData{}, err
 	}
@@ -415,7 +416,7 @@ func (s *Service) AnalyticsQuality(ctx context.Context, q AnalyticsQuery) (Analy
 	if err != nil {
 		return AnalyticsQualityData{}, err
 	}
-	freshness, err := s.store.AnalyticsFreshness(ctx)
+	freshness, err := s.store.AnalyticsFilteredFreshness(ctx, q, true, "all")
 	if err != nil {
 		return AnalyticsQualityData{}, err
 	}
@@ -472,10 +473,6 @@ func (s *Service) AnalyticsQualityExportRows(ctx context.Context, q AnalyticsQue
 	return s.store.AnalyticsQualityAnomalies(ctx, q, 50001)
 }
 
-func (s *Service) AnalyticsFreshness(ctx context.Context) (AnalyticsFreshness, error) {
-	return s.store.AnalyticsFreshness(ctx)
-}
-
 func (s *Service) comparisonSummary(ctx context.Context, q AnalyticsQuery, mode string) (analyticsSummaryRow, error) {
 	from, until := comparisonRange(q.From, q.Until, mode)
 	if from.IsZero() || until.IsZero() {
@@ -506,8 +503,9 @@ func previousRange(from, until time.Time) (time.Time, time.Time) {
 func overviewSummaryFromRow(row analyticsSummaryRow) AnalyticsOverviewSummary {
 	totalNet := row.InboundNetMilliTonne + row.OutboundNetMilliTonne
 	return AnalyticsOverviewSummary{
-		ValidTickets:   row.ValidTickets,
-		InboundTickets: row.InboundTickets, InboundNetMilliTonne: row.InboundNetMilliTonne,
+		AdjustmentKnownTickets: row.AdjustmentKnownTickets,
+		ValidTickets:           row.ValidTickets,
+		InboundTickets:         row.InboundTickets, InboundNetMilliTonne: row.InboundNetMilliTonne,
 		OutboundTickets: row.OutboundTickets, OutboundNetMilliTonne: row.OutboundNetMilliTonne,
 		NetFlowMilliTonne: row.InboundNetMilliTonne - row.OutboundNetMilliTonne,
 		ActiveSites:       row.ActiveSites, ActiveSuppliers: row.ActiveSuppliers, ActiveCustomers: row.ActiveCustomers,
@@ -840,7 +838,8 @@ func buildIssuerStats(rows []analyticsIssuerRow) []AnalyticsIssuerStat {
 
 func qualitySummaryFromRow(row analyticsQualitySummaryRow) AnalyticsQualitySummary {
 	return AnalyticsQualitySummary{
-		TotalTickets: row.TotalTickets, ValidTickets: row.ValidTickets, VoidTickets: row.VoidTickets,
+		AdjustmentKnownTickets: row.AdjustmentKnownTickets,
+		TotalTickets:           row.TotalTickets, ValidTickets: row.ValidTickets, VoidTickets: row.VoidTickets,
 		VoidRateBp:      rateBp(row.VoidTickets, row.ValidTickets+row.VoidTickets),
 		ReopenedTickets: row.ReopenedTickets, ReopenRateBp: rateBp(row.ReopenedTickets, row.ValidTickets),
 		AdjustedTickets:         row.AdjustedTickets,
@@ -961,7 +960,7 @@ func overviewAlerts(summary AnalyticsOverviewSummary, freshness AnalyticsFreshne
 		alerts = append(alerts, AnalyticsAlert{Type: "void_rate", Level: "warning", Count: summary.VoidTickets, Message: "作废率高于 5%"})
 	}
 	if summary.AdjustmentCoverageBp != nil && *summary.AdjustmentCoverageBp < 10000 {
-		missing := summary.ValidTickets - (summary.ValidTickets * *summary.AdjustmentCoverageBp / 10000)
+		missing := summary.ValidTickets - summary.AdjustmentKnownTickets
 		alerts = append(alerts, AnalyticsAlert{Type: "adjustment_coverage", Level: "info", Count: missing, Message: "部分旧协议单据缺少调整字段，扣量率仅覆盖已知单据"})
 	}
 	if freshness.LastReceivedAt == nil || time.Since(*freshness.LastReceivedAt) > 2*time.Hour {
@@ -1033,7 +1032,7 @@ func (s *Service) AnalyticsSupplierQuality(ctx context.Context, q AnalyticsQuery
 	if err != nil {
 		return AnalyticsSupplierQualityData{}, err
 	}
-	freshness, err := s.store.AnalyticsFreshness(ctx)
+	freshness, err := s.store.AnalyticsFilteredFreshness(ctx, defaultCoreCategoryCodes(q), false, "party")
 	if err != nil {
 		return AnalyticsSupplierQualityData{}, err
 	}
@@ -1085,7 +1084,7 @@ func (s *Service) AnalyticsByproductFlow(ctx context.Context, q AnalyticsQuery) 
 	if err != nil {
 		return AnalyticsByproductData{}, err
 	}
-	freshness, err := s.store.AnalyticsFreshness(ctx)
+	freshness, err := s.store.AnalyticsFilteredFreshness(ctx, defaultByproductQuery(q), false, "party")
 	if err != nil {
 		return AnalyticsByproductData{}, err
 	}
