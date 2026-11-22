@@ -1,9 +1,11 @@
 import { useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import { Alert, Button, DatePicker, Empty, Segmented, Select, Skeleton, Tooltip, theme } from 'antd';
+import { Link, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import dayjs, { type Dayjs } from 'dayjs';
 import { ArrowDownToLine, ArrowUpFromLine, RefreshCw } from 'lucide-react';
 import { EChart } from '../../components/charts/EChart';
+import { paths } from '../../config/paths';
 import { useListUrlState } from '../../hooks/useListUrlState';
 import { getApiErrorMessage } from '../../lib/api/errors';
 import { analyticsOverview, type StructureRow, type TopRow } from '../../features/analytics/api';
@@ -14,6 +16,9 @@ import {
   overviewTrendChartOption,
   type OverviewChartPalette,
 } from '../../features/analytics/charts';
+import { analyticsHref, analyticsPeriodFilters } from '../../features/analytics/params';
+import { FreshnessNote } from '../../features/analytics/ui';
+import { formatNumber } from '../../utils/format';
 import { sites as fetchSites } from '../../features/weighbridge/api';
 import styles from './OverviewPage.module.css';
 
@@ -161,12 +166,14 @@ function RankingList({
   loading,
   emptyText,
   showShare = false,
+  rowHref,
   accent = '#1677ff',
 }: {
   rows: TopRow[];
   loading: boolean;
   emptyText: string;
   showShare?: boolean;
+  rowHref: (row: TopRow) => string;
   accent?: string;
 }) {
   const signature = rows.map((row) => `${row.code}:${row.netMilliTonne}`).join('|');
@@ -188,7 +195,7 @@ function RankingList({
             <span className={styles.rankNo}>{String(index + 1).padStart(2, '0')}</span>
             <div className={styles.rankMain}>
               <div className={styles.rankTop}>
-                <span className={styles.rankName} title={row.name || row.code}>{row.name || row.code}</span>
+                <Link to={rowHref(row)} className={styles.rankName} title={row.name || row.code}>{row.name || row.code}</Link>
                 <span className={styles.rankValue}>
                   {formatMilliTonne(row.netMilliTonne)}
                   <span className={styles.rankUnit}> 吨</span>
@@ -197,7 +204,7 @@ function RankingList({
               <div className={styles.rankTrack}>
                 <span className={styles.rankBar} style={barStyle} />
               </div>
-              {showShare && <span className={styles.rankShare}>占比 {formatBp(row.shareBp)}</span>}
+              <span className={styles.rankShare}>{formatNumber(row.ticketCount)} 车{showShare && ` · 占比 ${formatBp(row.shareBp)}`}</span>
             </div>
           </li>
         );
@@ -217,6 +224,7 @@ function TrendLegend() {
 
 export default function OverviewPage() {
   const { token } = theme.useToken();
+  const navigate = useNavigate();
   const { state, actions } = useListUrlState(analyticsFilterConfig);
   const [partyDirection, setPartyDirection] = useState<'inbound' | 'outbound'>('inbound');
 
@@ -248,7 +256,7 @@ export default function OverviewPage() {
     () => (sites.data ?? []).map((site) => ({ value: site.code, label: `${site.name}（${site.code}）` })),
     [sites.data],
   );
-  const siteName = (sites.data ?? []).find((site) => site.code === state.filters.siteCode)?.name ?? '全部厂区';
+  const siteName = (sites.data ?? []).find((site) => site.code === state.filters.siteCode)?.name ?? (state.filters.siteCode || '全部厂区');
 
   const params = useMemo(
     () => ({
@@ -381,12 +389,13 @@ export default function OverviewPage() {
               <span className={styles.metricIcon} style={{ color: token.colorPrimary }}>
                 <ArrowDownToLine size={14} aria-hidden="true" />
               </span>
-              入厂净重
+              <Link to={analyticsHref(paths.analyticsFlow, { ...params, direction: 'inbound' })}>入厂净重</Link>
             </div>
             <div className={styles.metricValueRow}>
               <AnimatedNumber value={summary?.inboundNetMilliTonne} />
               <span className={styles.metricUnit}>吨</span>
             </div>
+            {summary && <span className={styles.period}>{formatNumber(summary.inboundTickets)} 车有效单</span>}
           </div>
           <span className={styles.metricDivider} aria-hidden="true" />
           <div className={styles.metric}>
@@ -394,12 +403,13 @@ export default function OverviewPage() {
               <span className={styles.metricIcon} style={{ color: OUTBOUND_COLOR }}>
                 <ArrowUpFromLine size={14} aria-hidden="true" />
               </span>
-              出厂净重
+              <Link to={analyticsHref(paths.analyticsFlow, { ...params, direction: 'outbound' })}>出厂净重</Link>
             </div>
             <div className={styles.metricValueRow}>
               <AnimatedNumber value={summary?.outboundNetMilliTonne} />
               <span className={styles.metricUnit}>吨</span>
             </div>
+            {summary && <span className={styles.period}>{formatNumber(summary.outboundTickets)} 车有效单</span>}
           </div>
         </div>
       </section>
@@ -413,6 +423,8 @@ export default function OverviewPage() {
         />
       )}
 
+      <FreshnessNote freshness={data?.freshness} siteCode={state.filters.siteCode} />
+
       <div className={styles.grid}>
         <Panel title="进出厂净重趋势" className={styles.trendPanel} extra={<TrendLegend />}>
           <EChart
@@ -421,6 +433,12 @@ export default function OverviewPage() {
             empty={!trend?.points.length}
             height={368}
             ariaLabel="进出厂净重趋势图"
+            onClick={({ dataIndex, seriesIndex }) => {
+              const point = dataIndex === undefined ? undefined : trend?.points[dataIndex];
+              if (!point) return;
+              const direction = seriesIndex === 1 ? 'outbound' : 'inbound';
+              navigate(analyticsHref(paths.analyticsFlow, { ...analyticsPeriodFilters(params, point), direction }));
+            }}
           />
         </Panel>
 
@@ -450,7 +468,9 @@ export default function OverviewPage() {
                     />
                     <div className={styles.legendBody}>
                       <div className={styles.legendTop}>
-                        <span className={styles.legendName} title={row.label}>{row.label}</span>
+                        {!row.key || row.key === '__other__'
+                          ? <span className={styles.legendName} title={row.label}>{row.label}</span>
+                          : <Link className={styles.legendName} title={row.label} to={analyticsHref(paths.analyticsMaterials, { ...params, categoryCode: row.key })}>{row.label}</Link>}
                         <span className={styles.legendShare}>{formatBp(row.shareBp)}</span>
                       </div>
                       <span className={styles.legendValue}>{formatMilliTonne(row.netMilliTonne)} 吨</span>
@@ -469,6 +489,7 @@ export default function OverviewPage() {
             rows={materialRows}
             loading={overview.isLoading}
             emptyText="暂无物料数据"
+            rowHref={(row) => analyticsHref(paths.analyticsMaterials, { ...params, materialCode: row.code })}
             showShare
             accent={token.colorPrimary}
           />
@@ -493,6 +514,7 @@ export default function OverviewPage() {
             rows={partyRows}
             loading={overview.isLoading}
             emptyText="暂无供收方数据"
+            rowHref={(row) => analyticsHref(paths.analyticsParties, { ...params, direction: partyDirection, partyCode: row.code })}
             accent={partyDirection === 'inbound' ? token.colorPrimary : OUTBOUND_COLOR}
           />
         </Panel>

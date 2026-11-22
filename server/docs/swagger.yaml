@@ -1534,6 +1534,984 @@ definitions:
       status:
         type: integer
     type: object
+  weighbridge.AnalyticsAdjustmentCategoryRow:
+    properties:
+      adjustmentNetMilliTonne:
+        type: integer
+      category:
+        type: string
+      categoryName:
+        type: string
+      rateBp:
+        type: integer
+      tickets:
+        type: integer
+    type: object
+  weighbridge.AnalyticsAdjustmentModeRow:
+    properties:
+      mode:
+        type: string
+      shareBp:
+        type: integer
+      tickets:
+        type: integer
+    type: object
+  weighbridge.AnalyticsAlert:
+    properties:
+      count:
+        type: integer
+      level:
+        type: string
+      message:
+        type: string
+      type:
+        type: string
+    type: object
+  weighbridge.AnalyticsAnomaly:
+    properties:
+      detail:
+        type: string
+      issuedAt:
+        type: string
+      siteCode:
+        type: string
+      ticketNo:
+        type: string
+      type:
+        type: string
+    type: object
+  weighbridge.AnalyticsByproductData:
+    properties:
+      concentration:
+        items:
+          $ref: '#/definitions/weighbridge.AnalyticsPartyConcentration'
+        type: array
+      freshness:
+        $ref: '#/definitions/weighbridge.AnalyticsFreshness'
+      materials:
+        items:
+          $ref: '#/definitions/weighbridge.AnalyticsByproductMaterial'
+        type: array
+      page:
+        type: integer
+      pageSize:
+        type: integer
+      records:
+        items:
+          $ref: '#/definitions/weighbridge.AnalyticsByproductRow'
+        type: array
+      summary:
+        $ref: '#/definitions/weighbridge.AnalyticsByproductSummary'
+      top:
+        items:
+          $ref: '#/definitions/weighbridge.AnalyticsByproductRow'
+        type: array
+      total:
+        type: integer
+      trend:
+        items:
+          $ref: '#/definitions/weighbridge.AnalyticsByproductTrendPoint'
+        type: array
+    type: object
+  weighbridge.AnalyticsByproductMaterial:
+    properties:
+      materialCode:
+        type: string
+      materialName:
+        type: string
+      netMilliTonne:
+        type: integer
+      shareBp:
+        type: integer
+      ticketCount:
+        type: integer
+    type: object
+  weighbridge.AnalyticsByproductRow:
+    properties:
+      avgNetPerTicketMilliTonne:
+        type: integer
+      firstIssuedAt:
+        type: string
+      lastIssuedAt:
+        type: string
+      materialCount:
+        type: integer
+      materialNames:
+        type: string
+      nature:
+        type: string
+      netMilliTonne:
+        type: integer
+      partyCode:
+        type: string
+      partyName:
+        type: string
+      shareBp:
+        type: integer
+      ticketCount:
+        type: integer
+    type: object
+  weighbridge.AnalyticsByproductSummary:
+    properties:
+      activeCustomers:
+        type: integer
+      avgNetPerCustomerMilliTonne:
+        type: integer
+      cr3Bp:
+        type: integer
+      cr5Bp:
+        type: integer
+      cr10Bp:
+        type: integer
+      hhi:
+        type: integer
+      materialCount:
+        type: integer
+      ticketCount:
+        type: integer
+      topCustomerShareBp:
+        type: integer
+      totalNetMilliTonne:
+        type: integer
+    type: object
+  weighbridge.AnalyticsByproductTrendPoint:
+    properties:
+      netMilliTonne:
+        type: integer
+      period:
+        type: string
+      periodEnd:
+        type: string
+      periodStart:
+        type: string
+      ticketCount:
+        type: integer
+    type: object
+  weighbridge.AnalyticsComparison:
+    properties:
+      previous:
+        $ref: '#/definitions/weighbridge.AnalyticsComparisonSummary'
+      year:
+        $ref: '#/definitions/weighbridge.AnalyticsComparisonSummary'
+    type: object
+  weighbridge.AnalyticsComparisonMetric:
+    properties:
+      current:
+        type: integer
+      delta:
+        type: integer
+      deltaBp:
+        type: integer
+      previous:
+        type: integer
+    type: object
+  weighbridge.AnalyticsComparisonSummary:
+    properties:
+      adjustmentNetMilliTonne:
+        $ref: '#/definitions/weighbridge.AnalyticsComparisonMetric'
+      inboundNetMilliTonne:
+        $ref: '#/definitions/weighbridge.AnalyticsComparisonMetric'
+      inboundTickets:
+        $ref: '#/definitions/weighbridge.AnalyticsComparisonMetric'
+      netFlowMilliTonne:
+        $ref: '#/definitions/weighbridge.AnalyticsComparisonMetric'
+      outboundNetMilliTonne:
+        $ref: '#/definitions/weighbridge.AnalyticsComparisonMetric'
+      outboundTickets:
+        $ref: '#/definitions/weighbridge.AnalyticsComparisonMetric'
+      validTickets:
+        $ref: '#/definitions/weighbridge.AnalyticsComparisonMetric'
+      voidTickets:
+        $ref: '#/definitions/weighbridge.AnalyticsComparisonMetric'
+    type: object
+  weighbridge.AnalyticsCorrectionSiteRow:
+    properties:
+      grossCorrectionMilliTonne:
+        type: integer
+      siteCode:
+        type: string
+      siteName:
+        type: string
+      tareCorrectionMilliTonne:
+        type: integer
+      tickets:
+        type: integer
+    type: object
+  weighbridge.AnalyticsDuration:
+    properties:
+      crossDayRateBp:
+        type: integer
+      crossDayTickets:
+        type: integer
+      maxSeconds:
+        type: integer
+      medianSeconds:
+        type: number
+      p90Seconds:
+        type: number
+      reopenedExcludedTickets:
+        type: integer
+      sampleTickets:
+        type: integer
+    type: object
+  weighbridge.AnalyticsFlowData:
+    properties:
+      comparison:
+        $ref: '#/definitions/weighbridge.AnalyticsComparison'
+      duration:
+        $ref: '#/definitions/weighbridge.AnalyticsDuration'
+      freshness:
+        $ref: '#/definitions/weighbridge.AnalyticsFreshness'
+      siteComparison:
+        items:
+          $ref: '#/definitions/weighbridge.AnalyticsFlowSiteRow'
+        type: array
+      summary:
+        $ref: '#/definitions/weighbridge.AnalyticsFlowSummary'
+      trend:
+        $ref: '#/definitions/weighbridge.AnalyticsTrend'
+    type: object
+  weighbridge.AnalyticsFlowSiteRow:
+    properties:
+      adjustedTickets:
+        type: integer
+      adjustmentCoverageBp:
+        type: integer
+      adjustmentWeightRateBp:
+        type: integer
+      avgNetPerTicketMilliTonne:
+        type: integer
+      inboundNetMilliTonne:
+        type: integer
+      inboundTickets:
+        type: integer
+      netFlowMilliTonne:
+        type: integer
+      outboundNetMilliTonne:
+        type: integer
+      outboundTickets:
+        type: integer
+      siteCode:
+        type: string
+      siteName:
+        type: string
+      voidRateBp:
+        type: integer
+      voidTickets:
+        type: integer
+    type: object
+  weighbridge.AnalyticsFlowSummary:
+    properties:
+      activeCustomers:
+        type: integer
+      activeSites:
+        type: integer
+      activeSuppliers:
+        type: integer
+      adjustedTickets:
+        type: integer
+      adjustmentCoverageBp:
+        type: integer
+      adjustmentKnownTickets:
+        type: integer
+      adjustmentNetMilliTonne:
+        type: integer
+      adjustmentWeightRateBp:
+        type: integer
+      avgNetPerTicketMilliTonne:
+        type: integer
+      inboundAvgNetMilliTonne:
+        type: integer
+      inboundNetMilliTonne:
+        type: integer
+      inboundTickets:
+        type: integer
+      netFlowMilliTonne:
+        type: integer
+      outboundAvgNetMilliTonne:
+        type: integer
+      outboundNetMilliTonne:
+        type: integer
+      outboundTickets:
+        type: integer
+      validTickets:
+        type: integer
+      voidRateBp:
+        type: integer
+      voidTickets:
+        type: integer
+    type: object
+  weighbridge.AnalyticsFreshness:
+    properties:
+      dataThrough:
+        type: string
+      filteredDataThrough:
+        description: Latest ticket issue time included by the report filters, in contrast
+          to the global history.
+        type: string
+      historyStart:
+        type: string
+      lastReceivedAt:
+        type: string
+      siteReceipts:
+        items:
+          $ref: '#/definitions/weighbridge.AnalyticsSiteReceipt'
+        type: array
+    type: object
+  weighbridge.AnalyticsIssuerStat:
+    properties:
+      adjustedTickets:
+        type: integer
+      adjustmentTicketRateBp:
+        type: integer
+      issuerName:
+        type: string
+      reopenedTickets:
+        type: integer
+      tickets:
+        type: integer
+      voidRateBp:
+        type: integer
+      voidTickets:
+        type: integer
+    type: object
+  weighbridge.AnalyticsMaterialRow:
+    properties:
+      adjustedTickets:
+        type: integer
+      adjustmentCoverageBp:
+        type: integer
+      adjustmentNetMilliTonne:
+        type: integer
+      adjustmentWeightRateBp:
+        type: integer
+      avgNetPerTicketMilliTonne:
+        type: integer
+      categoryCode:
+        type: string
+      categoryName:
+        type: string
+      inboundNetMilliTonne:
+        type: integer
+      inboundTickets:
+        type: integer
+      lastIssuedAt:
+        type: string
+      materialCode:
+        type: string
+      materialName:
+        type: string
+      materialSpec:
+        type: string
+      outboundNetMilliTonne:
+        type: integer
+      outboundTickets:
+        type: integer
+      shareBp:
+        type: integer
+      totalNetMilliTonne:
+        type: integer
+      totalTickets:
+        type: integer
+    type: object
+  weighbridge.AnalyticsMaterialSummary:
+    properties:
+      adjustmentCoverageBp:
+        type: integer
+      adjustmentKnownTickets:
+        type: integer
+      adjustmentNetMilliTonne:
+        type: integer
+      adjustmentWeightRateBp:
+        type: integer
+      inboundNetMilliTonne:
+        type: integer
+      lastIssuedAt:
+        type: string
+      materialCount:
+        type: integer
+      outboundNetMilliTonne:
+        type: integer
+      totalTickets:
+        type: integer
+    type: object
+  weighbridge.AnalyticsMaterialTrendSeries:
+    properties:
+      materialCode:
+        type: string
+      materialName:
+        type: string
+      points:
+        items:
+          properties:
+            netMilliTonne:
+              type: integer
+            period:
+              type: string
+          type: object
+        type: array
+    type: object
+  weighbridge.AnalyticsMaterialsData:
+    properties:
+      freshness:
+        $ref: '#/definitions/weighbridge.AnalyticsFreshness'
+      page:
+        type: integer
+      pageSize:
+        type: integer
+      records:
+        items:
+          $ref: '#/definitions/weighbridge.AnalyticsMaterialRow'
+        type: array
+      structure:
+        items:
+          $ref: '#/definitions/weighbridge.AnalyticsStructureRow'
+        type: array
+      summary:
+        $ref: '#/definitions/weighbridge.AnalyticsMaterialSummary'
+      topAdjustments:
+        items:
+          $ref: '#/definitions/weighbridge.AnalyticsMaterialRow'
+        type: array
+      total:
+        type: integer
+      trend:
+        items:
+          $ref: '#/definitions/weighbridge.AnalyticsMaterialTrendSeries'
+        type: array
+    type: object
+  weighbridge.AnalyticsMissingField:
+    properties:
+      field:
+        type: string
+      label:
+        type: string
+      missingCount:
+        type: integer
+      missingRateBp:
+        type: integer
+    type: object
+  weighbridge.AnalyticsOverviewData:
+    properties:
+      alerts:
+        items:
+          $ref: '#/definitions/weighbridge.AnalyticsAlert'
+        type: array
+      comparison:
+        $ref: '#/definitions/weighbridge.AnalyticsComparison'
+      freshness:
+        $ref: '#/definitions/weighbridge.AnalyticsFreshness'
+      materialStructure:
+        items:
+          $ref: '#/definitions/weighbridge.AnalyticsStructureRow'
+        type: array
+      summary:
+        $ref: '#/definitions/weighbridge.AnalyticsOverviewSummary'
+      topMaterials:
+        items:
+          $ref: '#/definitions/weighbridge.AnalyticsTopRow'
+        type: array
+      topParties:
+        items:
+          $ref: '#/definitions/weighbridge.AnalyticsTopRow'
+        type: array
+      trend:
+        $ref: '#/definitions/weighbridge.AnalyticsTrend'
+    type: object
+  weighbridge.AnalyticsOverviewSummary:
+    properties:
+      activeCustomers:
+        type: integer
+      activeSites:
+        type: integer
+      activeSuppliers:
+        type: integer
+      adjustedTickets:
+        type: integer
+      adjustmentCoverageBp:
+        type: integer
+      adjustmentKnownTickets:
+        type: integer
+      adjustmentNetMilliTonne:
+        type: integer
+      adjustmentWeightRateBp:
+        type: integer
+      avgNetPerTicketMilliTonne:
+        type: integer
+      inboundNetMilliTonne:
+        type: integer
+      inboundTickets:
+        type: integer
+      netFlowMilliTonne:
+        type: integer
+      outboundNetMilliTonne:
+        type: integer
+      outboundTickets:
+        type: integer
+      validTickets:
+        type: integer
+      voidRateBp:
+        type: integer
+      voidTickets:
+        type: integer
+    type: object
+  weighbridge.AnalyticsPartiesData:
+    properties:
+      freshness:
+        $ref: '#/definitions/weighbridge.AnalyticsFreshness'
+      page:
+        type: integer
+      pageSize:
+        type: integer
+      ranking:
+        items:
+          $ref: '#/definitions/weighbridge.AnalyticsPartyRow'
+        type: array
+      records:
+        items:
+          $ref: '#/definitions/weighbridge.AnalyticsPartyRow'
+        type: array
+      summary:
+        $ref: '#/definitions/weighbridge.AnalyticsPartySummary'
+      total:
+        type: integer
+    type: object
+  weighbridge.AnalyticsPartyConcentration:
+    properties:
+      label:
+        type: string
+      netMilliTonne:
+        type: integer
+      shareBp:
+        type: integer
+    type: object
+  weighbridge.AnalyticsPartyRow:
+    properties:
+      activeMonths:
+        type: integer
+      adjustedTickets:
+        type: integer
+      adjustmentCoverageBp:
+        type: integer
+      adjustmentNetMilliTonne:
+        type: integer
+      adjustmentWeightRateBp:
+        type: integer
+      avgIntervalSeconds:
+        type: integer
+      avgNetPerTicketMilliTonne:
+        type: integer
+      direction:
+        type: string
+      firstIssuedAt:
+        type: string
+      lastIssuedAt:
+        type: string
+      medianIntervalSeconds:
+        type: integer
+      monthlyNetCvBp:
+        type: integer
+      nature:
+        type: string
+      netMilliTonne:
+        type: integer
+      partyCode:
+        type: string
+      partyName:
+        type: string
+      shareBp:
+        type: integer
+      ticketCount:
+        type: integer
+      voidRateBp:
+        type: integer
+      voidTickets:
+        type: integer
+    type: object
+  weighbridge.AnalyticsPartySummary:
+    properties:
+      activeParties:
+        type: integer
+      avgNetPerPartyMilliTonne:
+        type: integer
+      coverageComplete:
+        type: boolean
+      dormantParties:
+        type: integer
+      historyStart:
+        type: string
+      newParties:
+        type: integer
+      returningParties:
+        type: integer
+      totalNetMilliTonne:
+        type: integer
+    type: object
+  weighbridge.AnalyticsQualityAdjustment:
+    properties:
+      byCategory:
+        items:
+          $ref: '#/definitions/weighbridge.AnalyticsAdjustmentCategoryRow'
+        type: array
+      byMaterial:
+        items:
+          $ref: '#/definitions/weighbridge.AnalyticsMaterialRow'
+        type: array
+      byParty:
+        items:
+          $ref: '#/definitions/weighbridge.AnalyticsPartyRow'
+        type: array
+      modes:
+        items:
+          $ref: '#/definitions/weighbridge.AnalyticsAdjustmentModeRow'
+        type: array
+      trend:
+        $ref: '#/definitions/weighbridge.AnalyticsTrend'
+    type: object
+  weighbridge.AnalyticsQualityCorrection:
+    properties:
+      bySite:
+        items:
+          $ref: '#/definitions/weighbridge.AnalyticsCorrectionSiteRow'
+        type: array
+      grossCorrectionMilliTonne:
+        type: integer
+      tareCorrectionMilliTonne:
+        type: integer
+      tickets:
+        type: integer
+    type: object
+  weighbridge.AnalyticsQualityData:
+    properties:
+      adjustmentAnalysis:
+        $ref: '#/definitions/weighbridge.AnalyticsQualityAdjustment'
+      anomalies:
+        items:
+          $ref: '#/definitions/weighbridge.AnalyticsAnomaly'
+        type: array
+      correctionAnalysis:
+        $ref: '#/definitions/weighbridge.AnalyticsQualityCorrection'
+      freshness:
+        $ref: '#/definitions/weighbridge.AnalyticsFreshness'
+      issuerStats:
+        items:
+          $ref: '#/definitions/weighbridge.AnalyticsIssuerStat'
+        type: array
+      missingFields:
+        items:
+          $ref: '#/definitions/weighbridge.AnalyticsMissingField'
+        type: array
+      reopenAnalysis:
+        $ref: '#/definitions/weighbridge.AnalyticsQualityReopen'
+      summary:
+        $ref: '#/definitions/weighbridge.AnalyticsQualitySummary'
+      voidAnalysis:
+        $ref: '#/definitions/weighbridge.AnalyticsQualityVoid'
+    type: object
+  weighbridge.AnalyticsQualityGroupRow:
+    properties:
+      code:
+        type: string
+      name:
+        type: string
+      tickets:
+        type: integer
+      voidRateBp:
+        type: integer
+      voidTickets:
+        type: integer
+    type: object
+  weighbridge.AnalyticsQualityReopen:
+    properties:
+      chains:
+        items:
+          $ref: '#/definitions/weighbridge.AnalyticsReopenChain'
+        type: array
+      medianReopenLagSeconds:
+        type: number
+      trend:
+        $ref: '#/definitions/weighbridge.AnalyticsTrend'
+    type: object
+  weighbridge.AnalyticsQualitySummary:
+    properties:
+      adjustedTickets:
+        type: integer
+      adjustmentCoverageBp:
+        type: integer
+      adjustmentKnownTickets:
+        type: integer
+      adjustmentNetMilliTonne:
+        type: integer
+      adjustmentTicketRateBp:
+        type: integer
+      adjustmentWeightRateBp:
+        type: integer
+      anomalyTickets:
+        type: integer
+      correctionTickets:
+        type: integer
+      manualWeightRateBp:
+        type: integer
+      manualWeightTickets:
+        type: integer
+      reopenRateBp:
+        type: integer
+      reopenedTickets:
+        type: integer
+      totalTickets:
+        type: integer
+      validTickets:
+        type: integer
+      voidRateBp:
+        type: integer
+      voidTickets:
+        type: integer
+    type: object
+  weighbridge.AnalyticsQualityVoid:
+    properties:
+      byMaterial:
+        items:
+          $ref: '#/definitions/weighbridge.AnalyticsQualityGroupRow'
+        type: array
+      byParty:
+        items:
+          $ref: '#/definitions/weighbridge.AnalyticsQualityGroupRow'
+        type: array
+      bySite:
+        items:
+          $ref: '#/definitions/weighbridge.AnalyticsQualityGroupRow'
+        type: array
+      reasons:
+        items:
+          $ref: '#/definitions/weighbridge.AnalyticsReasonRow'
+        type: array
+      trend:
+        $ref: '#/definitions/weighbridge.AnalyticsTrend'
+    type: object
+  weighbridge.AnalyticsRateTrendPoint:
+    properties:
+      avgRateBp:
+        type: integer
+      period:
+        type: string
+      periodEnd:
+        type: string
+      periodStart:
+        type: string
+      sampleCount:
+        type: integer
+    type: object
+  weighbridge.AnalyticsReasonRow:
+    properties:
+      reason:
+        type: string
+      shareBp:
+        type: integer
+      tickets:
+        type: integer
+    type: object
+  weighbridge.AnalyticsReopenChain:
+    properties:
+      crossDay:
+        type: boolean
+      newIssuedAt:
+        type: string
+      newTicketNo:
+        type: string
+      originalIssuedAt:
+        type: string
+      originalTicketNo:
+        type: string
+      originalVoidedAt:
+        type: string
+      reopenLagSeconds:
+        type: integer
+      siteCode:
+        type: string
+    type: object
+  weighbridge.AnalyticsSiteReceipt:
+    properties:
+      enabled:
+        type: boolean
+      lastReceivedAt:
+        type: string
+      receivedChanges:
+        type: integer
+      siteCode:
+        type: string
+      siteName:
+        type: string
+    type: object
+  weighbridge.AnalyticsStructureRow:
+    properties:
+      key:
+        type: string
+      label:
+        type: string
+      netMilliTonne:
+        type: integer
+      shareBp:
+        type: integer
+    type: object
+  weighbridge.AnalyticsSupplierQualityData:
+    properties:
+      freshness:
+        $ref: '#/definitions/weighbridge.AnalyticsFreshness'
+      page:
+        type: integer
+      pageSize:
+        type: integer
+      records:
+        items:
+          $ref: '#/definitions/weighbridge.AnalyticsSupplierQualityRow'
+        type: array
+      summary:
+        $ref: '#/definitions/weighbridge.AnalyticsSupplierQualitySummary'
+      top:
+        items:
+          $ref: '#/definitions/weighbridge.AnalyticsSupplierQualityRow'
+        type: array
+      total:
+        type: integer
+      trend:
+        items:
+          $ref: '#/definitions/weighbridge.AnalyticsSupplierQualityTrend'
+        type: array
+    type: object
+  weighbridge.AnalyticsSupplierQualityRow:
+    properties:
+      adjustedTickets:
+        type: integer
+      adjustmentCoverageBp:
+        type: integer
+      avgRateBp:
+        type: integer
+      cvBp:
+        type: integer
+      firstIssuedAt:
+        type: string
+      lastIssuedAt:
+        type: string
+      materialCount:
+        type: integer
+      materialNames:
+        type: string
+      maxRateBp:
+        type: integer
+      medianRateBp:
+        type: integer
+      minRateBp:
+        type: integer
+      nature:
+        type: string
+      p90RateBp:
+        type: integer
+      partyCode:
+        type: string
+      partyName:
+        type: string
+      sampleCount:
+        type: integer
+      stddevRateBp:
+        type: integer
+      ticketCount:
+        type: integer
+      totalAdjustmentMilliTonne:
+        type: integer
+      totalPreAdjustmentNetMilliTonne:
+        type: integer
+      weightedRateBp:
+        type: integer
+    type: object
+  weighbridge.AnalyticsSupplierQualitySummary:
+    properties:
+      adjustedTickets:
+        type: integer
+      adjustmentCoverageBp:
+        type: integer
+      avgRateBp:
+        type: integer
+      medianRateBp:
+        type: integer
+      p90RateBp:
+        type: integer
+      sampleCount:
+        type: integer
+      supplierCount:
+        type: integer
+      ticketCount:
+        type: integer
+      weightedRateBp:
+        type: integer
+    type: object
+  weighbridge.AnalyticsSupplierQualityTrend:
+    properties:
+      partyCode:
+        type: string
+      partyName:
+        type: string
+      points:
+        items:
+          $ref: '#/definitions/weighbridge.AnalyticsRateTrendPoint'
+        type: array
+    type: object
+  weighbridge.AnalyticsTopRow:
+    properties:
+      code:
+        type: string
+      direction:
+        type: string
+      name:
+        type: string
+      netMilliTonne:
+        type: integer
+      shareBp:
+        type: integer
+      ticketCount:
+        type: integer
+    type: object
+  weighbridge.AnalyticsTrend:
+    properties:
+      granularity:
+        type: string
+      points:
+        items:
+          $ref: '#/definitions/weighbridge.AnalyticsTrendPoint'
+        type: array
+    type: object
+  weighbridge.AnalyticsTrendPoint:
+    properties:
+      adjustedTickets:
+        type: integer
+      adjustmentNetMilliTonne:
+        type: integer
+      adjustmentWeightRateBp:
+        type: integer
+      avgNetPerTicketMilliTonne:
+        type: integer
+      inboundNetMilliTonne:
+        type: integer
+      inboundTickets:
+        type: integer
+      netFlowMilliTonne:
+        type: integer
+      outboundNetMilliTonne:
+        type: integer
+      outboundTickets:
+        type: integer
+      period:
+        type: string
+      periodEnd:
+        type: string
+      periodStart:
+        type: string
+      reopenedTickets:
+        type: integer
+      voidRateBp:
+        type: integer
+      voidTickets:
+        type: integer
+    type: object
   weighbridge.ApiEnvelope:
     properties:
       code:
@@ -1732,6 +2710,10 @@ definitions:
         type: integer
       siteCode:
         type: string
+      temporaryPartyResults:
+        items:
+          $ref: '#/definitions/weighbridge.TemporaryPartyResult'
+        type: array
     type: object
   weighbridge.Material:
     properties:
@@ -1857,6 +2839,157 @@ definitions:
       name:
         type: string
     type: object
+  weighbridge.StatementDaily:
+    properties:
+      date:
+        type: string
+      grossMilliTonne:
+        type: integer
+      netAdjustmentMilliTonne:
+        type: integer
+      netMilliTonne:
+        type: integer
+      tareMilliTonne:
+        type: integer
+      ticketCount:
+        type: integer
+    type: object
+  weighbridge.StatementDetail:
+    properties:
+      daily:
+        items:
+          $ref: '#/definitions/weighbridge.StatementDaily'
+        type: array
+      direction:
+        type: string
+      from:
+        type: string
+      grossMilliTonne:
+        type: integer
+      materials:
+        items:
+          $ref: '#/definitions/weighbridge.StatementMaterial'
+        type: array
+      netAdjustmentMilliTonne:
+        type: integer
+      netMilliTonne:
+        type: integer
+      partyCode:
+        type: string
+      partyName:
+        type: string
+      siteCode:
+        type: string
+      siteName:
+        type: string
+      tareMilliTonne:
+        type: integer
+      ticketCount:
+        type: integer
+      to:
+        type: string
+    type: object
+  weighbridge.StatementFreshness:
+    properties:
+      dataThrough:
+        type: string
+      historyStart:
+        type: string
+      lastReceivedAt:
+        type: string
+    type: object
+  weighbridge.StatementMaterial:
+    properties:
+      grossMilliTonne:
+        type: integer
+      materialCode:
+        type: string
+      materialName:
+        type: string
+      materialSpec:
+        type: string
+      netAdjustmentMilliTonne:
+        type: integer
+      netMilliTonne:
+        type: integer
+      tareMilliTonne:
+        type: integer
+      ticketCount:
+        type: integer
+    type: object
+  weighbridge.StatementPageSummary:
+    properties:
+      grossMilliTonne:
+        type: integer
+      netAdjustmentMilliTonne:
+        type: integer
+      netMilliTonne:
+        type: integer
+      partyCount:
+        type: integer
+      tareMilliTonne:
+        type: integer
+      ticketCount:
+        type: integer
+    type: object
+  weighbridge.StatementParty:
+    properties:
+      firstBusinessDate:
+        description: Inclusive accounting day, Asia/Shanghai.
+        type: string
+      firstIssuedAt:
+        type: string
+      grossMilliTonne:
+        type: integer
+      lastBusinessDate:
+        type: string
+      lastIssuedAt:
+        type: string
+      netAdjustmentMilliTonne:
+        type: integer
+      netMilliTonne:
+        type: integer
+      partyCode:
+        type: string
+      partyName:
+        type: string
+      siteCode:
+        type: string
+      siteName:
+        type: string
+      tareMilliTonne:
+        type: integer
+      ticketCount:
+        type: integer
+    type: object
+  weighbridge.StatementPartyPage:
+    properties:
+      freshness:
+        $ref: '#/definitions/weighbridge.StatementFreshness'
+      page:
+        type: integer
+      pageSize:
+        type: integer
+      records:
+        items:
+          $ref: '#/definitions/weighbridge.StatementParty'
+        type: array
+      summary:
+        $ref: '#/definitions/weighbridge.StatementPageSummary'
+      total:
+        type: integer
+    type: object
+  weighbridge.TemporaryPartyResult:
+    properties:
+      formalPartyCode:
+        type: string
+      status:
+        type: string
+      temporaryCode:
+        type: string
+      version:
+        type: integer
+    type: object
   weighbridge.TicketRef:
     properties:
       siteCode:
@@ -1897,6 +3030,8 @@ definitions:
         type: string
       driverPhone:
         type: string
+      entryType:
+        type: string
       finalGross:
         type: string
       finalNet:
@@ -1904,6 +3039,8 @@ definitions:
       finalTare:
         type: string
       firstConfirmedAt:
+        type: string
+      firstWeighedAt:
         type: string
       grossSource:
         type: string
@@ -1956,6 +3093,8 @@ definitions:
       previousTicketNo:
         type: string
       secondConfirmedAt:
+        type: string
+      secondWeighedAt:
         type: string
       tareSource:
         type: string
@@ -5077,7 +6216,17 @@ paths:
       - 用户管理
   /api/v1/weighbridge/analytics/flow:
     get:
-      responses: {}
+      description: 数据截止使用筛选内最后出单时间，厂区接收状态使用全时段接收记录。
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/weighbridge.ApiEnvelope'
+            - properties:
+                data:
+                  $ref: '#/definitions/weighbridge.AnalyticsFlowData'
+              type: object
       security:
       - BearerAuth: []
       summary: 进出厂分析
@@ -5093,7 +6242,17 @@ paths:
       - 统计与分析
   /api/v1/weighbridge/analytics/materials:
     get:
-      responses: {}
+      description: 数据截止使用筛选内最后出单时间，厂区接收状态使用全时段接收记录。
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/weighbridge.ApiEnvelope'
+            - properties:
+                data:
+                  $ref: '#/definitions/weighbridge.AnalyticsMaterialsData'
+              type: object
       security:
       - BearerAuth: []
       summary: 物料分析
@@ -5101,7 +6260,17 @@ paths:
       - 统计与分析
   /api/v1/weighbridge/analytics/materials/byproduct-flow:
     get:
-      responses: {}
+      description: 数据截止使用筛选内最后出单时间，厂区接收状态使用全时段接收记录。
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/weighbridge.ApiEnvelope'
+            - properties:
+                data:
+                  $ref: '#/definitions/weighbridge.AnalyticsByproductData'
+              type: object
       security:
       - BearerAuth: []
       summary: 副产品出库流向
@@ -5117,7 +6286,17 @@ paths:
       - 统计与分析
   /api/v1/weighbridge/analytics/materials/supplier-quality:
     get:
-      responses: {}
+      description: 数据截止使用筛选内最后出单时间，厂区接收状态使用全时段接收记录。
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/weighbridge.ApiEnvelope'
+            - properties:
+                data:
+                  $ref: '#/definitions/weighbridge.AnalyticsSupplierQualityData'
+              type: object
       security:
       - BearerAuth: []
       summary: 核心原料供应商扣量稳定性
@@ -5125,7 +6304,17 @@ paths:
       - 统计与分析
   /api/v1/weighbridge/analytics/overview:
     get:
-      responses: {}
+      description: 数据截止使用筛选内最后出单时间，厂区接收状态使用全时段接收记录。
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/weighbridge.ApiEnvelope'
+            - properties:
+                data:
+                  $ref: '#/definitions/weighbridge.AnalyticsOverviewData'
+              type: object
       security:
       - BearerAuth: []
       summary: 经营总览
@@ -5133,7 +6322,17 @@ paths:
       - 统计与分析
   /api/v1/weighbridge/analytics/parties:
     get:
-      responses: {}
+      description: 数据截止使用筛选内最后出单时间，厂区接收状态使用全时段接收记录。
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/weighbridge.ApiEnvelope'
+            - properties:
+                data:
+                  $ref: '#/definitions/weighbridge.AnalyticsPartiesData'
+              type: object
       security:
       - BearerAuth: []
       summary: 供收方分析
@@ -5157,7 +6356,17 @@ paths:
       - 统计与分析
   /api/v1/weighbridge/analytics/quality:
     get:
-      responses: {}
+      description: 数据截止使用筛选内最后出单时间，厂区接收状态使用全时段接收记录。
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/weighbridge.ApiEnvelope'
+            - properties:
+                data:
+                  $ref: '#/definitions/weighbridge.AnalyticsQualityData'
+              type: object
       security:
       - BearerAuth: []
       summary: 数据质量
@@ -5374,6 +6583,7 @@ paths:
       - 厂云同步
   /api/v1/weighbridge/statements/parties:
     get:
+      description: 按对账归属日筛选，返回结算主体、归属日期范围和实际出单时间范围。
       parameters:
       - description: inbound/outbound
         in: query
@@ -5408,11 +6618,20 @@ paths:
         in: query
         name: pageSize
         type: integer
+      - description: 排序字段（businessDate 按最晚归属日，issued 按最后出单时间）
+        in: query
+        name: sortBy
+        type: string
       responses:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/weighbridge.ApiEnvelope'
+            allOf:
+            - $ref: '#/definitions/weighbridge.ApiEnvelope'
+            - properties:
+                data:
+                  $ref: '#/definitions/weighbridge.StatementPartyPage'
+              type: object
       security:
       - BearerAuth: []
       summary: 客户对账往来方汇总
@@ -5420,6 +6639,7 @@ paths:
       - 统计与分析
   /api/v1/weighbridge/statements/parties/detail:
     get:
+      description: 使用结算主体查询，日汇总按北京时间对账归属日。
       parameters:
       - description: inbound/outbound
         in: query
@@ -5452,7 +6672,12 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/weighbridge.ApiEnvelope'
+            allOf:
+            - $ref: '#/definitions/weighbridge.ApiEnvelope'
+            - properties:
+                data:
+                  $ref: '#/definitions/weighbridge.StatementDetail'
+              type: object
       security:
       - BearerAuth: []
       summary: 单个厂区与往来方的对账单汇总
@@ -5460,6 +6685,7 @@ paths:
       - 统计与分析
   /api/v1/weighbridge/statements/parties/detail/export:
     get:
+      description: 包含原主体、结算主体、对账归属日、实际回磅时间和出单时间，采用北京时间。
       produces:
       - text/csv
       responses:
@@ -5474,6 +6700,7 @@ paths:
       - 统计与分析
   /api/v1/weighbridge/statements/parties/export:
     get:
+      description: 包含对账归属日期范围与实际出单时间范围，采用北京时间。
       produces:
       - text/csv
       responses:

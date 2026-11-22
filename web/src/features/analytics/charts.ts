@@ -266,10 +266,14 @@ export function byproductTrendOption(points: ByproductTrendPoint[] | undefined):
   };
 }
 
-export function partyRankingOption(rows: Array<{ partyName: string; partyCode: string; netMilliTonne: number }> | undefined): EChartsOption {
-  const sorted = [...(rows ?? [])]
+export function sortPartyRanking<Row extends { netMilliTonne: number }>(rows: Row[]): Row[] {
+  return rows
     .filter((row) => row.netMilliTonne > 0)
     .sort((a, b) => a.netMilliTonne - b.netMilliTonne);
+}
+
+export function partyRankingOption(rows: Array<{ partyName: string; partyCode: string; netMilliTonne: number }> | undefined): EChartsOption {
+  const sorted = sortPartyRanking(rows ?? []);
   return {
     color: palette,
     tooltip: {

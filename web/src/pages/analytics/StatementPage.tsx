@@ -31,11 +31,12 @@ import {
 } from '../../features/analytics/api';
 import { downloadBlob } from '../../features/analytics/download';
 import {
+  formatBeijingTime,
   formatMilliTonneCompact as tonnes,
   statementDirectionLabel,
 } from '../../features/analytics/format';
 import { materials, sites } from '../../features/weighbridge/api';
-import { formatDateTime, formatNumber, formatPercent } from '../../utils/format';
+import { formatNumber, formatPercent } from '../../utils/format';
 import { StatementSheet } from './StatementSheet';
 import styles from './StatementPage.module.css';
 
@@ -49,7 +50,7 @@ const config = {
     to: 'text',
     materialCode: 'text',
   },
-  sortKeys: ['net', 'ticketCount', 'adjustment', 'issued'],
+  sortKeys: ['net', 'ticketCount', 'adjustment', 'issued', 'businessDate'],
   pageSizeOptions: [10, 20, 50, 100],
   defaultPageSize: 10,
 } as const;
@@ -104,8 +105,8 @@ function presetRange(key: Exclude<PresetKey, 'custom'>): [Dayjs, Dayjs] {
 }
 
 function compactDateTime(value: string): string {
-  const date = dayjs(value);
-  return date.isValid() ? date.format('MM-DD HH:mm') : '—';
+  const date = formatBeijingTime(value);
+  return date === '—' ? date : date.slice(5);
 }
 
 export default function StatementPage() {
@@ -384,7 +385,7 @@ export default function StatementPage() {
 
   const columns: ColumnsType<StatementParty> = [
     {
-      title: '往来方',
+      title: '结算主体',
       key: 'party',
       width: 240,
       render: (_, row) => (
@@ -396,6 +397,44 @@ export default function StatementPage() {
           </div>
         </div>
       ),
+    },
+    {
+      title: '对账归属日',
+      key: 'businessDate',
+      width: 130,
+      sorter: true,
+      render: (_, row) => (
+        <div className={styles.dateRange}>
+          <div>{row.firstBusinessDate || '—'}</div>
+          {row.lastBusinessDate !== row.firstBusinessDate && (
+            <div className={styles.dateRangeEnd}>至 {row.lastBusinessDate}</div>
+          )}
+        </div>
+      ),
+    },
+    {
+      title: '实际出单区间',
+      key: 'issued',
+      width: 140,
+      sorter: true,
+      render: (_, row) => {
+        const first = compactDateTime(row.firstIssuedAt);
+        const last = compactDateTime(row.lastIssuedAt);
+        const title = `${formatBeijingTime(row.firstIssuedAt)} → ${formatBeijingTime(row.lastIssuedAt)}`;
+        if (first === last) {
+          return (
+            <div className={styles.dateRange} title={title}>
+              {first}
+            </div>
+          );
+        }
+        return (
+          <div className={styles.dateRange} title={title}>
+            <div>{first}</div>
+            <div className={styles.dateRangeEnd}>→ {last}</div>
+          </div>
+        );
+      },
     },
     {
       title: '有效车次',
@@ -467,30 +506,6 @@ export default function StatementPage() {
             <span className={styles.shareTrack} aria-hidden="true">
               <span className={styles.shareFill} style={{ width: `${width}%` }} />
             </span>
-          </div>
-        );
-      },
-    },
-    {
-      title: '出单区间',
-      key: 'issued',
-      width: 140,
-      sorter: true,
-      render: (_, row) => {
-        const first = compactDateTime(row.firstIssuedAt);
-        const last = compactDateTime(row.lastIssuedAt);
-        const title = `${formatDateTime(row.firstIssuedAt)} → ${formatDateTime(row.lastIssuedAt)}`;
-        if (first === last) {
-          return (
-            <div className={styles.dateRange} title={title}>
-              {first}
-            </div>
-          );
-        }
-        return (
-          <div className={styles.dateRange} title={title}>
-            <div>{first}</div>
-            <div className={styles.dateRangeEnd}>→ {last}</div>
           </div>
         );
       },
@@ -696,10 +711,11 @@ export default function StatementPage() {
                   {from} 至 {to}
                   {periodDays ? ` · ${periodDays} 天` : ''}
                 </div>
+                <div className={styles.freshness}>北京时间 · 人工补单按实际回磅日归属，其他单据按出单日归属</div>
                 {freshness && (
                   <div className={styles.freshness}>
-                    数据截止 {formatDateTime(freshness.dataThrough)} · 最近接收{' '}
-                    {formatDateTime(freshness.lastReceivedAt)}
+                    筛选内最晚对账时间 {formatBeijingTime(freshness.dataThrough)} · 最近接收{' '}
+                    {formatBeijingTime(freshness.lastReceivedAt)}
                   </div>
                 )}
               </div>

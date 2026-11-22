@@ -15,6 +15,8 @@ export interface StatementParty extends StatementTotals {
   partyName: string;
   firstIssuedAt: string;
   lastIssuedAt: string;
+  firstBusinessDate: string;
+  lastBusinessDate: string;
 }
 
 export interface StatementPageSummary extends StatementTotals {
@@ -74,6 +76,7 @@ export const exportStatementDetail = (params: Record<string, unknown>) =>
 
 // 统计与分析
 export interface AnalyticsSiteReceipt {
+  enabled?: boolean;
   siteCode: string;
   siteName: string;
   lastReceivedAt: string | null;
@@ -81,6 +84,7 @@ export interface AnalyticsSiteReceipt {
 }
 
 export interface AnalyticsFreshness {
+  filteredDataThrough?: string | null;
   dataThrough: string | null;
   lastReceivedAt: string | null;
   historyStart: string | null;
@@ -111,6 +115,7 @@ export interface AnalyticsComparison {
 }
 
 export interface OverviewSummary {
+  adjustmentKnownTickets: number;
   validTickets: number;
   inboundTickets: number;
   inboundNetMilliTonne: number;
@@ -227,6 +232,8 @@ export interface FlowData {
 }
 
 export interface MaterialSummary {
+  totalTickets: number;
+  adjustmentKnownTickets: number;
   materialCount: number;
   inboundNetMilliTonne: number;
   outboundNetMilliTonne: number;
@@ -352,6 +359,7 @@ export interface PartyDetail {
 }
 
 export interface QualitySummary {
+  adjustmentKnownTickets: number;
   totalTickets: number;
   validTickets: number;
   voidTickets: number;

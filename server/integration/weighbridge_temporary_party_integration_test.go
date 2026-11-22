@@ -209,7 +209,7 @@ func TestPostgresWeighbridgeTemporaryParty(t *testing.T) {
 	if err != nil || len(lines) != 7 {
 		t.Fatalf("expected headings, five tickets and totals, got %+v, %v", lines, err)
 	}
-	if lines[1][2] != code || lines[1][3] != "开单时临时名" || lines[6][2] != formal.Code || lines[6][15] != "100.000" {
+	if lines[1][2] != code || lines[1][3] != "开单时临时名" || lines[1][20] != formal.Code || lines[6][20] != formal.Code || lines[6][15] != "100.000" {
 		t.Fatalf("unexpected export data: %+v", lines)
 	}
 	rows, err = repo.TemporaryParties(ctx, 1)
@@ -245,4 +245,51 @@ func TestPostgresWeighbridgeTemporaryParty(t *testing.T) {
 	expect(request(http.MethodPost, registerPath, corrected, false), 401, `"kind":"invalid_site"`)
 	expect(request(http.MethodGet, "/sync/master?siteCode=TP-RENAMED", nil, false), 200, `"status":"merged"`)
 	expect(request(http.MethodGet, "/tickets?siteCode=TP-RENAMED&partyCode="+formal.Code, nil, false), 200, `"total":5`)
+
+	firstWeighed := time.Date(2026, 11, 20, 8, 20, 0, 0, time.UTC)
+	secondWeighed := firstWeighed.Add(25 * time.Minute)
+	issued := time.Date(2026, 11, 21, 0, 15, 0, 0, time.UTC)
+	sample := statementTicket("TP-RENAMED", "MANUAL-1120", "", "inbound", code, "开单时临时名",
+		"M1", "高粱", 35200, 12100, 0, issued).Ticket
+	sample.EntryType = "manual_supplement"
+	sample.FirstWeighedAt, sample.SecondWeighedAt = &firstWeighed, &secondWeighed
+	sample.GrossSource, sample.TareSource = "manual", "manual"
+	sample.NetAdjustmentMode, sample.NetAdjustmentCategory, sample.NetAdjustmentCategoryName = "", "", ""
+	sample.NetAdjustments = &[]weighbridge.NetAdjustmentItem{}
+	manual := weighbridge.ChangeV5{
+		SchemaVersion: 6, DigestVersion: 4, SiteCode: "TP-RENAMED", TicketNo: sample.TicketNo,
+		Type: "issue", Ticket: sample, Digest: strings.Repeat("a", 64),
+	}
+	if _, err := repo.ApplyChangeV5(ctx, manual); err != nil {
+		t.Fatal(err)
+	}
+
+	settlementParams := "?direction=inbound&siteCode=TP-RENAMED&partyCode=" + formal.Code
+	on20 := "&from=2026-11-20&to=2026-11-20"
+	on21 := "&from=2026-11-21&to=2026-11-21"
+	for _, path := range []string{"/statements/parties", detailPath} {
+		expect(request(http.MethodGet, path+settlementParams+on20, nil, false), 200, `"ticketCount":1`)
+		expect(request(http.MethodGet, path+settlementParams+on21, nil, false), 200, `"ticketCount":0`)
+	}
+	out := request(http.MethodGet, "/statements/parties"+settlementParams+on20, nil, false)
+	expect(out, 200, `"firstBusinessDate":"2026-11-20"`)
+	var summaryResponse struct {
+		Data weighbridge.StatementPartyPage
+	}
+	if err := json.Unmarshal(out.Body.Bytes(), &summaryResponse); err != nil {
+		t.Fatal(err)
+	}
+	if records := summaryResponse.Data.Records; len(records) != 1 || !records[0].LastIssuedAt.Equal(issued) {
+		t.Fatalf("unexpected issue time in summary: %+v", records)
+	}
+	expect(request(http.MethodGet, detailPath+settlementParams+on20, nil, false), 200, `"date":"2026-11-20"`)
+	expect(request(http.MethodGet, "/tickets"+settlementParams+on20+"&businessDate=true&status=valid", nil, false), 200, `"ticketNo":"MANUAL-1120"`)
+	expect(request(http.MethodGet, "/tickets"+settlementParams+on21+"&businessDate=true&status=valid", nil, false), 200, `"total":0`)
+
+	summary := request(http.MethodGet, "/statements/parties/export"+settlementParams+on20, nil, false)
+	expect(summary, 200, "2026-11-21 08:15:00,2026-11-21 08:15:00,2026-11-20,2026-11-20")
+	detail := request(http.MethodGet, detailPath+"/export"+settlementParams+on20, nil, false)
+	expect(detail, 200, "2026-11-21 08:15:00,2026-11-20 16:45:00,MANUAL-1120")
+	expect(detail, 200, "2026-11-20,2026-11-20 16:45:00,人工补单,"+formal.Code+","+formal.Name)
+	expect(detail, 200, code+",开单时临时名")
 }

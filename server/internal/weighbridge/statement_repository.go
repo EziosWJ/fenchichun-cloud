@@ -98,7 +98,8 @@ func statementTicketViews(tickets []statementTicket) []StatementTicket {
 			PartyCode: ticket.partyCode, PartyName: ticket.partyName,
 			TicketNo: ticket.ticketNo, Plate: ticket.plate,
 			MaterialCode: ticket.materialCode, MaterialName: ticket.materialName, MaterialSpec: ticket.materialSpec,
-			Direction: ticket.direction, Status: ticket.status, IssuedAt: ticket.issuedAt, BusinessAt: ticket.businessAt,
+			Direction: ticket.direction, Status: ticket.status, IssuedAt: ticket.issuedAt, BusinessAt: ticket.accountingTime(),
+			EntryType: ticket.entryType, SecondWeighedAt: ticket.secondWeighedAt,
 			GrossMilliTonne: ticket.gross, TareMilliTonne: ticket.tare,
 			NetAdjustmentMilliTonne: ticket.adjustment, NetMilliTonne: ticket.net,
 		})

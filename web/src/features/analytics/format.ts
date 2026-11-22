@@ -1,3 +1,16 @@
+const beijingDateTime = new Intl.DateTimeFormat('sv-SE', {
+  timeZone: 'Asia/Shanghai',
+  dateStyle: 'short',
+  timeStyle: 'short',
+  hourCycle: 'h23',
+});
+
+export function formatBeijingTime(value: string | null | undefined): string {
+  if (!value) return '—';
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? '—' : beijingDateTime.format(date);
+}
+
 export const statementDirectionLabels = {
   outbound: '销售客户（出厂装货）',
   inbound: '采购供应商（入厂卸货）',

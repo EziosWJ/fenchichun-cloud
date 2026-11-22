@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { Alert, App, Button, Card, Col, Row, Space, Table, Tabs, Tag, Typography } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
+import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import dayjs from 'dayjs';
 import { PageHeader } from '../../components/PageHeader';
@@ -23,13 +24,13 @@ import {
   type ReopenChain,
 } from '../../features/analytics/api';
 import { analyticsFilterConfig, AnalyticsFilterBar, useAnalyticsDefaults } from '../../features/analytics/filters';
-import { analyticsFilterParams } from '../../features/analytics/params';
-import { formatBp, formatMilliTonne, formatSeconds } from '../../features/analytics/format';
+import { analyticsFilterParams, analyticsTicketsHref } from '../../features/analytics/params';
+import { formatBeijingTime, formatBp, formatMilliTonne, formatSeconds } from '../../features/analytics/format';
 import { ChartCard, FreshnessNote, KpiCard } from '../../features/analytics/ui';
 import { countPieChartOption } from '../../features/analytics/charts';
 import { useAnalyticsMasterData } from '../../features/analytics/useMasterData';
 import { downloadBlob } from '../../features/analytics/download';
-import { formatDateTime, formatNumber } from '../../utils/format';
+import { formatNumber } from '../../utils/format';
 
 export default function QualityPage() {
   const { message } = App.useApp();
@@ -83,8 +84,8 @@ export default function QualityPage() {
     { title: '原单号', dataIndex: 'originalTicketNo', key: 'originalTicketNo', width: 180 },
     { title: '新单号', dataIndex: 'newTicketNo', key: 'newTicketNo', width: 180 },
     { title: '厂区', dataIndex: 'siteCode', key: 'siteCode', width: 100 },
-    { title: '原单作废', key: 'originalVoidedAt', width: 150, render: (_, row) => formatDateTime(row.originalVoidedAt) },
-    { title: '新单出单', key: 'newIssuedAt', width: 150, render: (_, row) => formatDateTime(row.newIssuedAt) },
+    { title: '原单作废', key: 'originalVoidedAt', width: 150, render: (_, row) => formatBeijingTime(row.originalVoidedAt) },
+    { title: '新单出单', key: 'newIssuedAt', width: 150, render: (_, row) => formatBeijingTime(row.newIssuedAt) },
     { title: '重开间隔', key: 'reopenLag', align: 'right', width: 120, render: (_, row) => formatSeconds(row.reopenLagSeconds) },
     { title: '跨日', key: 'crossDay', width: 80, render: (_, row) => row.crossDay ? <Tag color="orange">是</Tag> : '否' },
   ];
@@ -105,9 +106,11 @@ export default function QualityPage() {
     { title: '缺失率', key: 'missingRate', align: 'right', render: (_, row) => formatBp(row.missingRateBp) },
   ];
   const anomalyColumns: ColumnsType<QualityAnomaly> = [
-    { title: '单号', dataIndex: 'ticketNo', key: 'ticketNo', width: 190 },
+    { title: '单号', key: 'ticketNo', width: 190,
+      render: (_, row) => <Link to={analyticsTicketsHref({ ...params, siteCode: row.siteCode, status: undefined, keyword: row.ticketNo })}>{row.ticketNo}</Link>,
+    },
     { title: '厂区', dataIndex: 'siteCode', key: 'siteCode', width: 100 },
-    { title: '出单时间', key: 'issuedAt', width: 150, render: (_, row) => formatDateTime(row.issuedAt) },
+    { title: '出单时间', key: 'issuedAt', width: 150, render: (_, row) => formatBeijingTime(row.issuedAt) },
     { title: '类型', dataIndex: 'type', key: 'type', width: 180 },
     { title: '详情', dataIndex: 'detail', key: 'detail' },
   ];
@@ -246,16 +249,16 @@ export default function QualityPage() {
         {quality.isError && (
           <Alert type="error" message={`数据质量加载失败：${getApiErrorMessage(quality.error)}`} action={<Button onClick={() => void quality.refetch()}>重试</Button>} />
         )}
+        <FreshnessNote freshness={data?.freshness} siteCode={state.filters.siteCode} />
         <Row gutter={[16, 16]}>
           <Col xs={24} sm={12} xl={4}><KpiCard label="总单数" value={summary ? formatNumber(summary.totalTickets) : '—'} suffix="张" hint={summary ? `有效 ${summary.validTickets} · 作废 ${summary.voidTickets}` : undefined} /></Col>
-          <Col xs={24} sm={12} xl={4}><KpiCard label="作废率" value={formatBp(summary?.voidRateBp)} /></Col>
-          <Col xs={24} sm={12} xl={4}><KpiCard label="重开率" value={formatBp(summary?.reopenRateBp)} hint={summary ? `${summary.reopenedTickets} 张重开单` : undefined} /></Col>
-          <Col xs={24} sm={12} xl={4}><KpiCard label="调整单占比" value={formatBp(summary?.adjustmentTicketRateBp)} hint={summary ? `调整 ${summary.adjustedTickets} 张` : undefined} /></Col>
-          <Col xs={24} sm={12} xl={4}><KpiCard label="调整覆盖率" value={formatBp(summary?.adjustmentCoverageBp)} hint={summary ? `扣量率 ${formatBp(summary.adjustmentWeightRateBp)}` : undefined} /></Col>
+          <Col xs={24} sm={12} xl={4}><KpiCard label="作废率" value={formatBp(summary?.voidRateBp)} hint={summary ? `${summary.voidTickets} / ${summary.totalTickets} 张单据` : undefined} /></Col>
+          <Col xs={24} sm={12} xl={4}><KpiCard label="重开率" value={formatBp(summary?.reopenRateBp)} hint={summary ? `${summary.reopenedTickets} / ${summary.validTickets} 张有效单` : undefined} /></Col>
+          <Col xs={24} sm={12} xl={4}><KpiCard label="调整单占比" value={formatBp(summary?.adjustmentTicketRateBp)} hint={summary ? `调整 ${summary.adjustedTickets} / ${summary.adjustmentKnownTickets} 张已知单` : undefined} /></Col>
+          <Col xs={24} sm={12} xl={4}><KpiCard label="调整覆盖率" value={formatBp(summary?.adjustmentCoverageBp)} hint={summary ? `${summary.adjustmentKnownTickets} / ${summary.validTickets} 张有效单` : undefined} /></Col>
           <Col xs={24} sm={12} xl={4}><KpiCard label="异常涉及单" value={summary ? formatNumber(summary.anomalyTickets) : '—'} suffix="张" hint={summary ? `手工来源 ${formatBp(summary.manualWeightRateBp)}` : undefined} /></Col>
         </Row>
         <Tabs items={tabs} />
-        <FreshnessNote freshness={data?.freshness} />
         <Typography.Text type="secondary">
           口径：作废率=作废单/(有效+作废)；重开率=新单 previousTicketNo 非空/有效单；调整单占比只统计调整字段已知的有效单；异常清单最多展示 1000 条。
         </Typography.Text>

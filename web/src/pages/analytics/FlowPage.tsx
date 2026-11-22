@@ -1,8 +1,10 @@
 import { useMemo, useState } from 'react';
 import { Alert, App, Button, Card, Col, Row, Space, Table, Typography } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
+import { Link, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import dayjs from 'dayjs';
+import { paths } from '../../config/paths';
 import { PageHeader } from '../../components/PageHeader';
 import { EChart } from '../../components/charts/EChart';
 import { useListUrlState } from '../../hooks/useListUrlState';
@@ -14,7 +16,7 @@ import {
   type TrendPoint,
 } from '../../features/analytics/api';
 import { analyticsFilterConfig, AnalyticsFilterBar, useAnalyticsDefaults } from '../../features/analytics/filters';
-import { analyticsFilterParams } from '../../features/analytics/params';
+import { analyticsFilterParams, analyticsHref, analyticsPeriodFilters, analyticsTicketsHref } from '../../features/analytics/params';
 import { formatBp, formatMilliTonne, formatSeconds } from '../../features/analytics/format';
 import { ChartCard, ComparisonText, FreshnessNote, KpiCard } from '../../features/analytics/ui';
 import { trendChartOption } from '../../features/analytics/charts';
@@ -24,6 +26,7 @@ import { formatNumber } from '../../utils/format';
 
 export default function FlowPage() {
   const { message } = App.useApp();
+  const navigate = useNavigate();
   const { state, actions } = useListUrlState(analyticsFilterConfig);
   useAnalyticsDefaults(state, actions);
   const master = useAnalyticsMasterData();
@@ -48,6 +51,12 @@ export default function FlowPage() {
   const compareMode = state.filters.compare || 'previous';
   const comparison = compareMode === 'year' ? data?.comparison.year : compareMode === 'previous' ? data?.comparison.previous : undefined;
 
+  const drillHref = (filters: Record<string, unknown>) => {
+    if (params.keyword) return analyticsHref(paths.analyticsFlow, filters);
+    if (params.categoryCode) return analyticsHref(paths.analyticsMaterials, filters);
+    return analyticsTicketsHref(filters);
+  };
+
   const exportFlow = async () => {
     setExporting(true);
     try {
@@ -62,7 +71,9 @@ export default function FlowPage() {
   };
 
   const trendColumns: ColumnsType<TrendPoint> = [
-    { title: '周期', dataIndex: 'period', key: 'period', width: 120 },
+    { title: '周期', key: 'period', width: 120,
+      render: (_, row) => <Link to={drillHref(analyticsPeriodFilters(params, row))}>{row.period}</Link>,
+    },
     { title: '入厂车次', dataIndex: 'inboundTickets', key: 'inboundTickets', align: 'right', width: 100 },
     { title: '入厂净重（吨）', key: 'inboundNet', align: 'right', width: 140, render: (_, row) => formatMilliTonne(row.inboundNetMilliTonne) },
     { title: '出厂车次', dataIndex: 'outboundTickets', key: 'outboundTickets', align: 'right', width: 100 },
@@ -74,7 +85,7 @@ export default function FlowPage() {
   ];
 
   const siteColumns: ColumnsType<FlowSiteRow> = [
-    { title: '厂区', key: 'site', render: (_, row) => `${row.siteName || row.siteCode}（${row.siteCode}）` },
+    { title: '厂区', key: 'site', render: (_, row) => <Link to={drillHref({ ...params, siteCode: row.siteCode })}>{row.siteName || row.siteCode}（{row.siteCode}）</Link> },
     { title: '入厂车次', dataIndex: 'inboundTickets', key: 'inboundTickets', align: 'right' },
     { title: '入厂净重（吨）', key: 'inboundNet', align: 'right', render: (_, row) => formatMilliTonne(row.inboundNetMilliTonne) },
     { title: '出厂车次', dataIndex: 'outboundTickets', key: 'outboundTickets', align: 'right' },
@@ -98,16 +109,24 @@ export default function FlowPage() {
         {flow.isError && (
           <Alert type="error" message={`进出厂分析加载失败：${getApiErrorMessage(flow.error)}`} action={<Button onClick={() => void flow.refetch()}>重试</Button>} />
         )}
+        <FreshnessNote freshness={data?.freshness} siteCode={state.filters.siteCode} />
         <Row gutter={[16, 16]}>
           <Col xs={24} sm={12} xl={4}><KpiCard label="入厂车次" value={summary ? formatNumber(summary.inboundTickets) : '—'} suffix="车" hint={<ComparisonText metric={comparison?.inboundTickets} unit="车" />} /></Col>
           <Col xs={24} sm={12} xl={4}><KpiCard label="入厂净重" value={summary ? formatMilliTonne(summary.inboundNetMilliTonne) : '—'} suffix="吨" hint={<ComparisonText metric={comparison?.inboundNetMilliTonne} />} /></Col>
           <Col xs={24} sm={12} xl={4}><KpiCard label="出厂车次" value={summary ? formatNumber(summary.outboundTickets) : '—'} suffix="车" hint={<ComparisonText metric={comparison?.outboundTickets} unit="车" />} /></Col>
           <Col xs={24} sm={12} xl={4}><KpiCard label="出厂净重" value={summary ? formatMilliTonne(summary.outboundNetMilliTonne) : '—'} suffix="吨" hint={<ComparisonText metric={comparison?.outboundNetMilliTonne} />} /></Col>
           <Col xs={24} sm={12} xl={4}><KpiCard label="过磅净流入" value={summary ? formatMilliTonne(summary.netFlowMilliTonne) : '—'} suffix="吨" hint={<ComparisonText metric={comparison?.netFlowMilliTonne} />} /></Col>
-          <Col xs={24} sm={12} xl={4}><KpiCard label="作废率" value={summary ? formatBp(summary.voidRateBp) : '—'} hint={summary ? `${summary.voidTickets} 张作废单` : undefined} /></Col>
+          <Col xs={24} sm={12} xl={4}><KpiCard label="作废率" value={summary ? formatBp(summary.voidRateBp) : '—'} hint={summary ? `${summary.voidTickets} / ${summary.validTickets + summary.voidTickets} 张单据` : undefined} /></Col>
         </Row>
         <ChartCard title="进出厂净重趋势">
-          <EChart option={trendChartOption(data?.trend)} loading={flow.isLoading} empty={!data?.trend.points.length} ariaLabel="进出厂净重趋势图" />
+          <EChart option={trendChartOption(data?.trend)} loading={flow.isLoading} empty={!data?.trend.points.length} ariaLabel="进出厂净重趋势图"
+            onClick={({ dataIndex, seriesIndex }) => {
+              const point = dataIndex === undefined ? undefined : data?.trend.points[dataIndex];
+              if (!point) return;
+              const direction = seriesIndex === 1 ? 'outbound' : 'inbound';
+              if (params.direction && params.direction !== direction) return;
+              navigate(drillHref({ ...analyticsPeriodFilters(params, point), direction }));
+            }} />
         </ChartCard>
         <Card size="small" title="周期汇总">
           <Table<TrendPoint> rowKey="period" columns={trendColumns} dataSource={data?.trend.points ?? []} pagination={false} size="small" scroll={{ x: 'max-content' }} />
@@ -116,7 +135,7 @@ export default function FlowPage() {
           <Table<FlowSiteRow> rowKey="siteCode" columns={siteColumns} dataSource={data?.siteComparison ?? []} pagination={false} size="small" scroll={{ x: 'max-content' }} />
         </Card>
         <Row gutter={[16, 16]}>
-          <Col xs={24} sm={12} xl={6}><KpiCard label="时长样本" value={data ? formatNumber(data.duration.sampleTickets) : '—'} suffix="车" /></Col>
+          <Col xs={24} sm={12} xl={6}><KpiCard label="时长样本" value={data ? formatNumber(data.duration.sampleTickets) : '—'} suffix="车" hint={summary ? `共 ${formatNumber(summary.validTickets)} 张有效单` : undefined} /></Col>
           <Col xs={24} sm={12} xl={6}><KpiCard label="两次过磅间隔中位数" value={formatSeconds(data?.duration.medianSeconds)} /></Col>
           <Col xs={24} sm={12} xl={6}><KpiCard label="P90 间隔" value={formatSeconds(data?.duration.p90Seconds)} hint={`最大 ${formatSeconds(data?.duration.maxSeconds)}`} /></Col>
           <Col xs={24} sm={12} xl={6}><KpiCard label="隔日完成单" value={data ? `${data.duration.crossDayTickets}（${formatBp(data.duration.crossDayRateBp)}）` : '—'} hint={data ? `已剔除重开单 ${data.duration.reopenedExcludedTickets} 张` : undefined} /></Col>
@@ -125,9 +144,8 @@ export default function FlowPage() {
           type="info"
           showIcon
           message="时长口径"
-          description="两次过磅间隔是首次确认到二次确认的时间，包含等待、装卸等环节，不是设备单次称重操作时长；重开单默认不纳入，隔日按北京日期判断。"
+          description="两次过磅间隔是首次确认到二次确认的时间，包含等待、装卸等环节。样本为间隔已知且非负的有效单，剔除重开单。隔日按北京时间判断。"
         />
-        <FreshnessNote freshness={data?.freshness} />
       </Space>
     </>
   );

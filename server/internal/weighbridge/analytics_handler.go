@@ -131,6 +131,8 @@ func autoGranularity(from, until time.Time) string {
 // @Summary 经营总览
 // @Tags 统计与分析
 // @Security BearerAuth
+// @Description 数据截止使用筛选内最后出单时间，厂区接收状态使用全时段接收记录。
+// @Success 200 {object} ApiEnvelope{data=AnalyticsOverviewData}
 // @Router /api/v1/weighbridge/analytics/overview [get]
 func (h *Handler) analyticsOverview(c *gin.Context) {
 	q, err := analyticsQuery(c)
@@ -146,6 +148,8 @@ func (h *Handler) analyticsOverview(c *gin.Context) {
 // @Summary 进出厂分析
 // @Tags 统计与分析
 // @Security BearerAuth
+// @Description 数据截止使用筛选内最后出单时间，厂区接收状态使用全时段接收记录。
+// @Success 200 {object} ApiEnvelope{data=AnalyticsFlowData}
 // @Router /api/v1/weighbridge/analytics/flow [get]
 func (h *Handler) analyticsFlow(c *gin.Context) {
 	q, err := analyticsQuery(c)
@@ -161,6 +165,8 @@ func (h *Handler) analyticsFlow(c *gin.Context) {
 // @Summary 物料分析
 // @Tags 统计与分析
 // @Security BearerAuth
+// @Description 数据截止使用筛选内最后出单时间，厂区接收状态使用全时段接收记录。
+// @Success 200 {object} ApiEnvelope{data=AnalyticsMaterialsData}
 // @Router /api/v1/weighbridge/analytics/materials [get]
 func (h *Handler) analyticsMaterials(c *gin.Context) {
 	q, err := analyticsQuery(c)
@@ -176,6 +182,8 @@ func (h *Handler) analyticsMaterials(c *gin.Context) {
 // @Summary 核心原料供应商扣量稳定性
 // @Tags 统计与分析
 // @Security BearerAuth
+// @Description 数据截止使用筛选内最后出单时间，厂区接收状态使用全时段接收记录。
+// @Success 200 {object} ApiEnvelope{data=AnalyticsSupplierQualityData}
 // @Router /api/v1/weighbridge/analytics/materials/supplier-quality [get]
 func (h *Handler) analyticsSupplierQuality(c *gin.Context) {
 	q, err := analyticsQuery(c)
@@ -191,6 +199,8 @@ func (h *Handler) analyticsSupplierQuality(c *gin.Context) {
 // @Summary 副产品出库流向
 // @Tags 统计与分析
 // @Security BearerAuth
+// @Description 数据截止使用筛选内最后出单时间，厂区接收状态使用全时段接收记录。
+// @Success 200 {object} ApiEnvelope{data=AnalyticsByproductData}
 // @Router /api/v1/weighbridge/analytics/materials/byproduct-flow [get]
 func (h *Handler) analyticsByproductFlow(c *gin.Context) {
 	q, err := analyticsQuery(c)
@@ -206,6 +216,8 @@ func (h *Handler) analyticsByproductFlow(c *gin.Context) {
 // @Summary 供收方分析
 // @Tags 统计与分析
 // @Security BearerAuth
+// @Description 数据截止使用筛选内最后出单时间，厂区接收状态使用全时段接收记录。
+// @Success 200 {object} ApiEnvelope{data=AnalyticsPartiesData}
 // @Router /api/v1/weighbridge/analytics/parties [get]
 func (h *Handler) analyticsParties(c *gin.Context) {
 	q, err := analyticsQuery(c)
@@ -236,6 +248,8 @@ func (h *Handler) analyticsPartyDetail(c *gin.Context) {
 // @Summary 数据质量
 // @Tags 统计与分析
 // @Security BearerAuth
+// @Description 数据截止使用筛选内最后出单时间，厂区接收状态使用全时段接收记录。
+// @Success 200 {object} ApiEnvelope{data=AnalyticsQualityData}
 // @Router /api/v1/weighbridge/analytics/quality [get]
 func (h *Handler) analyticsQuality(c *gin.Context) {
 	q, err := analyticsQuery(c)
@@ -367,12 +381,11 @@ func (h *Handler) analyticsQualityExport(c *gin.Context) {
 		managementResult(c, nil, ErrInvalid)
 		return
 	}
-	freshness, err := h.service.AnalyticsFreshness(c.Request.Context())
-	if err != nil {
-		managementResult(c, nil, err)
-		return
+	var dataThrough string
+	if len(items) > 0 {
+		// Export rows are sorted by descending issue time.
+		dataThrough = formatNullableTime(&items[0].IssuedAt)
 	}
-	dataThrough := formatNullableTime(freshness.DataThrough)
 	anomalyMap := map[string][]string{}
 	for _, item := range detectAnomalies(items) {
 		anomalyMap[item.TicketNo] = append(anomalyMap[item.TicketNo], item.Type)

@@ -352,12 +352,14 @@ CREATE INDEX idx_wb_cloud_ticket_analytics_adjustment
 type Bp = number; // 0.01%，10000 = 100%
 
 interface Freshness {
+  filteredDataThrough: string | null;
   dataThrough: string | null;
   lastReceivedAt: string | null;
   historyStart: string | null;
   siteReceipts: Array<{
     siteCode: string;
     siteName: string;
+    enabled: boolean;
     lastReceivedAt: string | null;
     receivedChanges: number;
   }>;
@@ -822,7 +824,7 @@ interface QualityData {
 - 最多 5 万行；超出返回 400，提示缩小日期范围。
 - CSV 带 UTF-8 BOM，沿用现有客户对账导出方式。
 - 文件名格式：`进出厂分析-{from}至{to}.csv`、`物料分析-...`、`供收方分析-...`、`数据质量-...`。
-- CSV 保持纯表格，不写首行注释；数据截止时间由文件名和页面提示体现。质量明细额外包含 `dataThrough` 列。
+- CSV 保持纯表格，不写首行注释；数据截止时间由文件名和页面提示体现。质量明细的“数据截止”列使用导出单据的最新出单时间。
 
 ### 6.9 后端实现位置
 
@@ -980,7 +982,8 @@ web/src/
   `siteCode`、`direction`、`status`、`from`、`to`、`materialCode`、`partyCode`、`keyword`。
 - 本期分析页下钻只使用上述已支持参数。
 - 若后续要按 `issuerName`、`grossSource/tareSource`、`adjustmentCategory` 下钻，再扩展 `TicketQuery` 和过磅单查询页筛选；本期不做。
-- 供收方详情抽屉内的“查看全部单据”跳单据列表，带 `partyCode/direction/from/to`。
+- 经营总览的指标、趋势和排名带日期与厂区下钻，趋势周期与当前查询区间取交集。进出厂分析的趋势、周期和厂区行带当前筛选查看有效单据。
+- 物料行按物料编码查看有效单据，供收方详情抽屉按结算主体查看有效单据。分类筛选下先进入物料分析，再按明确物料下钻。统计名称关键词用于报表筛选，磅单关键词用于匹配单号或车牌。
 
 ### 7.7 加载、空态、错误与新鲜度
 
@@ -991,10 +994,10 @@ web/src/
   - 历史不足（同比/新增回归）。
 - 错误使用后端 `message`，提供“重试”。
 - 页面顶部或底部展示：
-  - 数据截止：`dataThrough`
-  - 最近接收：`lastReceivedAt`
-  - 历史起点：`historyStart`
-  - 提示“统计结果会随厂端补传变化”。
+  - 数据截止使用 `filteredDataThrough`，表示当前报表纳入单据的最新出单时间。筛选无单据时为 `null`。兼容字段 `dataThrough` 仍表示全平台最晚出单时间。
+  - 最近接收展示全平台 `lastReceivedAt` 或所选厂区的 `siteReceipts[].lastReceivedAt`，历史起点 `historyStart` 为全平台最早出单时间。接收指标覆盖全时段。
+  - 展示启用厂区中超过 2 小时未收到单据变化或无接收记录的厂区。单厂筛选时只展示所选厂；历史厂区编码的接收记录归当前厂区。接收间隔也可能受厂区业务量影响，补传会更新统计。
+  - 样本说明提供各指标的分母。时长使用有效、非重开、间隔已知且非负的单据；扣量覆盖使用有效单中的调整已知单数；核心原料扣量率进一步要求扣前净重大于 0。
 
 ### 7.8 刷新与缓存
 

@@ -1,8 +1,12 @@
 import { useMemo, useState } from 'react';
-import { Alert, App, Button, Card, Col, Divider, Drawer, Empty, Row, Space, Table, Tabs, Typography } from 'antd';
+import { Alert, App, Button, Card, Col, Divider, Drawer, Empty, Row, Space, Spin, Table, Tabs, Typography } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
+import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
+import { use as registerEChartsComponents } from 'echarts/core';
+import { DataZoomComponent } from 'echarts/components';
 import dayjs from 'dayjs';
+import { paths } from '../../config/paths';
 import { PageHeader } from '../../components/PageHeader';
 import { DataTable } from '../../components/DataTable';
 import { EChart } from '../../components/charts/EChart';
@@ -18,13 +22,15 @@ import {
   type RecentTicket,
 } from '../../features/analytics/api';
 import { analyticsFilterConfig, AnalyticsFilterBar, useAnalyticsDefaults } from '../../features/analytics/filters';
-import { analyticsFilterParams } from '../../features/analytics/params';
-import { analyticsDirectionLabel, formatBp, formatMilliTonne, formatSeconds } from '../../features/analytics/format';
+import { analyticsFilterParams, analyticsHref, analyticsTicketsHref } from '../../features/analytics/params';
+import { analyticsDirectionLabel, formatBeijingTime, formatBp, formatMilliTonne, formatSeconds } from '../../features/analytics/format';
 import { ChartCard, FreshnessNote, KpiCard } from '../../features/analytics/ui';
-import { partyRankingOption, trendChartOption } from '../../features/analytics/charts';
+import { partyRankingOption, sortPartyRanking, trendChartOption } from '../../features/analytics/charts';
 import { useAnalyticsMasterData } from '../../features/analytics/useMasterData';
 import { downloadBlob } from '../../features/analytics/download';
-import { formatDateTime, formatNumber } from '../../utils/format';
+import { formatNumber } from '../../utils/format';
+
+registerEChartsComponents([DataZoomComponent]);
 
 function natureLabel(nature: string) {
   if (nature === 'individual') return '个人';
@@ -61,7 +67,7 @@ export default function PartiesPage() {
     refetchIntervalInBackground: false,
   });
   const detail = useQuery({
-    queryKey: ['analytics', 'party-detail', selected?.partyCode, direction, from, to],
+    queryKey: ['analytics', 'party-detail', selected?.partyCode, params],
     queryFn: () => analyticsPartyDetail({ ...params, partyCode: selected?.partyCode, page: undefined, pageSize: undefined, from, to }),
     enabled: Boolean(selected?.partyCode),
   });
@@ -69,6 +75,7 @@ export default function PartiesPage() {
   const summary = data?.summary;
   const detailData = detail.data;
   const ranking = useMemo(() => data?.ranking ?? [], [data?.ranking]);
+  const chartRanking = useMemo(() => sortPartyRanking(ranking), [ranking]);
   const enterpriseCount = ranking.filter((row) => row.nature === 'enterprise').length;
   const individualCount = ranking.filter((row) => row.nature === 'individual').length;
   const rankMap = useMemo(() => new Map(ranking.map((row, index) => [row.partyCode, index + 1])), [ranking]);
@@ -139,12 +146,17 @@ export default function PartiesPage() {
     { title: '调整覆盖率', key: 'adjustmentCoverage', align: 'right', width: 120, render: (_, row) => formatBp(row.adjustmentCoverageBp) },
     { title: '作废车次', dataIndex: 'voidTickets', key: 'void', align: 'right', width: 100, sorter: true },
     { title: '作废率', key: 'voidRate', align: 'right', width: 100, render: (_, row) => formatBp(row.voidRateBp) },
-    { title: '最后过磅', key: 'lastIssuedAt', width: 150, sorter: true, render: (_, row) => formatDateTime(row.lastIssuedAt) },
+    { title: '最后出单', key: 'lastIssuedAt', width: 150, sorter: true, render: (_, row) => formatBeijingTime(row.lastIssuedAt) },
     { title: '操作', key: 'actions', width: 90, fixed: 'right', render: (_, row) => <Button type="link" onClick={() => setSelected(row)}>详情</Button> },
   ];
 
+  const partyTicketsHref = (partyCode: string, materialCode = params.materialCode) =>
+    analyticsTicketsHref({ ...params, partyCode, materialCode, keyword: undefined });
+
   const detailMaterialColumns: ColumnsType<MaterialRow> = [
-    { title: '物料', key: 'material', render: (_, row) => [row.materialName, row.materialSpec].filter(Boolean).join(' / ') },
+    { title: '物料', key: 'material', render: (_, row) => selected ? (
+      <Link to={partyTicketsHref(selected.partyCode, row.materialCode)}>{[row.materialName, row.materialSpec].filter(Boolean).join(' / ')}</Link>
+    ) : row.materialName },
     { title: '车次', dataIndex: 'totalTickets', key: 'tickets', align: 'right' },
     { title: '净重（吨）', key: 'net', align: 'right', render: (_, row) => formatMilliTonne(row.totalNetMilliTonne) },
     { title: '占比', key: 'share', align: 'right', render: (_, row) => formatBp(row.shareBp) },
@@ -156,7 +168,7 @@ export default function PartiesPage() {
     { title: '占比', key: 'share', align: 'right', render: (_, row) => formatBp(row.shareBp) },
   ];
   const recentColumns: ColumnsType<RecentTicket> = [
-    { title: '出单时间', key: 'issuedAt', width: 150, render: (_, row) => formatDateTime(row.issuedAt) },
+    { title: '出单时间', key: 'issuedAt', width: 150, render: (_, row) => formatBeijingTime(row.issuedAt) },
     { title: '单号', dataIndex: 'ticketNo', key: 'ticketNo', width: 190 },
     { title: '车牌', dataIndex: 'plate', key: 'plate', width: 110 },
     { title: '物料', dataIndex: 'materialName', key: 'materialName' },
@@ -198,6 +210,7 @@ export default function PartiesPage() {
         {parties.isError && (
           <Alert type="error" message={`供收方分析加载失败：${getApiErrorMessage(parties.error)}`} action={<Button onClick={() => void parties.refetch()}>重试</Button>} />
         )}
+        <FreshnessNote freshness={data?.freshness} siteCode={state.filters.siteCode} />
         <Row gutter={[16, 16]}>
           <Col xs={24} sm={12} xl={4}><KpiCard label={direction === 'inbound' ? '活跃供货方' : '活跃客户'} value={summary ? formatNumber(summary.activeParties) : '—'} suffix="家" /></Col>
           <Col xs={24} sm={12} xl={4}><KpiCard label={volumeLabel} value={summary ? formatMilliTonne(summary.totalNetMilliTonne) : '—'} suffix="吨" /></Col>
@@ -210,9 +223,12 @@ export default function PartiesPage() {
           <EChart
             option={partyRankingOption(ranking)}
             loading={parties.isLoading}
-            empty={!ranking.length}
+            empty={!chartRanking.length}
             height={420}
             ariaLabel="全量供收方排名图"
+            onClick={({ dataIndex }) => {
+              if (dataIndex !== undefined && chartRanking[dataIndex]) setSelected(chartRanking[dataIndex]);
+            }}
           />
         </ChartCard>
         <DataTable
@@ -233,23 +249,27 @@ export default function PartiesPage() {
           title={`${analyticsDirectionLabel(direction)}汇总`}
           emptyDescription="当前期间没有符合条件的有效过磅单"
         />
-        <FreshnessNote freshness={data?.freshness} />
       </Space>
       <Drawer
         title={selected ? `${selected.partyName}（${selected.partyCode}）` : '供收方详情'}
         width={860}
         open={Boolean(selected)}
         onClose={() => setSelected(null)}
+        extra={selected && (params.categoryCode && !params.materialCode ? (
+          <Link to={analyticsHref(paths.analyticsMaterials, { ...params, partyCode: selected.partyCode, keyword: undefined })}>查看分类内物料</Link>
+        ) : (
+          <Link to={partyTicketsHref(selected.partyCode)}>查看全部单据</Link>
+        ))}
         destroyOnHidden
       >
         {detail.isError && <Alert type="error" message={`详情加载失败：${getApiErrorMessage(detail.error)}`} />}
-        {!detailData ? <Empty description="暂无详情" /> : (
+        {detail.isLoading ? <Spin /> : !detailData ? <Empty description="暂无详情" /> : (
           <Space direction="vertical" size="middle" style={{ width: '100%' }}>
             <Row gutter={[16, 16]}>
               <Col span={8}><KpiCard label="车次" value={formatNumber(detailData.party.ticketCount)} suffix="车" /></Col>
               <Col span={8}><KpiCard label={volumeLabel} value={formatMilliTonne(detailData.party.netMilliTonne)} suffix="吨" /></Col>
               <Col span={8}><KpiCard label="平均扣重率" value={formatBp(detailData.party.adjustmentWeightRateBp)} /></Col>
-              <Col span={8}><KpiCard label={intervalLabel} value={formatSeconds(detailData.party.avgIntervalSeconds)} hint={`中位 ${formatSeconds(detailData.party.medianIntervalSeconds)}`} /></Col>
+              <Col span={8}><KpiCard label={intervalLabel} value={formatSeconds(detailData.party.avgIntervalSeconds)} hint={`中位 ${formatSeconds(detailData.party.medianIntervalSeconds)} · ${Math.max(0, detailData.party.ticketCount - 1)} 个相邻间隔`} /></Col>
               <Col span={8}><KpiCard label="活跃月数" value={detailData.party.activeMonths ? `${detailData.party.activeMonths} 月` : '—'} /></Col>
               <Col span={8}><KpiCard label="月度波动(CV)" value={formatBp(detailData.party.monthlyNetCvBp)} /></Col>
             </Row>

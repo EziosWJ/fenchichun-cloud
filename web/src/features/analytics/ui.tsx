@@ -1,8 +1,7 @@
 import type { ReactNode } from 'react';
 import { Alert, Card, Space, Statistic, Typography } from 'antd';
-import { formatDateTime } from '../../utils/format';
 import type { AnalyticsFreshness, ComparisonMetric } from './api';
-import { formatBp } from './format';
+import { formatBeijingTime, formatBp } from './format';
 
 export function KpiCard({
   label,
@@ -49,17 +48,49 @@ export function ChartCard({
   );
 }
 
-export function FreshnessNote({ freshness }: { freshness: AnalyticsFreshness | undefined }) {
+export function FreshnessNote({
+  freshness,
+  siteCode,
+}: {
+  freshness: AnalyticsFreshness | undefined;
+  siteCode?: string;
+}) {
   if (!freshness) return null;
-  const lastReceived = freshness.lastReceivedAt ? formatDateTime(freshness.lastReceivedAt) : '暂无';
-  const dataThrough = freshness.dataThrough ? formatDateTime(freshness.dataThrough) : '暂无';
-  const historyStart = freshness.historyStart ? formatDateTime(freshness.historyStart) : '暂无';
+  const receipts = (freshness.siteReceipts ?? []).filter((site) => !siteCode || site.siteCode === siteCode);
+  const staleBefore = Date.now() - 2 * 60 * 60 * 1000;
+  const staleSites = receipts.filter((site) =>
+    (site.enabled !== false || siteCode === site.siteCode)
+      && (!site.lastReceivedAt || Date.parse(site.lastReceivedAt) < staleBefore));
+  const latestReceipt = siteCode ? receipts[0]?.lastReceivedAt : freshness.lastReceivedAt;
   return (
     <Alert
-      type="info"
+      type={staleSites.length ? 'warning' : 'info'}
       showIcon
-      message={`数据截止：${dataThrough} · 最近接收：${lastReceived}`}
-      description={`历史起点：${historyStart}。统计仅基于云端已接收单据，结果会随厂端补传变化，不代表各厂实时完整上报。`}
+      title={
+        <Space size={[20, 4]} wrap>
+          <span>数据截止（筛选内最后出单） {formatBeijingTime(freshness.filteredDataThrough)}</span>
+          <span>最近接收（{siteCode ? '所选厂区' : '全平台'}） {formatBeijingTime(latestReceipt)}</span>
+        </Space>
+      }
+      description={
+        <>
+          {staleSites.length > 0 && (
+            <details open={staleSites.length === 1 || undefined}>
+              <summary>{staleSites.length} 个厂区超 2 小时未收到单据变化或暂无接收记录</summary>
+              <ul style={{ marginBlock: 4, paddingInlineStart: 22 }}>
+                {staleSites.map((site) => (
+                  <li key={site.siteCode}>
+                    {site.siteName || site.siteCode}（{site.siteCode}） {site.lastReceivedAt
+                      ? formatBeijingTime(site.lastReceivedAt)
+                      : '暂无接收记录'}
+                  </li>
+                ))}
+              </ul>
+            </details>
+          )}
+          <span>北京时间。全平台历史起点 {formatBeijingTime(freshness.historyStart)}。补传会更新统计，接收间隔也可能受厂区业务量影响。</span>
+        </>
+      }
     />
   );
 }

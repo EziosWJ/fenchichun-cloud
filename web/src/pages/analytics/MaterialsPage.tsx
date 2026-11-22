@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Alert, App, Button, Card, Col, Row, Space, Tabs, Typography } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
+import { Link, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import dayjs from 'dayjs';
 import { PageHeader } from '../../components/PageHeader';
@@ -16,13 +17,13 @@ import {
   type MaterialRow,
 } from '../../features/analytics/api';
 import { analyticsFilterConfig, AnalyticsFilterBar, useAnalyticsDefaults } from '../../features/analytics/filters';
-import { analyticsFilterParams } from '../../features/analytics/params';
-import { formatBp, formatMilliTonne } from '../../features/analytics/format';
+import { analyticsFilterParams, analyticsTicketsHref } from '../../features/analytics/params';
+import { formatBeijingTime, formatBp, formatMilliTonne } from '../../features/analytics/format';
 import { ChartCard, FreshnessNote, KpiCard } from '../../features/analytics/ui';
 import { materialTrendOption, pieChartOption } from '../../features/analytics/charts';
 import { useAnalyticsMasterData } from '../../features/analytics/useMasterData';
 import { downloadBlob } from '../../features/analytics/download';
-import { formatDateTime, formatNumber } from '../../utils/format';
+import { formatNumber } from '../../utils/format';
 import { SupplierQualityTab } from './SupplierQualityTab';
 import { ByproductFlowTab } from './ByproductFlowTab';
 
@@ -30,9 +31,10 @@ type MaterialTab = 'overview' | 'supplier' | 'byproduct';
 
 export default function MaterialsPage() {
   const { message } = App.useApp();
+  const navigate = useNavigate();
   const { state, actions } = useListUrlState(analyticsFilterConfig);
   useAnalyticsDefaults(state, actions);
-  const master = useAnalyticsMasterData();
+  const master = useAnalyticsMasterData(Boolean(state.filters.partyCode));
   const [exporting, setExporting] = useState(false);
   const [activeTab, setActiveTab] = useState<MaterialTab>('overview');
   const [supplierPage, setSupplierPage] = useState(1);
@@ -118,12 +120,15 @@ export default function MaterialsPage() {
     }
   };
 
+  const materialTicketsHref = (materialCode: string) =>
+    analyticsTicketsHref({ ...baseParams, materialCode, keyword: undefined });
+
   const columns: ColumnsType<MaterialRow> = [
     {
       title: '物料 / 规格', key: 'material', width: 220,
       render: (_, row) => (
         <div>
-          <div>{row.materialName || row.materialCode}</div>
+          <div><Link to={materialTicketsHref(row.materialCode)}>{row.materialName || row.materialCode}</Link></div>
           <Typography.Text type="secondary">{row.materialSpec || row.materialCode}</Typography.Text>
         </div>
       ),
@@ -140,7 +145,7 @@ export default function MaterialsPage() {
     { title: '净重调整（吨）', key: 'adjustmentNet', align: 'right', width: 140, render: (_, row) => formatMilliTonne(row.adjustmentNetMilliTonne) },
     { title: '扣量率', key: 'adjustmentRate', align: 'right', width: 100, render: (_, row) => formatBp(row.adjustmentWeightRateBp) },
     { title: '调整覆盖率', key: 'coverage', align: 'right', width: 120, render: (_, row) => formatBp(row.adjustmentCoverageBp) },
-    { title: '最后过磅', key: 'lastIssuedAt', width: 150, sorter: true, render: (_, row) => formatDateTime(row.lastIssuedAt) },
+    { title: '最后出单', key: 'lastIssuedAt', width: 150, sorter: true, render: (_, row) => formatBeijingTime(row.lastIssuedAt) },
   ];
 
   const overview = (
@@ -148,18 +153,23 @@ export default function MaterialsPage() {
       {materials.isError && (
         <Alert type="error" message={`物料分析加载失败：${getApiErrorMessage(materials.error)}`} action={<Button onClick={() => void materials.refetch()}>重试</Button>} />
       )}
+      <FreshnessNote freshness={data?.freshness} siteCode={state.filters.siteCode} />
       <Row gutter={[16, 16]}>
         <Col xs={24} sm={12} xl={4}><KpiCard label="物料数" value={summary ? formatNumber(summary.materialCount) : '—'} suffix="种" /></Col>
         <Col xs={24} sm={12} xl={4}><KpiCard label="入厂净重" value={summary ? formatMilliTonne(summary.inboundNetMilliTonne) : '—'} suffix="吨" /></Col>
         <Col xs={24} sm={12} xl={4}><KpiCard label="出厂净重" value={summary ? formatMilliTonne(summary.outboundNetMilliTonne) : '—'} suffix="吨" /></Col>
         <Col xs={24} sm={12} xl={4}><KpiCard label="净重调整" value={summary ? formatMilliTonne(summary.adjustmentNetMilliTonne) : '—'} suffix="吨" /></Col>
-        <Col xs={24} sm={12} xl={4}><KpiCard label="扣量率" value={summary ? formatBp(summary.adjustmentWeightRateBp) : '—'} hint={summary ? `调整覆盖率 ${formatBp(summary.adjustmentCoverageBp)}` : undefined} /></Col>
-        <Col xs={24} sm={12} xl={4}><KpiCard label="最后过磅" value={summary?.lastIssuedAt ? dayjs(summary.lastIssuedAt).format('MM-DD HH:mm') : '—'} /></Col>
+        <Col xs={24} sm={12} xl={4}><KpiCard label="扣量率" value={summary ? formatBp(summary.adjustmentWeightRateBp) : '—'} hint={summary ? `调整已知 ${summary.adjustmentKnownTickets} / ${summary.totalTickets} 车 · 覆盖率 ${formatBp(summary.adjustmentCoverageBp)}` : undefined} /></Col>
+        <Col xs={24} sm={12} xl={4}><KpiCard label="最后出单" value={formatBeijingTime(summary?.lastIssuedAt)} /></Col>
       </Row>
       <Row gutter={[16, 16]}>
         <Col xs={24} xl={14}>
           <ChartCard title="物料净重趋势（全部物料）">
-            <EChart option={materialTrendOption(data?.trend)} loading={materials.isLoading} empty={!data?.trend.length} ariaLabel="物料净重趋势图" />
+            <EChart option={materialTrendOption(data?.trend)} loading={materials.isLoading} empty={!data?.trend.length} ariaLabel="物料净重趋势图"
+            onClick={({ seriesIndex }) => {
+              const series = seriesIndex === undefined ? undefined : data?.trend[seriesIndex];
+              if (series) navigate(materialTicketsHref(series.materialCode));
+            }} />
           </ChartCard>
         </Col>
         <Col xs={24} xl={10}>
@@ -201,7 +211,6 @@ export default function MaterialsPage() {
           </Row>
         </Card>
       )}
-      <FreshnessNote freshness={data?.freshness} />
     </Space>
   );
 
@@ -225,6 +234,7 @@ export default function MaterialsPage() {
             sites={master.sites}
             materials={master.materials}
             categories={master.categories}
+            parties={master.parties}
             showDirection={activeTab === 'overview'}
             showKeyword
             showCompare={false}
@@ -243,6 +253,7 @@ export default function MaterialsPage() {
               label: '核心原料扣量稳定性',
               children: (
                 <SupplierQualityTab
+                  siteCode={state.filters.siteCode}
                   data={supplierQuality.data}
                   loading={supplierQuality.isLoading}
                   error={supplierQuality.isError ? getApiErrorMessage(supplierQuality.error) : null}
@@ -267,6 +278,7 @@ export default function MaterialsPage() {
               label: '副产品出库流向',
               children: (
                 <ByproductFlowTab
+                  siteCode={state.filters.siteCode}
                   data={byproductFlow.data}
                   loading={byproductFlow.isLoading}
                   error={byproductFlow.isError ? getApiErrorMessage(byproductFlow.error) : null}
