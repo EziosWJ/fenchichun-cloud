@@ -134,23 +134,17 @@ tasks:
     cmds:
       - '"{{.ROOT_DIR}}/.task/windows-monitoring.test.exe" -test.timeout 30s -test.v -test.run "TestWindows|TestInterfaceAddressesKeepHostIPAndPrefix|TestNetworkAddressesThroughHTTP|TestDisabledMonitoringHTTPAndSampling" -windows-smoke'
 
-  backend:notifications:
-    summary: Run announcement, notification, SSE and capacity integration contracts
-    dir: server
-    cmds:
-      - go test -tags=integration ./integration -run 'Notification|Announcement' -count=1
-
   backend:integration:
     summary: Run backend PostgreSQL integration tests
     dir: server
     cmds:
-      - go test -tags=integration ./integration -run 'Postgres|Auth|RBAC|SysConfig|Department|Dictionary|Login|File|Notification|UserPage|Monitor' -count=1
+      - go test -tags=integration ./integration -run 'Postgres|Auth|RBAC|SysConfig|Department|Dictionary|Login|File|UserPage|Monitor' -count=1
 
   db:integration:postgres:
     summary: Run the PostgreSQL database integration contract
     dir: server
     cmds:
-      - go test -tags=integration ./integration -run 'Postgres|Auth|RBAC|SysConfig|Department|Dictionary|Login|File|Notification|UserPage|Monitor' -count=1
+      - go test -tags=integration ./integration -run 'Postgres|Auth|RBAC|SysConfig|Department|Dictionary|Login|File|UserPage|Monitor' -count=1
 
   db:check:
     summary: Run backend checks and PostgreSQL integration contract

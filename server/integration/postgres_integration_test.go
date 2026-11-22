@@ -36,6 +36,20 @@ import (
 	"fenchichun.local/server/internal/usermgmt"
 )
 
+func integrationUserID(t *testing.T, router http.Handler, token string) int64 {
+	t.Helper()
+	response := serveJSON(router, "GET", "/api/v1/auth/me", "", token)
+	var result struct {
+		Data struct {
+			ID int64 `json:"id"`
+		} `json:"data"`
+	}
+	if err := json.Unmarshal(response.Body.Bytes(), &result); err != nil || result.Data.ID == 0 {
+		t.Fatalf("current user: %s", response.Body.String())
+	}
+	return result.Data.ID
+}
+
 const postgresImage = "postgres:17-alpine"
 
 func TestPostgresMigrationsUseEphemeralDatabase(t *testing.T) {

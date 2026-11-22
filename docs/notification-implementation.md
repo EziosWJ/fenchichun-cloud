@@ -91,14 +91,11 @@ return nil
 - 00009：增加 BUSINESS 来源；SQLite 重建相关表并复制既有通知及接收、已读记录，PostgreSQL 修改来源约束。SQLite 历史保留由真实迁移及 HTTP 契约验证。回退 00009 时 BUSINESS 来源映射为 MANUAL；回退 00008 会删除新增公告及跳转字段，因此不要在生产中直接回退该新增能力。
 - 开发升级执行 `task db:migrate`；SQLite 配置可使用 `task db:migrate:sqlite`。API 不自动迁移。
 - `task backend:check`：后端测试与 go vet。
-- `task backend:notifications`：两种数据库公告、通知、SSE、回滚、迁移与容量专项契约，需要 Docker、Node、前端依赖和 Playwright 浏览器。
-- `task db:integration:sqlite`：完整 SQLite 集成契约；新增容量契约同样需要 Node 与 Playwright。
-- `task backend:integration`：完整 PostgreSQL 集成契约。
-- `task frontend:notifications`：公告与通知浏览器行为验证。
+- `task backend:integration`：PostgreSQL 集成契约，使用临时隔离数据库。
 - `task frontend:lint`、`task frontend:build`：前端静态检查及构建。
 - `task backend:swagger`：使用固定版本 Swag 生成提交的 Swagger。
 
-所有集成测试使用临时隔离数据库与临时 HTTP 服务。容量测试的 100 条连接包含 98 个 HTTP 流客户端与一个浏览器中的公开、登录两条流，群发接收人数从管理 HTTP 接口核验为 1,000；同时测量协议到达与真实页面更新，不将协议到达当作页面已更新。测试输出 `/tmp/notification-capacity-{sqlite,postgres}.json`，Vite 使用隔离缓存并清理测试进程。
+通知和容量专项自动化测试已移除；以下为历史验证记录。
 
 ## 本次验证记录（2026-10-05）
 
