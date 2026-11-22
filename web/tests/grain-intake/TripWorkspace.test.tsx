@@ -19,6 +19,7 @@ vi.mock('../../src/features/grain-intake/api', async (importOriginal) => ({
   stageLabel: (v: string) => v,
 }));
 vi.mock('../../src/features/weighbridge/api', () => ({ sites: async () => [] }));
+vi.mock('../../src/features/granary/api', () => ({ granaries: async () => [] }));
 vi.mock('../../src/pages/laboratory/InspectionFormModal', () => ({ default: () => <div>化验录入</div> }));
 vi.mock('../../src/features/laboratory/api', () => ({ inspections: vi.fn(), createInspection: vi.fn() }));
 const trip: Trip = {
