@@ -51,4 +51,33 @@ describe('总部过磅单查询', () => {
     expect(rows[2]).toHaveTextContent('—');
     expect(screen.getByText(/净重调整／方式/)).toHaveTextContent('0.7 吨（多项调整） / 多项调整');
   });
+
+  it('跨日人工补单按北京时间显示实际回磅、出单和对账归属日', async () => {
+    api.tickets.mockResolvedValue({
+      items: [
+        { siteCode: 'F001', status: 'valid', ticket: {
+          ticketNo: 'BD-20261120-021', title: '原粮过磅单', plate: '晋A12345', direction: 'inbound',
+          entryType: 'manual_supplement', firstWeighedAt: '2026-11-20T05:00:00Z',
+          secondWeighedAt: '2026-11-20T08:45:00Z', secondConfirmedAt: '2026-11-21T00:10:00Z',
+          issuedAt: '2026-11-21T00:15:00Z', originalGross: '35.2', originalTare: '12.1',
+          finalGross: '35.2', finalTare: '12.1', grossSource: 'manual', tareSource: 'manual',
+        } },
+        { siteCode: 'F001', status: 'valid', ticket: {
+          ticketNo: 'BD-OLD', plate: '晋B67890', finalGross: '35.2', finalTare: '12.1', tareSource: 'manual',
+        } },
+      ],
+      total: 2, page: 1, pageSize: 10,
+    });
+    renderWithProviders(<TicketsPage />);
+    const manual = (await screen.findByText('BD-20261120-021')).closest('tr')!;
+    const legacy = screen.getByText('BD-OLD').closest('tr')!;
+    expect(within(manual).getByText('人工补单')).toBeInTheDocument();
+    expect(within(legacy).queryByText('人工补单')).not.toBeInTheDocument();
+    await userEvent.click(within(manual).getByRole('button', { name: '详情' }));
+
+    const timeline = screen.getByRole('region', { name: '单据时间（北京时间）' });
+    expect(within(timeline).getByText('实际回磅时间').parentElement).toHaveTextContent('2026-11-20 16:45');
+    expect(within(timeline).getByText('出单时间').parentElement).toHaveTextContent('2026-11-21 08:15');
+    expect(within(timeline).getByText('对账归属日').parentElement).toHaveTextContent('2026-11-20');
+  });
 });
