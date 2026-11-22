@@ -53,7 +53,9 @@ it('在旧版确认被拒绝时展示新版登记，重新核对后才允许归�
     }, waitOptions));
   };
   await selectFormalParty();
-  expect(dialog.getByText('正式主体业务身份：供货商。确认后关联固定。')).toBeInTheDocument();
+  expect(dialog.getByRole('row', { name: '主体性质 个人 企业' })).toBeInTheDocument();
+  expect(dialog.getByRole('row', { name: '业务身份 供货商 供货商' })).toBeInTheDocument();
+  expect(dialog.getByText(/纳入正式主体的汇总、对账和重新导出/)).toBeInTheDocument();
   await user.click(dialog.getByRole('button', { name: '确认归并' }));
   expect(api.decideTemporaryParty).toHaveBeenNthCalledWith(1, 4, expect.objectContaining({
     version: 1, status: 'merged', formalPartyCode: 'C-P-0001',
