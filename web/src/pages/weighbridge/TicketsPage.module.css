@@ -123,6 +123,39 @@
   padding: 20px 0 8px;
 }
 
-.section + :global(.ant-collapse) {
-  margin-top: 16px;
+.timeline,
+.review {
+  margin-bottom: 12px;
+  border: 1px solid var(--ant-color-border-secondary);
+  border-radius: var(--ant-border-radius-lg);
+  padding: 10px 12px;
+}
+
+.timelineHeading,
+.timeline dt {
+  color: var(--ant-color-text-secondary);
+  font-size: 12px;
+}
+
+.timeline dl {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 155px), 1fr));
+  gap: 8px 16px;
+  margin: 4px 0 0;
+}
+
+.timeline dd {
+  margin: 2px 0 0;
+  color: var(--ant-color-text);
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+
+.review {
+  background: var(--ant-color-fill-quaternary);
+}
+
+.review h3 {
+  margin: 0 0 8px;
+  font-size: 14px;
 }

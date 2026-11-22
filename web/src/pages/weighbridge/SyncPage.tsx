@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { Alert, Button, DatePicker, Descriptions, Input, Modal, Select, Space, Table, Tabs, Tag, Typography } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import { useQuery } from '@tanstack/react-query';
@@ -8,10 +8,10 @@ import { PageHeader } from '../../components/PageHeader';
 import { useListUrlState } from '../../hooks/useListUrlState';
 import { getApiErrorMessage } from '../../lib/api/errors';
 import {
-  sites,
+  syncSiteReceipts,
   syncTicketReceipt,
   tickets,
-  type Site,
+  type SyncSiteReceipt,
   type SyncChangeConfirmation,
   type SyncTicketReceipt,
   type NetAdjustmentItem,
@@ -19,7 +19,7 @@ import {
   type Ticket,
   type TicketRecord,
 } from '../../features/weighbridge/api';
-import { formatDateTime } from '../../utils/format';
+import { formatBeijingTime } from '../../features/weighbridge/time';
 import styles from './SyncPage.module.css';
 
 const config = {
@@ -36,14 +36,18 @@ const config = {
   defaultPageSize: 10,
 } as const;
 
-const CHANGE_TYPES: Record<string, string> = { issue: '出单', void: '作废', reopen: '重开' };
+const CHANGE_TYPES: Record<string, string> = {
+  issue: '出单', issued: '出单',
+  void: '作废', voided: '作废',
+  reopen: '重开', reopened: '重开',
+};
 
 function formatTime(value: string | null | undefined): string {
-  return value ? dayjs(value).format('YYYY-MM-DD HH:mm:ss') : '—';
+  return formatBeijingTime(value, 'second');
 }
 
 function changeType(value: string | null | undefined): string {
-  return value ? CHANGE_TYPES[value] ?? value : '—';
+  return value ? CHANGE_TYPES[value] ?? '未知变化' : '—';
 }
 
 function digestText(value: string | null | undefined) {
@@ -105,7 +109,7 @@ const changeColumns: ColumnsType<SyncChangeConfirmation> = [
 
 function TicketDetail({ detail, onOpenRef }: { detail: SyncTicketReceipt; onOpenRef: (ref: SyncTicketRef) => void }) {
   const ticket = detail.ticket;
-  const previousSiteCode = detail.previousSiteCode ?? detail.siteCode;
+  const previousSiteCode = detail.previousSiteCode;
   const previousTicketNo = detail.previousTicketNo;
   const reopenedBy = detail.reopenedBy;
   return (
@@ -115,6 +119,7 @@ function TicketDetail({ detail, onOpenRef }: { detail: SyncTicketReceipt; onOpen
         size="small"
         column={{ xs: 1, sm: 2 }}
         items={[
+          { key: 'number', label: '单号', children: detail.ticketNo },
           { key: 'site', label: '出单厂区编码', children: detail.siteCode },
           { key: 'status', label: '状态', children: <Tag color={detail.status === 'valid' ? 'green' : 'default'}>{detail.status === 'valid' ? '有效' : '作废'}</Tag> },
           { key: 'latest', label: '最新变化摘要', children: digestText(detail.latestDigest) },
@@ -124,11 +129,11 @@ function TicketDetail({ detail, onOpenRef }: { detail: SyncTicketReceipt; onOpen
           {
             key: 'previous',
             label: '原单关联',
-            children: previousTicketNo ? (
+            children: previousTicketNo && previousSiteCode ? (
               <Button type="link" size="small" onClick={() => onOpenRef({ siteCode: previousSiteCode, ticketNo: previousTicketNo })}>
                 {previousSiteCode} / {previousTicketNo}
               </Button>
-            ) : '—',
+            ) : previousTicketNo || '—',
           },
           {
             key: 'reopenedBy',
@@ -154,6 +159,9 @@ function TicketDetail({ detail, onOpenRef }: { detail: SyncTicketReceipt; onOpen
             { key: 'gross', label: '最终毛重（吨）', children: ticket.finalGross },
             { key: 'tare', label: '最终皮重（吨）', children: ticket.finalTare },
             { key: 'net', label: '最终净重（吨）', children: ticket.finalNet || '—' },
+            ...(ticket.entryType === 'manual_supplement'
+              ? [{ key: 'actualSecond', label: '实际回磅时间', children: formatTime(ticket.secondWeighedAt) }]
+              : []),
             { key: 'issued', label: '出单时间', children: formatTime(ticket.issuedAt) },
             ...(detail.status === 'void'
               ? [
@@ -176,6 +184,8 @@ function TicketDetail({ detail, onOpenRef }: { detail: SyncTicketReceipt; onOpen
         />
       )}
       <Table
+        title={() => '已接收的变化回执'}
+        scroll={{ x: 'max-content' }}
         rowKey="digest"
         size="small"
         pagination={false}
@@ -187,11 +197,31 @@ function TicketDetail({ detail, onOpenRef }: { detail: SyncTicketReceipt; onOpen
   );
 }
 
-function tabLabel(site: Site) {
+function SiteReceiptSummary({ site, onOpenRef }: { site: SyncSiteReceipt; onOpenRef: (ref: SyncTicketRef) => void }) {
+  const { lastIssuedSiteCode, lastTicketNo } = site;
+  return (
+    <div className={styles.siteReceipt}>
+      <Typography.Text strong>最近成功接收（北京时间）</Typography.Text>
+      {site.lastReceivedAt ? (
+        <Space wrap size={[12, 4]}>
+          <span>{formatTime(site.lastReceivedAt)}</span>
+          <Tag>{changeType(site.lastChangeType)}</Tag>
+          {lastIssuedSiteCode && lastTicketNo && (
+            <Button type="link" size="small" onClick={() => onOpenRef({ siteCode: lastIssuedSiteCode, ticketNo: lastTicketNo })}>
+              {lastIssuedSiteCode} / {lastTicketNo}
+            </Button>
+          )}
+        </Space>
+      ) : <Typography.Text type="secondary">尚无磅单变化回执</Typography.Text>}
+    </div>
+  );
+}
+
+function tabLabel(site: SyncSiteReceipt) {
   return (
     <span className={styles.tabLabel}>
-      {site.name}
-      <span className={styles.tabCode}>{site.code}</span>
+      {site.siteName}
+      <span className={styles.tabCode}>{site.siteCode}</span>
       {!site.enabled && <Tag>停用</Tag>}
     </span>
   );
@@ -207,26 +237,18 @@ const baseColumns: ColumnsType<TicketRecord> = [
   { title: '皮重（吨）', key: 'tare', render: (_, row) => row.ticket.finalTare },
   { title: '净重（吨）', key: 'net', render: (_, row) => finalNet(row.ticket) },
   { title: '状态', dataIndex: 'status', key: 'status', render: (value: string) => <Tag color={value === 'valid' ? 'green' : 'default'}>{value === 'valid' ? '有效' : '作废'}</Tag> },
-  { title: '出单时间', key: 'issuedAt', render: (_, row) => formatDateTime(row.ticket.issuedAt) },
+  { title: '出单时间', key: 'issuedAt', render: (_, row) => formatBeijingTime(row.ticket.issuedAt) },
 ];
 
 export default function SyncPage() {
   const { state, actions } = useListUrlState(config);
   const [keyword, setKeyword] = useState(state.keyword);
-  const [activeSite, setActiveSite] = useState('');
+  const [selectedSite, setSelectedSite] = useState('');
   const [detailQuery, setDetailQuery] = useState<SyncTicketRef | null>(null);
 
-  const sitesQuery = useQuery({ queryKey: ['weighbridge', 'sync', 'sites'], queryFn: sites });
-  useEffect(() => {
-    const list = sitesQuery.data ?? [];
-    if (list.length === 0) {
-      if (activeSite) setActiveSite('');
-      return;
-    }
-    if (!activeSite || !list.some((site) => site.code === activeSite)) {
-      setActiveSite(list[0].code);
-    }
-  }, [activeSite, sitesQuery.data]);
+  const sitesQuery = useQuery({ queryKey: ['weighbridge', 'sync', 'site-receipts'], queryFn: syncSiteReceipts });
+  const siteRows = sitesQuery.data ?? [];
+  const activeSite = (siteRows.find((site) => site.siteCode === selectedSite) ?? siteRows[0])?.siteCode ?? '';
 
   const list = useQuery({
     queryKey: ['weighbridge', 'sync', 'tickets', activeSite, state.page, state.pageSize, state.keyword, state.filters],
@@ -266,11 +288,12 @@ export default function SyncPage() {
     },
   ];
 
-  const tabItems = (sitesQuery.data ?? []).map((site) => ({
-    key: site.code,
+  const tabItems = siteRows.map((site) => ({
+    key: site.siteCode,
     label: tabLabel(site),
-    children: site.code === activeSite ? (
+    children: site.siteCode === activeSite ? (
       <>
+        <SiteReceiptSummary site={site} onOpenRef={setDetailQuery} />
         <div className={styles.filters} role="group" aria-label="筛选条件">
           <Input.Search
             className={styles.keyword}
@@ -350,8 +373,8 @@ export default function SyncPage() {
           pageSize={state.pageSize}
           onPageChange={actions.setPage}
           loading={list.isLoading}
-          onRefresh={() => void list.refetch()}
-          emptyDescription="该厂区暂无已同步单据"
+          onRefresh={() => { void list.refetch(); void sitesQuery.refetch(); }}
+          emptyDescription={list.isError ? '单据加载失败' : '该厂区暂无已同步单据'}
         />
       </>
     ) : null,
@@ -364,7 +387,7 @@ export default function SyncPage() {
         <Alert
           type="info"
           showIcon
-          message="本页只展示云端已经接收并保存的单据；厂端尚未上传或上传失败的数据不会出现在这里。"
+          message="接收时间是云端保存磅单变化的时间。厂端待上传和上传失败的记录请到厂端查看。"
         />
         {sitesQuery.isError && (
           <Alert
@@ -381,7 +404,7 @@ export default function SyncPage() {
           <Tabs
             activeKey={activeSite}
             onChange={(code) => {
-              setActiveSite(code);
+              setSelectedSite(code);
               actions.setPage(1);
             }}
             items={tabItems}
@@ -389,7 +412,7 @@ export default function SyncPage() {
         )}
       </Space>
       <Modal
-        title="单据同步详情"
+        title="磅单同步回执（北京时间）"
         open={detailQuery !== null}
         onCancel={() => setDetailQuery(null)}
         footer={<Button onClick={() => setDetailQuery(null)}>关闭</Button>}

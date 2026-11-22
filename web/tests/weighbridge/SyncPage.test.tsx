@@ -4,13 +4,22 @@ import userEvent from '@testing-library/user-event';
 import SyncPage from '../../src/pages/weighbridge/SyncPage';
 import { renderWithProviders } from '../utils/renderWithProviders';
 
-const api = vi.hoisted(() => ({ sites: vi.fn(), tickets: vi.fn(), syncTicketReceipt: vi.fn() }));
+const api = vi.hoisted(() => ({ syncSiteReceipts: vi.fn(), tickets: vi.fn(), syncTicketReceipt: vi.fn() }));
 vi.mock('../../src/features/weighbridge/api', () => api);
 
 const digest = (letter: string) => letter.repeat(64);
 
 function site(code: string, name: string) {
-  return { code, name, enabled: true };
+  return {
+    siteCode: code,
+    siteName: name,
+    enabled: true,
+    receivedChanges: code === 'F001' ? 1 : 0,
+    lastReceivedAt: code === 'F001' ? '2026-11-21T08:16:00+08:00' : null,
+    lastTicketNo: code === 'F001' ? 'T1' : null,
+    lastChangeType: code === 'F001' ? 'issued' : null,
+    lastIssuedSiteCode: code === 'F001' ? 'F000' : null,
+  };
 }
 
 function ticketRecord(siteCode: string, ticketNo: string, plate: string, netAdjustments?: unknown[]) {
@@ -93,7 +102,7 @@ function ticketReceipt(found: boolean, siteCode = 'F001', ticketNo = 'T1', netAd
 describe('云端厂云同步页面', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    api.sites.mockResolvedValue([site('F001', '甲厂'), site('SITE01', '乙厂')]);
+    api.syncSiteReceipts.mockResolvedValue([site('F001', '甲厂'), site('SITE01', '乙厂')]);
     api.tickets.mockImplementation((params: { siteCode: string }) => Promise.resolve({
       items: [ticketRecord(params.siteCode, params.siteCode === 'SITE01' ? 'T2' : 'T1', params.siteCode === 'SITE01' ? '晋B22222' : '晋A12345')],
       total: 1,
@@ -109,12 +118,14 @@ describe('云端厂云同步页面', () => {
     expect(await screen.findByText('甲厂')).toBeInTheDocument();
     expect(screen.getByText('乙厂')).toBeInTheDocument();
     expect(await screen.findByText('晋A12345')).toBeInTheDocument();
-    expect(screen.queryByText('厂区最近接收')).not.toBeInTheDocument();
-    expect(screen.queryByText('按单据核对')).not.toBeInTheDocument();
+    expect(screen.getByText('2026-11-21 08:16:00')).toBeInTheDocument();
+    expect(screen.getByText('出单')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'F000 / T1' })).toBeInTheDocument();
 
     await userEvent.click(screen.getByText('乙厂'));
     await waitFor(() => expect(api.tickets).toHaveBeenCalledWith(expect.objectContaining({ siteCode: 'SITE01' })));
     expect(await screen.findByText('晋B22222')).toBeInTheDocument();
+    expect(screen.getByText('尚无磅单变化回执')).toBeInTheDocument();
 
     await userEvent.click(screen.getByRole('button', { name: '详情' }));
     await waitFor(() => expect(api.syncTicketReceipt).toHaveBeenCalledWith('SITE01', 'T2'));
@@ -137,7 +148,7 @@ describe('云端厂云同步页面', () => {
   });
 
   it('厂区加载失败时展示错误和重试', async () => {
-    api.sites.mockRejectedValue(new Error('network down'));
+    api.syncSiteReceipts.mockRejectedValue(new Error('network down'));
     renderWithProviders(<SyncPage />);
 
     expect(await screen.findByText(/厂区加载失败/)).toBeInTheDocument();
