@@ -456,6 +456,7 @@ definitions:
       materialCode:
         type: string
       partyCode:
+        description: 供应商待核实时留空。
         type: string
       plate:
         type: string
@@ -534,6 +535,7 @@ definitions:
       materialCode:
         type: string
       partyCode:
+        description: 供应商待核实时留空。
         type: string
       plate:
         type: string
@@ -661,6 +663,7 @@ definitions:
       number:
         type: string
       partyCode:
+        description: 供应商待核实时留空。
         type: string
       partyName:
         type: string
@@ -2337,7 +2340,7 @@ paths:
       - 原粮流转
     post:
       parameters:
-      - description: 厂区、车牌、粮种必填，供应商可待核实
+      - description: 厂区、车牌、粮种必填；供应商待核实时 partyCode 可省略或留空
         in: body
         name: request
         required: true

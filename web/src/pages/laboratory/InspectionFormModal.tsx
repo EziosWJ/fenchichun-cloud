@@ -24,7 +24,7 @@ function formatRate(rateBp: number) {
 
 /**
  * 化验结果录入：身份信息来自流转单，只读展示；拒收原因默认隐藏。
- * 一张流转单只能录入一次，提交即生效。容量只作为化验指标展示，不参与扣减；
+ * 每趟只允许一张未作废的化验单，提交即生效。容量只作为化验指标展示，不参与扣减；
  * 杂质现场无法检测，改由称重台二次称重时录入。
  */
 export default function InspectionFormModal({ trip, open, onClose, onSaved }: {
@@ -39,6 +39,7 @@ export default function InspectionFormModal({ trip, open, onClose, onSaved }: {
   const [previewMoisture, setPreviewMoisture] = useState('');
   const [rejecting, setRejecting] = useState(false);
   const canReject = !trip.unloadedAt;
+  const supplierPending = !trip.partyCode;
   const save = useMutation({
     mutationFn: createInspection,
     onSuccess: () => { message.success('化验结果已保存并生效'); onSaved(); },
@@ -54,24 +55,22 @@ export default function InspectionFormModal({ trip, open, onClose, onSaved }: {
     setPreviewMoisture('');
     setRejecting(false);
   }, [open, form]);
-  const moistureValid = decimal.test(previewMoisture) && Number(previewMoisture) <= 100;
+  const currentMoisture = moisture?.trim() ?? '';
+  const moistureValid = decimal.test(currentMoisture) && Number(currentMoisture) <= 100;
+  const previewReady = moistureValid && currentMoisture === previewMoisture;
   const preview = useQuery({
     queryKey: ['deduction-preview', trip.materialCode, previewMoisture],
     queryFn: () => deductionPreview(trip.materialCode, previewMoisture),
-    enabled: moistureValid,
+    enabled: previewReady,
     retry: false,
     staleTime: 30_000,
   });
   const previewItems = preview.data ?? [];
   const previewMoistureValue = previewItems[0]?.basisValue || previewMoisture;
   const previewRates = previewItems.map((item) => formatRate(item.rateBp ?? 0)).join('、');
-  const submit = async (conclusion: 'accept' | 'reject') => {
-    let values: Values;
-    try {
-      values = await form.validateFields();
-    } catch {
-      return;
-    }
+  const submit = (values: Values) => {
+    if (supplierPending || save.isPending) return;
+    const conclusion = rejecting ? 'reject' : 'accept';
     if (conclusion === 'reject' && !canReject) {
       message.error('已确认卸粮，不能改判拒收');
       return;
@@ -87,17 +86,20 @@ export default function InspectionFormModal({ trip, open, onClose, onSaved }: {
   };
   return <Modal
     open={open}
-    onCancel={onClose}
+    onCancel={() => { if (!save.isPending) onClose(); }}
+    mask={{ closable: false }}
+    keyboard={false}
     title="录入化验结果"
     width={780}
     destroyOnHidden
     footer={rejecting
-      ? <Space><Button onClick={() => setRejecting(false)}>返回</Button><Button danger loading={save.isPending} onClick={() => void submit('reject')}>确认拒收</Button></Space>
-      : <Space><Button onClick={onClose}>取消</Button>{canReject && <Button danger onClick={() => setRejecting(true)}>拒收</Button>}<Button type="primary" loading={save.isPending} onClick={() => void submit('accept')}>接收</Button></Space>}
+      ? <Space><Button disabled={save.isPending} onClick={() => setRejecting(false)}>返回</Button><Button danger disabled={supplierPending} loading={save.isPending} onClick={() => form.submit()}>确认拒收</Button></Space>
+      : <Space><Button disabled={save.isPending} onClick={onClose}>取消</Button>{canReject && <Button danger disabled={supplierPending || save.isPending} onClick={() => setRejecting(true)}>拒收</Button>}<Button type="primary" disabled={supplierPending} loading={save.isPending} onClick={() => form.submit()}>确认接收</Button></Space>}
   >
     {save.isError && <Alert type="error" title={getApiErrorMessage(save.error)} />}
+    {supplierPending && <Alert type="warning" showIcon title="供应商待核实" description="请先在流转单的更正登记中补选供应商，再提交化验结果。" />}
     {!canReject && <Alert type="info" title="已确认卸粮，重录只能选择接收。" />}
-    <Form form={form} layout="vertical" initialValues={blank}>
+    <Form form={form} layout="vertical" initialValues={blank} disabled={save.isPending} onFinish={submit} scrollToFirstError={{ focus: true }}>
       <div className={styles.detail}>
         <div className={styles.identity}>
           <div className={styles.identityItem} title="流转单号 / 车次">
@@ -114,7 +116,7 @@ export default function InspectionFormModal({ trip, open, onClose, onSaved }: {
           </div>
           <div className={`${styles.identityItem} ${styles.identitySupplier}`} title="供应商">
             <span className={styles.identityIcon} aria-hidden><Users size={15} /></span>
-            <strong className={styles.identityValue} title={trip.partyName}>{trip.partyName || '—'}</strong>
+            <strong className={styles.identityValue} title={trip.partyName}>{trip.partyName || '待核实'}</strong>
           </div>
           <div className={styles.identityItem} title="厂区">
             <span className={styles.identityIcon} aria-hidden><Building2 size={15} /></span>
@@ -138,7 +140,7 @@ export default function InspectionFormModal({ trip, open, onClose, onSaved }: {
             <div className={styles.previewTitle}>水分扣减</div>
             {!moisture ? <span className={styles.previewHint}>填写水分后自动匹配扣减规则</span>
               : !moistureValid ? <span className={styles.previewHint}>请填写 0 至 100 的水分</span>
-              : preview.isFetching ? <span className={styles.previewHint}>正在匹配扣减规则…</span>
+              : !previewReady || preview.isFetching ? <span className={styles.previewHint}>正在匹配扣减规则…</span>
               : preview.isError ? <span className={styles.previewError}>扣减规则查询失败：{getApiErrorMessage(preview.error)}</span>
               : previewItems.length > 0
                 ? <>
@@ -154,7 +156,7 @@ export default function InspectionFormModal({ trip, open, onClose, onSaved }: {
                   </>
                 : <span className={styles.previewHint}>当前数值未匹配到扣减规则</span>}
           </div>
-          {rejecting && <Form.Item name="reason" label="拒收原因" rules={[{ required: true, whitespace: true, message: '请填写拒收原因' }]} style={{ marginTop: 14, marginBottom: 0 }}><Input.TextArea maxLength={2000} rows={2} placeholder="请填写拒收原因" /></Form.Item>}
+          {rejecting && <Form.Item name="reason" label="拒收原因" extra="门卫出厂核验时会看到此原因。" rules={[{ required: true, whitespace: true, message: '请填写拒收原因' }]} style={{ marginTop: 14, marginBottom: 0 }}><Input.TextArea maxLength={2000} rows={2} placeholder="请填写拒收原因" /></Form.Item>}
         </section>
         {(trip.driver || trip.driverPhone || trip.contractNo) && <section className={styles.infoCard}>
           <div className={styles.sectionTitle}>其他信息</div>
@@ -163,10 +165,8 @@ export default function InspectionFormModal({ trip, open, onClose, onSaved }: {
             { key: 'contract', label: '合同编号', children: trip.contractNo || '—' },
           ]} />
         </section>}
-        <section className={styles.remarkSection}>
-          <div className={styles.sectionTitle}>备注</div>
-          <Form.Item name="remark" noStyle><Input.TextArea maxLength={2000} rows={2} placeholder="选填，补充化验或现场情况" /></Form.Item>
-        </section>
+        <Form.Item className={styles.remarkSection} name="remark" label="备注（选填）"><Input.TextArea maxLength={2000} rows={2} placeholder="补充化验或现场情况" /></Form.Item>
+        <Typography.Text type="secondary">确认接收或拒收后，本次化验结果立即生效。</Typography.Text>
       </div>
     </Form>
   </Modal>;

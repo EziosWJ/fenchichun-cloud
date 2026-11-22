@@ -73,6 +73,20 @@ func exerciseGrainIntake(t *testing.T, db *gorm.DB) {
 		}
 		return i
 	}
+	pendingInput := grainintake.Input{SiteCode: "GRAIN-TEST", Plate: "晋A10009", MaterialCode: "C-M-0010"}
+	pending, err := flow.Save(ctx, 0, 0, pendingInput, e)
+	check(err)
+	if pending.Trip.PartyCode != "" || pending.Trip.PartyName != "" || pending.Trip.Stage != "pending_inspection" {
+		t.Fatalf("unverified registration: supplier %q/%q, stage %s", pending.Trip.PartyCode, pending.Trip.PartyName, pending.Trip.Stage)
+	}
+	if _, err := lab.Create(ctx, laboratory.Input{TripID: &pending.Trip.ID, Moisture: "14.1", BulkDensity: "720", Conclusion: "accept"}, e); !errors.Is(err, laboratory.ErrInvalid) {
+		t.Fatalf("acceptance without verified supplier: %v", err)
+	}
+	pendingInput.PartyCode = "C-P-0001"
+	verified, err := flow.Save(ctx, pending.Trip.ID, pending.Trip.Version, pendingInput, e)
+	check(err)
+	createInspection(verified, "accept")
+
 	read := func(id int64) grainintake.Detail {
 		v, err := flow.Detail(ctx, 1, id, grainintake.TripPermission)
 		check(err)
@@ -116,7 +130,7 @@ func exerciseGrainIntake(t *testing.T, db *gorm.DB) {
 	if initial.Status != "confirmed" || multiple.Trip.EffectiveInspectionID == nil || *multiple.Trip.EffectiveInspectionID != initial.ID || multiple.Trip.Stage != "pending_unload" {
 		t.Fatal("created inspection is not immediately effective")
 	}
-	_, err := lab.Create(ctx, laboratory.Input{TripID: &multiple.Trip.ID, Moisture: "13.5", BulkDensity: "720", Conclusion: "accept"}, e)
+	_, err = lab.Create(ctx, laboratory.Input{TripID: &multiple.Trip.ID, Moisture: "13.5", BulkDensity: "720", Conclusion: "accept"}, e)
 	if !errors.Is(err, laboratory.ErrConflict) {
 		t.Fatalf("duplicate inspection: %v", err)
 	}

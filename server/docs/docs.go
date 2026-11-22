@@ -608,7 +608,7 @@ const docTemplate = `{
                 "summary": "登记本趟流转单",
                 "parameters": [
                     {
-                        "description": "厂区、车牌、粮种必填，供应商可待核实",
+                        "description": "厂区、车牌、粮种必填；供应商待核实时 partyCode 可省略或留空",
                         "name": "request",
                         "in": "body",
                         "required": true,
@@ -7078,6 +7078,7 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "partyCode": {
+                    "description": "供应商待核实时留空。",
                     "type": "string"
                 },
                 "plate": {
@@ -7197,6 +7198,7 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "partyCode": {
+                    "description": "供应商待核实时留空。",
                     "type": "string"
                 },
                 "plate": {
@@ -7389,6 +7391,7 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "partyCode": {
+                    "description": "供应商待核实时留空。",
                     "type": "string"
                 },
                 "partyName": {

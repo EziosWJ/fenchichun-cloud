@@ -214,7 +214,7 @@ func (h *Handler) read(c *gin.Context, scope string) {
 // @Summary 登记本趟流转单
 // @Tags 原粮流转
 // @Security BearerAuth
-// @Param request body Input true "厂区、车牌、粮种必填，供应商可待核实"
+// @Param request body Input true "厂区、车牌、粮种必填；供应商待核实时 partyCode 可省略或留空"
 // @Success 200 {object} DetailResponse
 // @Router /api/v1/grain-intake/trips [post]
 func (h *Handler) create(c *gin.Context) { h.save(c, 0) }

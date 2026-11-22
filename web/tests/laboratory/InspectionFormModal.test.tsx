@@ -52,7 +52,7 @@ describe('inspection result entry', () => {
     await screen.findByText('1.00%');
     expect(screen.queryByText(/落入/)).not.toBeInTheDocument();
     await user.type(screen.getByRole('spinbutton', { name: '容量（g/L）' }), '750');
-    await user.click(screen.getByRole('button', { name: '接收' }));
+    await user.click(screen.getByRole('button', { name: '确认接收' }));
     await waitFor(() => expect(api.createInspection).toHaveBeenCalled());
     expect(api.createInspection.mock.calls[0][0]).toMatchObject({
       tripId: 1, moisture: expect.stringMatching(/^13\.8/), bulkDensity: '750', conclusion: 'accept',

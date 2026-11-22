@@ -1,14 +1,24 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { Route, Routes, useLocation } from 'react-router-dom';
+import { MenuAccessGuard } from '../../src/components/auth/RouteGuards';
+import { routeDefinitions } from '../../src/config/routes';
+import ExitBasisPage from '../../src/pages/grain-intake/ExitBasisPage';
+import PermitsPage from '../../src/pages/grain-intake/PermitsPage';
 import TripWorkspace from '../../src/pages/grain-intake/TripWorkspace';
 import { renderWithProviders } from '../utils/renderWithProviders';
 import { useAuthStore } from '../../src/stores/useAuthStore';
 import type { Trip, TripDetail } from '../../src/features/grain-intake/api';
 import type { CurrentUserMenu } from '../../src/types/auth';
 
-const api = vi.hoisted(() => ({ tripDetail: vi.fn(), tripAction: vi.fn(), ticketCandidates: vi.fn() }));
-vi.mock('../../src/features/grain-intake/api', () => ({ ...api, stageLabel: (v: string) => v }));
+const api = vi.hoisted(() => ({ tripDetail: vi.fn(), tripAction: vi.fn(), ticketCandidates: vi.fn(), permits: vi.fn(), rejections: vi.fn() }));
+vi.mock('../../src/features/grain-intake/api', async (importOriginal) => ({
+  ...await importOriginal<typeof import('../../src/features/grain-intake/api')>(),
+  ...api,
+  stageLabel: (v: string) => v,
+}));
+vi.mock('../../src/features/weighbridge/api', () => ({ sites: async () => [] }));
 vi.mock('../../src/pages/laboratory/InspectionFormModal', () => ({ default: () => <div>化验录入</div> }));
 vi.mock('../../src/features/laboratory/api', () => ({ inspections: vi.fn(), createInspection: vi.fn() }));
 const trip: Trip = {
@@ -35,6 +45,46 @@ beforeEach(() => {
   api.tripDetail.mockResolvedValue(evidence());
   api.tripAction.mockResolvedValue(evidence());
 });
+function CurrentSearch() {
+  return <output aria-label="当前查询参数">{useLocation().search}</output>;
+}
+
+describe('permit list navigation for a gate-only user', () => {
+  it.each([
+    ['permits', '正常出门证', 'CM-000001'],
+    ['rejections', '拒收退厂', '出厂核验'],
+  ])('opens %s verification and returns with the same filters', async (mode, tab, link) => {
+    useAuthStore.setState({ permissions: ['grain-intake:permits', 'grain-intake:release'] });
+    api.permits.mockResolvedValue({ items: [evidence().permit], total: 1 });
+    api.rejections.mockResolvedValue({ items: [{ ...trip, stage: 'rejected' }], total: 1 });
+    const listPath = '/grain-intake/permits';
+    const search = `?mode=${mode}&q=LZ-000001&siteCode=F001&pageSize=20`;
+    const pages = {
+      [listPath]: PermitsPage,
+      '/grain-intake/permits/:id': ExitBasisPage,
+      '/grain-intake/trips/:id': TripWorkspace,
+    };
+    renderWithProviders(<>
+      <CurrentSearch />
+      <Routes>
+        {Object.entries(pages).map(([path, Page]) => <Route
+          key={path}
+          path={path}
+          element={<MenuAccessGuard menuPath={routeDefinitions.find((route) => route.path === path)!.menuPath!}><Page /></MenuAccessGuard>}
+        />)}
+      </Routes>
+    </>, { route: listPath + search });
+    const user = userEvent.setup();
+    await user.click(await screen.findByRole('link', { name: link }));
+    await screen.findByRole('heading', { name: /^出厂核验 ·/ });
+    expect(api.tripDetail).toHaveBeenCalledWith(1, true);
+    await user.click(screen.getByRole('button', { name: '返回' }));
+    expect(await screen.findByRole('tab', { name: tab })).toHaveAttribute('aria-selected', 'true');
+    expect(screen.getByPlaceholderText(/搜索.*车牌/)).toHaveValue('LZ-000001');
+    expect(screen.getByLabelText('当前查询参数')).toHaveTextContent(search);
+  });
+});
+
 describe('exit evidence', () => {
   it('requires explicit confirmation of actual exit, using the viewed basis and version', async () => {
     const user = userEvent.setup();

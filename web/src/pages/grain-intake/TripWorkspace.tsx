@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import { Alert, App, Button, Card, Descriptions, Empty, Input, Select, Space, Table, Tabs, Tag, Typography } from 'antd';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
@@ -15,8 +15,8 @@ import {
   Users,
   Wheat,
 } from 'lucide-react';
-import { useNavigate, useParams } from 'react-router-dom';
-import { ticketCandidates, tripAction, tripDetail, stageLabel, type TripAction, type TripCommand } from '../../features/grain-intake/api';
+import { useLocation, useNavigate, useParams } from 'react-router-dom';
+import { ticketCandidates, tripAction, tripDetail, stageLabel, type Trip, type TripAction, type TripCommand } from '../../features/grain-intake/api';
 import { granaries } from '../../features/granary/api';
 import { PageHeader } from '../../components/PageHeader';
 import { getApiErrorMessage } from '../../lib/api/errors';
@@ -38,6 +38,7 @@ export default function TripWorkspace({ gate = false }: { gate?: boolean }) {
   const { id } = useParams();
   const key = Number(id);
   const navigate = useNavigate();
+  const { search } = useLocation();
   const { message, modal } = App.useApp();
   const client = useQueryClient();
   const { has } = usePermissions();
@@ -60,7 +61,7 @@ export default function TripWorkspace({ gate = false }: { gate?: boolean }) {
   const granaryQuery = useQuery({
     queryKey: ['granaries', 'enabled'],
     queryFn: () => granaries({ enabled: true }),
-    enabled: !!query.data,
+    enabled: !gate && canUnload && !!query.data && !query.data.trip.unloadedAt && !query.data.permit && !query.data.trip.exitedAt && query.data.trip.effectiveConclusion === 'accept',
   });
   const ticketOptions = useQuery({
     queryKey: ['grain-intake', 'ticket-candidates', key, query.data?.trip.version],
@@ -69,7 +70,7 @@ export default function TripWorkspace({ gate = false }: { gate?: boolean }) {
   });
   const refresh = () => { void client.invalidateQueries({ queryKey: ['grain-intake'] }); void client.invalidateQueries({ queryKey: ['laboratory'] }); };
   const action = useMutation({
-    mutationFn: ({ kind, input }: { kind: TripAction; input?: TripCommand }) => tripAction(query.data!.trip, kind, input),
+    mutationFn: ({ trip, kind, input }: { trip: Trip; kind: TripAction; input?: TripCommand }) => tripAction(trip, kind, input),
     onSuccess: () => { setActionError(''); message.success('办理成功'); refresh(); },
     onError: (error) => { const text = getApiErrorMessage(error); setActionError(text); message.error(text); refresh(); },
   });
@@ -84,7 +85,15 @@ export default function TripWorkspace({ gate = false }: { gate?: boolean }) {
   const labLocked = !!(trip.ticketId || permit || trip.exitedAt);
   const visual = trip.inspectionMethod === 'visual';
   const activeTab = visual && tab === 'inspections' ? 'weighing' : tab;
-  const ask = (title: string, kind: TripAction, input?: TripCommand, content?: string) => modal.confirm({ title, content, okText: '确认', cancelText: '取消', onOk: () => action.mutateAsync({ kind, input }).then(() => undefined) });
+  const ask = (title: string, kind: TripAction, input?: TripCommand, content?: ReactNode) => modal.confirm({ title, content, okText: '确认', cancelText: '取消', onOk: () => action.mutateAsync({ trip, kind, input }).then(() => undefined) });
+  const checkTrip = (details: { label: string; children: ReactNode }[], instruction?: string) => <Space orientation="vertical" size="small">
+    <Descriptions size="small" column={1} items={[
+      { key: 'plate', label: '车牌', children: trip.plate },
+      { key: 'trip', label: '流转单号', children: trip.number },
+      ...details.map((item) => ({ key: item.label, ...item })),
+    ]} />
+    {instruction && <Typography.Text type="secondary">{instruction}</Typography.Text>}
+  </Space>;
   const conclusionText = effective ? (effective.conclusion === 'accept' ? '接收' : effective.conclusion === 'reject' ? '拒收' : '—') : '—';
   const nextStep: NextStep | null = (() => {
     if (trip.stage === 'blocked' || trip.exitedAt) return null;
@@ -121,7 +130,9 @@ export default function TripWorkspace({ gate = false }: { gate?: boolean }) {
     <PageHeader
       title={<Typography.Text copyable={{ text: trip.number, tooltips: ['复制流转单号', '已复制'] }}>{gate ? `出厂核验 · ${trip.number}` : trip.number}</Typography.Text>}
       meta={<Tag color={trip.stage === 'blocked' ? 'red' : trip.exitedAt ? 'green' : 'blue'}>{stageLabel(trip.stage, trip.inspectionMethod)}</Tag>}
-      onBack={() => navigate(gate ? '/grain-intake/permits' : '/grain-intake/trips')}
+      onBack={() => navigate(gate
+        ? { pathname: '/grain-intake/permits', search: search || (trip.effectiveConclusion === 'reject' ? '?mode=rejections' : '') }
+        : '/grain-intake/trips')}
     />
     <div className="pageStack" style={{ marginTop: 20, gap: 12 }}>
       {actionError && <Alert type="error" showIcon closable title="操作未完成" description={actionError} onClose={() => setActionError('')} />}
@@ -249,7 +260,9 @@ export default function TripWorkspace({ gate = false }: { gate?: boolean }) {
             {trip.unloadedAt ? <Descriptions size="small" column={{ xs: 1, sm: 2 }} items={[{ key: 'location', label: '实际卸货地点', children: trip.unloadingLocation }, { key: 'time', label: '确认时间', children: formatDateTime(trip.unloadedAt) }]} /> : <>
               {!gate && canUnload && !unloadLocked && trip.effectiveConclusion === 'accept' ? <Space.Compact style={{ width: '100%', maxWidth: 560, marginTop: 16 }}>
                 <Select aria-label="实际卸货地点" placeholder="选择仓库" style={{ minWidth: 220 }} loading={granaryQuery.isLoading} value={location || undefined} onChange={(value?: string) => setLocation(value ?? '')} options={(granaryQuery.data ?? []).map((g) => ({ value: g.name, label: g.name }))} notFoundContent={granaryQuery.isLoading ? '加载中…' : '请先在仓库维护中添加'} />
-                <Button type="primary" disabled={!location.trim() || action.isPending} onClick={() => ask('确认实际卸货完成？', 'confirm-unloading', { location }, '请确认现场已经完成首磅及卸货，地点填写准确。')}>确认卸货</Button>
+                <Button type="primary" disabled={!location.trim() || action.isPending} onClick={() => ask('确认实际卸货完成？', 'confirm-unloading', { location }, checkTrip([
+                  { label: '实际仓库', children: location },
+                ], '请确认车辆已完成现场首磅，并在所列仓库完成卸货。'))}>确认卸货</Button>
               </Space.Compact> : <p style={{ marginTop: 16, marginBottom: 0 }}>待确认接收并完成现场卸货。</p>}
             </>}
           </Card>
@@ -298,8 +311,14 @@ export default function TripWorkspace({ gate = false }: { gate?: boolean }) {
           <Space wrap style={{ marginTop: 16 }}>
             {!gate && canIssue && trip.stage === 'ready' && !permit && trip.ticketConfirmedAt && <Button type="primary" loading={action.isPending} onClick={() => ask('开具本趟出门证？', 'issue-permit')}>开具出门证</Button>}
             {canApprove && trip.stage === 'permit_pending' && permit && <Button type="primary" loading={action.isPending} onClick={() => ask('审批通过该出门证？', 'approve-permit', { permitId: permit.id }, '审批通过仍需门卫在实际放行时确认出厂。')}>审批通过</Button>}
-            {canRelease && trip.stage === 'permit_approved' && permit && <Button type="primary" loading={action.isPending} onClick={() => ask('车辆实际出厂，确认放行？', 'confirm-exit', { basis: 'permit', permitId: permit.id }, '核对车辆与出门证；确认后本趟凭据不可再次使用。')}>确认出厂</Button>}
-            {canRelease && trip.stage === 'rejected' && (effective || visual) && <Button type="primary" loading={action.isPending} onClick={() => ask('核验拒收依据并确认车辆实际出厂？', 'confirm-exit', { basis: 'rejection', inspectionId: effective?.id, inspectionVersion: effective?.version }, effective?.reason || trip.visualReason)}>确认拒收出厂</Button>}
+            {canRelease && trip.stage === 'permit_approved' && permit && <Button type="primary" loading={action.isPending} onClick={() => ask('确认正常出厂？', 'confirm-exit', { basis: 'permit', permitId: permit.id }, checkTrip([
+              { label: '已审批出门证', children: permit.number },
+              ...(ticket ? [{ label: '有效磅单', children: ticket.ticket.ticketNo }] : []),
+            ], '请核对现场车牌，在车辆实际放行时确认。'))}>确认出厂</Button>}
+            {canRelease && trip.stage === 'rejected' && (effective || visual) && <Button type="primary" loading={action.isPending} onClick={() => ask('确认拒收出厂？', 'confirm-exit', { basis: 'rejection', inspectionId: effective?.id, inspectionVersion: effective?.version }, checkTrip([
+              { label: '拒收依据', children: effective ? `化验单 ${effective.number}` : `目测记录 ${formatDateTime(trip.visualInspectedAt)}` },
+              { label: '拒收原因', children: effective ? effective.reason : trip.visualReason },
+            ], '请核对现场车牌，在车辆实际放行时确认。'))}>确认拒收出厂</Button>}
           </Space>
         </Card> },
         { key: 'events', label: '过程记录', children: <Table rowKey="id" dataSource={events} pagination={{ pageSize: 10 }} columns={[{ title: '时间', dataIndex: 'createdAt', render: (v: string) => formatDateTime(v) }, { title: '操作人员', dataIndex: 'actorName', render: (v: string) => v || '系统' }, { title: '记录', dataIndex: 'description' }]} /> },

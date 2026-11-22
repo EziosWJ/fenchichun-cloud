@@ -32,7 +32,7 @@ type Input struct {
 	SiteCode        string `json:"siteCode"`
 	Plate           string `json:"plate"`
 	MaterialCode    string `json:"materialCode"`
-	PartyCode       string `json:"partyCode"`
+	PartyCode       string `json:"partyCode"` // 供应商待核实时留空。
 	Driver          string `json:"driver"`
 	DriverPhone     string `json:"driverPhone"`
 	ContractNo      string `json:"contractNo"`
@@ -48,8 +48,8 @@ func (in *Input) normalize() {
 	in.ClientRequestID = strings.TrimSpace(in.ClientRequestID)
 }
 func (in Input) validate() error {
-	if in.SiteCode == "" || in.Plate == "" || in.MaterialCode == "" || in.PartyCode == "" {
-		return fmt.Errorf("%w：厂区、车牌、粮种和供应商必填", ErrInvalid)
+	if in.SiteCode == "" || in.Plate == "" || in.MaterialCode == "" {
+		return fmt.Errorf("%w：厂区、车牌和粮种必填", ErrInvalid)
 	}
 	for _, f := range []struct {
 		s string

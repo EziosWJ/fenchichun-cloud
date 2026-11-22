@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Alert, App, Button, DatePicker, Input, Modal, Select, Space, Tag, Tooltip, Typography } from 'antd';
+import { Alert, App, Button, DatePicker, Descriptions, Input, Modal, Select, Space, Tag, Tooltip, Typography } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import dayjs from 'dayjs';
@@ -26,7 +26,7 @@ function formatMetric(value: string): string {
 
 /**
  * 化验工作台：列出流转单（未化验的排在前面），在对应行直接录入化验结果。
- * 一张流转单只能录入一次，已化验的行按钮置灰，可查看结果。
+ * 每趟只允许一张未作废的化验单，已化验的行可查看结果。
  */
 export default function InspectionsPage() {
   const client = useQueryClient();
@@ -45,6 +45,7 @@ export default function InspectionsPage() {
   const [voiding, setVoiding] = useState<Inspection>();
   const [voidReason, setVoidReason] = useState('');
   const [voidSubmitting, setVoidSubmitting] = useState(false);
+  const [voidError, setVoidError] = useState('');
   const { has } = usePermissions();
   const canInspect = has('laboratory:inspect');
   const params = {
@@ -69,7 +70,7 @@ export default function InspectionsPage() {
     { title: '厂区', dataIndex: 'siteCode' },
     { title: '车牌', dataIndex: 'plate' },
     { title: '粮种', dataIndex: 'materialName' },
-    { title: '供应商', dataIndex: 'partyName', render: (value: string) => value || '—' },
+    { title: '供应商', dataIndex: 'partyName', render: (value: string) => value || <Tag color="orange">待核实</Tag> },
     { title: '司机', key: 'driver', render: (_, row) => `${row.driver || '—'} ${row.driverPhone}` },
     { title: '登记时间', dataIndex: 'createdAt', render: (value: string) => formatDateTime(value) },
     {
@@ -90,8 +91,9 @@ export default function InspectionsPage() {
   ];
   const value = detail.data;
   const submitVoid = async () => {
-    if (!voiding || !voidReason.trim()) return;
+    if (!voiding || !voidReason.trim() || voidSubmitting) return;
     setVoidSubmitting(true);
+    setVoidError('');
     try {
       await voidInspection(voiding, voidReason.trim());
       message.success('化验单已作废，可以重新录入');
@@ -102,7 +104,7 @@ export default function InspectionsPage() {
       setViewId(undefined);
       setViewingTrip(undefined);
     } catch (error) {
-      message.error(getApiErrorMessage(error));
+      setVoidError(getApiErrorMessage(error));
     } finally {
       setVoidSubmitting(false);
     }
@@ -182,7 +184,7 @@ export default function InspectionsPage() {
       onCancel={() => { setViewId(undefined); setViewingTrip(undefined); }}
       footer={<Space>
         <Button onClick={() => { setViewId(undefined); setViewingTrip(undefined); }}>关闭</Button>
-        {canInspect && value?.status === 'confirmed' && viewingTrip && !viewingTrip.ticketId && !viewingTrip.exitedAt && <Button danger onClick={() => { setVoiding(value); setVoidReason(''); }}>作废并重录</Button>}
+        {canInspect && value?.status === 'confirmed' && viewingTrip && !viewingTrip.ticketId && !viewingTrip.exitedAt && <Button danger onClick={() => { setVoiding(value); setVoidReason(''); setVoidError(''); }}>作废并重录</Button>}
       </Space>}
       width={760}
       destroyOnHidden
@@ -242,6 +244,7 @@ export default function InspectionsPage() {
         <section className={styles.infoCard}>
           <div className={styles.sectionTitle}>单据信息</div>
           <div className={styles.infoGrid}>
+            <div className={styles.infoItem}><span className={styles.infoLabel}>流转单号</span><strong className={styles.infoValue}>{viewingTrip?.number || '—'}</strong></div>
             <div className={styles.infoItem}><span className={styles.infoLabel}>司机</span><strong className={styles.infoValue}>{value.driver || '—'}</strong></div>
             <div className={styles.infoItem}><span className={styles.infoLabel}>联系电话</span><strong className={styles.infoValue}>{value.driverPhone || '—'}</strong></div>
             <div className={styles.infoItem}><span className={styles.infoLabel}>合同编号</span><strong className={styles.infoValue}>{value.contractNo || '—'}</strong></div>
@@ -265,17 +268,34 @@ export default function InspectionsPage() {
       </div>}
     </Modal>
     <Modal
-      title="作废并重录化验单"
+      title="核对并作废化验单"
       open={voiding !== undefined}
-      onCancel={() => { setVoiding(undefined); setVoidReason(''); }}
+      mask={{ closable: false }}
+      keyboard={false}
+      onCancel={() => { if (!voidSubmitting) setVoiding(undefined); }}
       onOk={() => void submitVoid()}
-      okText="作废并重录"
+      okText="确认作废"
       okButtonProps={{ danger: true, disabled: !voidReason.trim() }}
+      cancelButtonProps={{ disabled: voidSubmitting }}
       confirmLoading={voidSubmitting}
       destroyOnHidden
     >
-      <Alert type="warning" title="作废后原检测值会保留为历史，流转单回到待化验，可重新录入。" description="过磅单生成后不能作废化验单，请先确认过磅端尚未生成磅单。" />
-      <Input.TextArea aria-label="作废原因" placeholder="请填写作废原因" maxLength={2000} rows={3} style={{ marginTop: 16 }} value={voidReason} onChange={(event) => setVoidReason(event.target.value)} />
+      {voiding && <Space orientation="vertical" size="middle" style={{ width: '100%' }}>
+        <Descriptions size="small" column={1} items={[
+          { key: 'inspection', label: '化验单号', children: voiding.number },
+          { key: 'trip', label: '流转单号', children: viewingTrip?.number },
+          { key: 'plate', label: '车牌', children: voiding.plate },
+          { key: 'material', label: '粮种', children: voiding.materialName },
+          { key: 'moisture', label: '原水分', children: `${formatMetric(voiding.moisture)} %` },
+          { key: 'density', label: '原容量', children: `${formatMetric(voiding.bulkDensity)} g/L` },
+          { key: 'conclusion', label: '原结论', children: voiding.conclusion === 'accept' ? '接收' : '拒收' },
+          ...(voiding.conclusion === 'reject' ? [{ key: 'reason', label: '原拒收原因', children: voiding.reason }] : []),
+        ]} />
+        <Alert type="warning" showIcon title="请确认过磅端尚未生成磅单" description="作废后，原检测值保留为历史，本趟回到待化验。请重新录入并确认结果。" />
+        {voidError && <Alert type="error" showIcon title={voidError} />}
+        <label htmlFor="inspection-void-reason">作废原因（必填）</label>
+        <Input.TextArea id="inspection-void-reason" placeholder="请填写作废原因" maxLength={2000} rows={3} disabled={voidSubmitting} value={voidReason} onChange={(event) => setVoidReason(event.target.value)} />
+      </Space>}
     </Modal>
   </>;
 }

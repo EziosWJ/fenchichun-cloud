@@ -17,10 +17,9 @@ func TestRegistrationAllowsUnverifiedSupplier(t *testing.T) {
 		t.Fatalf("optional supplier/contract: %v", err)
 	}
 	in.PartyCode = ""
-	if in.validate() == nil {
-		t.Fatal("missing supplier accepted")
+	if err := in.validate(); err != nil {
+		t.Fatalf("unverified supplier should allow registration: %v", err)
 	}
-	in.PartyCode = "P1"
 	in.Plate = ""
 	if in.validate() == nil {
 		t.Fatal("missing plate accepted")

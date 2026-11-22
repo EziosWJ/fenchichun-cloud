@@ -12,7 +12,7 @@ function Section({ children }: { children: string }) {
 }
 
 export default function TripEditor({ original, onClose, onSaved }: { original?: Trip; onClose: () => void; onSaved: (value: TripDetail) => void }) {
-  const { message } = App.useApp();
+  const { message, modal } = App.useApp();
   const client = useQueryClient();
   const [form] = Form.useForm<TripInput>();
   const createRequestId = useRef(`${Date.now().toString(36)}${Math.random().toString(36).slice(2, 10)}`);
@@ -37,17 +37,32 @@ export default function TripEditor({ original, onClose, onSaved }: { original?: 
   }, [recentTrips.data, deferredPlate]);
   const applyPlate = (value: string) => {
     const matched = recentTrips.data?.items.find((item) => item.plate === value);
-    if (matched) form.setFieldsValue({ siteCode: matched.siteCode, materialCode: matched.materialCode, partyCode: matched.partyCode, driver: matched.driver, driverPhone: matched.driverPhone });
+    if (matched) form.setFieldsValue({ siteCode: matched.siteCode, materialCode: matched.materialCode, partyCode: matched.partyCode || undefined, driver: matched.driver, driverPhone: matched.driverPhone });
   };
   const save = useMutation({
     mutationFn: (v: TripInput) => saveTrip({ ...blank, ...v, partyCode: v.partyCode || '', clientRequestId: original ? undefined : createRequestId.current }, original),
     onSuccess: (value) => { message.success('流转单已保存'); void client.invalidateQueries({ queryKey: ['grain-intake'] }); onSaved(value); },
-    onError: (error) => message.error(getApiErrorMessage(error)),
   });
+  const cancel = () => {
+    if (save.isPending) return;
+    if (!form.isFieldsTouched()) {
+      onClose();
+      return;
+    }
+    modal.confirm({
+      title: '放弃本次填写？',
+      content: '已填写的登记信息尚未保存。',
+      okText: '放弃填写',
+      cancelText: '继续填写',
+      okButtonProps: { danger: true },
+      onOk: onClose,
+    });
+  };
   const error = siteQuery.error ?? materialQuery.error ?? partyQuery.error;
-  return <Modal title={original ? `更正 ${original.number}` : '登记流转单'} open onCancel={onClose} onOk={() => void form.validateFields().then((v) => save.mutate(v))} confirmLoading={save.isPending} width={720}>
+  return <Modal title={original ? `更正 ${original.number}` : '登记流转单'} open mask={{ closable: false }} keyboard={false} onCancel={cancel} onOk={() => form.submit()} okText="保存登记" confirmLoading={save.isPending} width={720}>
     {error && <Alert type="error" title={getApiErrorMessage(error)} action={<Button onClick={() => { void siteQuery.refetch(); void materialQuery.refetch(); void partyQuery.refetch(); }}>重试资料加载</Button>} />}
-    <Form form={form} layout="vertical" initialValues={original ?? blank}>
+    {save.isError && <Alert type="error" showIcon title={getApiErrorMessage(save.error)} />}
+    <Form form={form} layout="vertical" initialValues={{ ...(original ?? blank), partyCode: original?.partyCode || undefined }} disabled={save.isPending} onFinish={(values) => { if (!save.isPending) save.mutate(values); }}>
       <Section>车辆与来源</Section>
       <Row gutter={16}>
         <Col xs={24} sm={12}>
@@ -60,7 +75,7 @@ export default function TripEditor({ original, onClose, onSaved }: { original?: 
           <Form.Item name="materialCode" label="货品（物料）" rules={[{ required: true, message: '请选择货品' }]} extra={materialCode ? `检验方式：${original?.materialCode === materialCode ? (original.inspectionMethod === 'visual' ? '目测' : '化验') : (materialQuery.data?.find((v) => v.code === materialCode)?.inspectionMethod === 'visual' ? '目测' : '化验')}` : undefined}><Select showSearch optionFilterProp="label" placeholder="请选择货品" loading={materialQuery.isLoading} options={(materialQuery.data ?? []).filter((v) => v.enabled || v.code === original?.materialCode).map((v) => ({ value: v.code, label: v.name, disabled: !v.enabled }))} /></Form.Item>
         </Col>
         <Col xs={24} sm={12}>
-          <Form.Item name="partyCode" label="供应商" rules={[{ required: true, message: '请选择供应商' }]}><Select showSearch optionFilterProp="label" placeholder="请选择供应商" loading={partyQuery.isLoading} options={(partyQuery.data ?? []).filter((v) => v.isSupplier && (v.enabled || v.code === original?.partyCode)).map((v) => ({ value: v.code, label: v.name, disabled: !v.enabled }))} /></Form.Item>
+          <Form.Item name="partyCode" label="供应商（选填）" extra="留空按待核实登记，可在更正登记时补选。"><Select allowClear showSearch optionFilterProp="label" placeholder="待核实" loading={partyQuery.isLoading} options={(partyQuery.data ?? []).filter((v) => v.isSupplier && (v.enabled || v.code === original?.partyCode)).map((v) => ({ value: v.code, label: v.name, disabled: !v.enabled }))} /></Form.Item>
         </Col>
       </Row>
       <Section>其他信息（选填）</Section>
