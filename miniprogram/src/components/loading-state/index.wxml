@@ -1,1 +1,3 @@
-<view class="state"><t-loading text="{{text}}" /></view>
+<view class="loading-state" aria-role="status">
+  <t-loading theme="circular" size="40rpx" layout="vertical" text="{{text}}" />
+</view>

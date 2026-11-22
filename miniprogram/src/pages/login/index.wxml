@@ -1,22 +1,71 @@
-<view class="login-page">
-  <view class="brand"><view class="brand-mark"></view><text>汾池春</text></view>
-  <view class="login-title">员工登录</view>
-  <view class="login-subtitle">使用员工账号和密码进入工作台</view>
-  <view class="notice login-note">请使用员工账号登录</view>
-  <view class="login-form">
-    <view class="field">
-      <view class="field-label">员工账号</view>
-      <input class="login-input" placeholder="请输入员工账号" placeholder-class="field-placeholder" value="{{account}}" bindinput="accountInput" />
+<view class="login-page {{typing ? 'login-page--typing' : ''}}" style="--login-status-bar: {{statusBarHeight}}px">
+  <view class="login-hero">
+    <image class="login-hero__image" src="/ui-kit/login-hero-sorghum.jpg" mode="aspectFill" aria-hidden="true" />
+    <view class="login-hero__scrim"></view>
+  </view>
+
+  <view class="login-brand">
+    <view class="brand-seal">
+      <image class="brand-seal__grain" src="/ui-kit/icons/icon-grain-light.png" mode="aspectFit" aria-hidden="true" />
     </view>
-    <view class="field">
-      <view class="field-label">登录密码</view>
-      <view class="password-row">
-        <input class="login-input password-input" placeholder="请输入登录密码" placeholder-class="field-placeholder" password="{{!showPassword}}" value="{{password}}" bindinput="passwordInput" confirm-type="done" bindconfirm="login" />
-        <view class="password-toggle" bindtap="togglePassword" aria-role="button">{{showPassword ? '隐藏' : '显示'}}</view>
+    <view class="brand-name">汾池春</view>
+    <view class="brand-divider"></view>
+  </view>
+
+  <view class="login-top"></view>
+
+  <view class="login-drawer">
+    <view class="login-card">
+      <view class="login-title">员工登录</view>
+
+      <view class="login-field">
+        <view class="login-control">
+          <t-icon class="login-field__icon" name="user" size="40rpx" color="#a74532" />
+          <input
+            class="login-input"
+            placeholder="请输入员工账号"
+            placeholder-class="login-placeholder"
+            value="{{account}}"
+            bindinput="accountInput"
+            bindfocus="handleInputFocus"
+            bindblur="handleInputBlur"
+            confirm-type="next"
+            bindconfirm="focusPassword"
+            maxlength="40"
+            adjust-position="{{false}}"
+            aria-label="员工账号"
+          />
+        </view>
       </view>
+
+      <view class="login-field">
+        <view class="login-control">
+          <t-icon class="login-field__icon" name="lock-on" size="40rpx" color="#a74532" />
+          <input
+            class="login-input password-input"
+            placeholder="请输入登录密码"
+            placeholder-class="login-placeholder"
+            password="{{!showPassword}}"
+            value="{{password}}"
+            bindinput="passwordInput"
+            bindfocus="handleInputFocus"
+            bindblur="blurPassword"
+            focus="{{passwordFocus}}"
+            confirm-type="done"
+            bindconfirm="login"
+            maxlength="64"
+            adjust-position="{{false}}"
+            aria-label="登录密码"
+          />
+          <view class="password-toggle" bindtap="togglePassword" aria-role="button" aria-label="{{showPassword ? '隐藏密码' : '显示密码'}}">{{showPassword ? '隐藏' : '显示'}}</view>
+        </view>
+      </view>
+
+      <view wx:if="{{error}}" class="login-error">{{error}}</view>
+
+      <view class="login-button"><t-button theme="primary" block size="large" loading="{{submitting}}" disabled="{{submitting}}" bindtap="login">登录</t-button></view>
     </view>
-    <view wx:if="{{error}}" class="error-text">{{error}}</view>
-    <view class="login-button"><t-button theme="primary" block size="large" loading="{{submitting}}" disabled="{{submitting}}" bindtap="login">登 录</t-button></view>
-    <view class="login-hint">库管、门卫和管理员可使用小程序</view>
+
+    <view class="login-hint">仅限酒厂员工使用</view>
   </view>
 </view>

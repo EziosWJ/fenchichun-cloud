@@ -1,0 +1,12 @@
+.error-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 64rpx 32rpx;
+  text-align: center;
+}
+
+.error-state__action {
+  width: 280rpx;
+  margin-top: 32rpx;
+}

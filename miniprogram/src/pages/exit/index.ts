@@ -1,4 +1,4 @@
-import type { Trip } from '@/features/grain/types'
+import type { EventRecord, Trip } from '@/features/grain/types'
 import { grainService } from '@/features/grain/api-service'
 import { applyAsync, errorMessage, requireLogin } from '@/features/grain/page'
 import {
@@ -16,10 +16,10 @@ Page({
     eligible: false,
     type: '',
     inspection: '',
-    inspectionShort: '',
     plateProvince: '',
     plateNumber: '',
-    evidenceExpanded: false,
+    tab: 'current' as 'current' | 'timeline',
+    events: [] as Array<EventRecord & { key: number, note?: string }>,
     confirming: false,
   },
   onLoad(query: Record<string, string | undefined>) {
@@ -35,14 +35,22 @@ Page({
         return
       }
       const apply = (trip: Trip) => {
+        wx.setNavigationBarTitle({
+          title: trip.exitedAt ? '放行记录' : '确认出厂',
+        })
         this.setData({
           trip,
           eligible: exitEligible(trip),
           type: exitType(trip),
           inspection: inspectionText(trip),
-          inspectionShort: trip.inspection?.values?.split('/')[0]?.trim() || '',
           plateProvince: trip.plate.slice(0, 1),
           plateNumber: trip.plate.slice(1),
+          tab: trip.exitedAt ? 'timeline' : 'current',
+          events: trip.events.map((event, key) => ({
+            ...event,
+            key,
+            note: event.text.includes('登记流转单') ? `流转单号 ${trip.id}` : '',
+          })),
         })
         this.setData({ loading: false })
       }
@@ -54,8 +62,11 @@ Page({
       this.setData({ error: errorMessage(error), loading: false })
     }
   },
-  toggleEvidence() {
-    this.setData({ evidenceExpanded: !this.data.evidenceExpanded })
+  switchTab(event: WechatMiniprogram.BaseEvent) {
+    const tab = event.currentTarget.dataset.tab
+    if (tab === 'current' || tab === 'timeline') {
+      this.setData({ tab })
+    }
   },
   confirmExit() {
     const trip = this.data.trip

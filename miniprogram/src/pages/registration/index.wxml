@@ -2,34 +2,148 @@
   <loading-state wx:if="{{loading}}" text="正在加载登记信息" />
   <error-state wx:elif="{{error}}" text="{{error}}" bind:retry="load" />
   <block wx:else>
-    <view class="screen-title">{{edit ? '更正登记' : '登记流转单'}}</view>
-    <view class="subtle">记录本趟车辆和货品，带 * 的项目必填</view>
-    <view class="field"><view class="field-label">厂区 *</view><picker range="{{sites}}" value="{{siteIndex}}" bindchange="chooseSite"><view class="field-control {{siteIndex ? '' : 'field-placeholder'}}">{{sites[siteIndex]}}　›</view></picker></view>
-    <view class="field">
-      <view class="field-label">车牌 *</view>
-      <view class="plate-row">
-        <picker class="plate-province" range="{{provinces}}" value="{{provinceIndex}}" bindchange="chooseProvince">
-          <view class="plate-control plate-province-value">{{province || '省份'}} <text class="plate-caret">▾</text></view>
+    <view class="form-card">
+      <view class="field">
+        <view class="field-label">厂区 <text class="required">*</text></view>
+        <picker range="{{sites}}" value="{{siteIndex}}" bindchange="chooseSite">
+          <view class="field-control field-control--picker {{siteIndex ? '' : 'field-placeholder'}}">
+            <text>{{sites[siteIndex]}}</text>
+            <text class="field-chevron">›</text>
+          </view>
         </picker>
-        <input class="plate-control plate-body" value="{{plateBody}}" bindinput="inputPlateBody" placeholder="字母和数字" placeholder-class="field-placeholder" maxlength="7" />
-        <view class="plate-camera" bindtap="scanPlate" hover-class="plate-camera-hover" aria-role="button" aria-label="拍照识别车牌">
-          <t-loading wx:if="{{scanning}}" size="40rpx" theme="circular" />
-          <t-icon wx:else name="camera" size="44rpx" color="#8c3b2e" />
-        </view>
+        <view wx:if="{{fieldErrors.site}}" class="field-error">{{fieldErrors.site}}</view>
       </view>
-      <view class="subtle">拍照识别后请核对；例如 {{province || '晋'}}A12345</view>
+
+      <view class="field">
+        <view class="field-label">车牌 <text class="required">*</text></view>
+        <view class="plate-row">
+          <picker class="plate-province" range="{{provinces}}" value="{{provinceIndex}}" bindchange="chooseProvince">
+            <view class="plate-control plate-province-value">{{province || '省份'}} <text class="plate-caret">▾</text></view>
+          </picker>
+          <input
+            class="plate-control plate-body"
+            value="{{plateBody}}"
+            bindinput="inputPlateBody"
+            placeholder="字母和数字"
+            placeholder-class="field-placeholder"
+            maxlength="7"
+            cursor-spacing="32"
+            adjust-position="{{true}}"
+          />
+          <view class="plate-camera" bindtap="scanPlate" hover-class="plate-camera-hover" aria-role="button" aria-label="拍照识别车牌">
+            <t-loading wx:if="{{scanning}}" size="40rpx" theme="circular" />
+            <t-icon wx:else name="camera" size="44rpx" color="#a74532" />
+          </view>
+        </view>
+        <view class="field-hint">拍照识别后请核对；例如 {{province || '晋'}}A12345</view>
+        <view wx:if="{{fieldErrors.plate}}" class="field-error">{{fieldErrors.plate}}</view>
+      </view>
+
+      <view class="field">
+        <view class="field-label">货品 <text class="required">*</text></view>
+        <picker range="{{materials}}" value="{{materialIndex}}" bindchange="chooseMaterial">
+          <view class="field-control field-control--picker {{materialIndex ? '' : 'field-placeholder'}}">
+            <text>{{materials[materialIndex]}}</text>
+            <text class="field-chevron">›</text>
+          </view>
+        </picker>
+        <view wx:if="{{materialIndex}}" class="field-hint">检验方式：{{methods[materialIndex]}}</view>
+        <view wx:if="{{fieldErrors.material}}" class="field-error">{{fieldErrors.material}}</view>
+      </view>
+
+      <view class="field field--last">
+        <view class="field-label">供应商 <text class="required">*</text></view>
+        <view
+          class="field-control field-control--picker {{form.supplier ? '' : 'field-placeholder'}}"
+          hover-class="field-control--hover"
+          bindtap="openSupplier"
+          aria-role="button"
+          aria-label="选择供应商"
+        >
+          <text class="field-value">{{form.supplier || '请选择供应商'}}</text>
+          <text class="field-chevron">›</text>
+        </view>
+        <view class="field-hint">供应商较多，可按汉字或拼音首字母搜索</view>
+        <view wx:if="{{fieldErrors.supplier}}" class="field-error">{{fieldErrors.supplier}}</view>
+      </view>
     </view>
-    <view class="field"><view class="field-label">货品 *</view><picker range="{{materials}}" value="{{materialIndex}}" bindchange="chooseMaterial"><view class="field-control {{materialIndex ? '' : 'field-placeholder'}}">{{materials[materialIndex]}}　›</view></picker><view wx:if="{{materialIndex}}" class="subtle">检验方式：{{methods[materialIndex]}}</view></view>
-    <view class="field"><view class="field-label">供应商</view><picker range="{{suppliers}}" value="{{supplierIndex}}" bindchange="chooseSupplier"><view class="field-control">{{suppliers[supplierIndex]}}　›</view></picker></view>
-    <view class="field"><view class="heading-row" bindtap="toggleExtra"><text class="field-label">其他信息（选填）</text><text class="subtle">{{extraOpen ? '收起' : '展开'}}　›</text></view>
+
+    <view class="form-card">
+      <view class="form-card__toggle" bindtap="toggleExtra" aria-role="button" aria-expanded="{{extraOpen}}">
+        <view class="form-card__toggle-main">
+          <view class="form-card__title">其他信息</view>
+          <view class="form-card__sub">选填，司机、电话、合同与备注</view>
+        </view>
+        <view class="form-card__toggle-action">{{extraOpen ? '收起' : '展开'}}<text class="form-card__chevron">{{extraOpen ? '⌃' : '›'}}</text></view>
+      </view>
+
       <block wx:if="{{extraOpen}}">
-        <view class="extra-field"><view class="subtle">司机</view><input class="field-control" value="{{form.driver}}" data-field="driver" bindinput="input" placeholder="请输入司机姓名" maxlength="30" /></view>
-        <view class="extra-field"><view class="subtle">联系电话</view><input class="field-control" value="{{form.phone}}" data-field="phone" bindinput="input" placeholder="请输入联系电话" type="number" maxlength="20" /></view>
-        <view class="extra-field"><view class="subtle">合同编号</view><input class="field-control" value="{{form.contract}}" data-field="contract" bindinput="input" placeholder="请输入合同编号" maxlength="60" /></view>
-        <view class="extra-field"><view class="subtle">备注</view><textarea class="field-control note-input" value="{{form.note}}" data-field="note" bindinput="input" placeholder="请输入备注" maxlength="200" auto-height /></view>
+        <view class="field">
+          <view class="field-label">司机</view>
+          <input class="field-control" value="{{form.driver}}" data-field="driver" bindinput="input" placeholder="请输入司机姓名" maxlength="30" cursor-spacing="32" adjust-position="{{true}}" />
+        </view>
+        <view class="field">
+          <view class="field-label">联系电话</view>
+          <input class="field-control" value="{{form.phone}}" data-field="phone" bindinput="input" placeholder="请输入联系电话" type="number" maxlength="20" cursor-spacing="32" adjust-position="{{true}}" />
+        </view>
+        <view class="field">
+          <view class="field-label">合同编号</view>
+          <input class="field-control" value="{{form.contract}}" data-field="contract" bindinput="input" placeholder="请输入合同编号" maxlength="60" cursor-spacing="32" adjust-position="{{true}}" />
+        </view>
+        <view class="field field--last">
+          <view class="field-label">备注</view>
+          <textarea class="field-control note-input" value="{{form.note}}" data-field="note" bindinput="input" placeholder="请输入备注" maxlength="200" auto-height cursor-spacing="32" adjust-position="{{true}}" />
+        </view>
       </block>
     </view>
-    <view wx:if="{{formError}}" class="error-text">{{formError}}</view>
+
+    <view wx:if="{{formError}}" class="form-error">{{formError}}</view>
     <view class="form-footer"><t-button block size="large" theme="primary" loading="{{submitting}}" disabled="{{submitting}}" bindtap="save">{{edit ? '保存更正' : '保存登记'}}</t-button></view>
+
+    <t-popup
+      visible="{{supplierOpen}}"
+      placement="bottom"
+      close-btn="{{false}}"
+      custom-style="--td-popup-border-radius: 32rpx;"
+      bind:visible-change="onSupplierVisibleChange"
+    >
+      <view class="supplier-sheet">
+        <view class="supplier-sheet__head">
+          <view class="supplier-sheet__title">选择供应商</view>
+          <view class="supplier-sheet__close" bindtap="closeSupplier" aria-role="button" aria-label="关闭供应商选择">×</view>
+        </view>
+
+        <view class="search-field supplier-sheet__search">
+          <t-icon class="search-field__icon" name="search" size="32rpx" color="#777674" />
+          <input
+            class="search-input"
+            value="{{supplierQuery}}"
+            placeholder="输入汉字或拼音首字母，如 sh、上"
+            placeholder-class="field-placeholder"
+            bindinput="inputSupplierQuery"
+            confirm-type="search"
+            cursor-spacing="24"
+          />
+          <view wx:if="{{supplierQuery}}" class="search-field__clear" bindtap="clearSupplierQuery" aria-role="button" aria-label="清除搜索">×</view>
+        </view>
+
+        <scroll-view class="supplier-list" scroll-y>
+          <view wx:if="{{!supplierResults.length}}" class="supplier-empty">没有匹配的供应商，请尝试输入汉字或拼音首字母</view>
+          <view
+            wx:for="{{supplierResults}}"
+            wx:key="name"
+            class="supplier-row {{item.name === form.supplier ? 'supplier-row--active' : ''}}"
+            data-name="{{item.name}}"
+            hover-class="supplier-row--hover"
+            bindtap="chooseSupplierItem"
+            aria-role="button"
+            aria-label="选择 {{item.name}}"
+          >
+            <text class="supplier-row__name">{{item.name}}</text>
+            <t-icon wx:if="{{item.name === form.supplier}}" name="check" size="36rpx" color="#a74532" />
+          </view>
+        </scroll-view>
+      </view>
+    </t-popup>
   </block>
 </view>

@@ -1,0 +1,51 @@
+.workbench-banner {
+  position: relative;
+  box-sizing: border-box;
+  height: 176rpx;
+  overflow: hidden;
+  background: linear-gradient(105deg, var(--fc-surface-muted) 0%, var(--fc-brand-soft) 100%);
+}
+
+.workbench-banner__bg {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  z-index: 0;
+  width: 300rpx;
+  height: 100%;
+  opacity: 0.95;
+}
+
+.workbench-banner::after {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  content: '';
+  background: linear-gradient(90deg, var(--fc-surface-muted) 0%, rgb(250 248 245 / 0%) 65%);
+}
+
+.workbench-banner__main {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  gap: 16rpx;
+  align-items: center;
+  max-width: 62%;
+  height: 100%;
+  padding: 0 32rpx;
+}
+
+.workbench-banner__icon {
+  flex: none;
+}
+
+.workbench-banner__title {
+  min-width: 0;
+  font-size: 44rpx;
+  font-weight: 600;
+  line-height: 1.25;
+  color: var(--fc-text);
+  letter-spacing: -0.5rpx;
+  overflow-wrap: anywhere;
+}

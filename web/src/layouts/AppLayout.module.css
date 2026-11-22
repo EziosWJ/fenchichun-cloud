@@ -262,6 +262,38 @@
   display: none;
 }
 
+.tabMenuBackdrop {
+  position: fixed;
+  z-index: 1050;
+  inset: 0;
+}
+
+.tabContextMenu {
+  position: fixed;
+  z-index: 1051;
+  min-width: 160px;
+  padding: 4px;
+  overflow: hidden;
+  background: var(--ant-color-bg-container);
+  border: 1px solid var(--ant-color-border-secondary);
+  border-radius: var(--app-radius-control);
+  box-shadow: var(--app-shadow-hover);
+}
+
+.tabContextMenuList {
+  border-inline-end: 0 !important;
+  background: transparent !important;
+}
+
+.tabContextMenuList :global(.ant-menu-item) {
+  height: 34px;
+  margin: 0;
+  padding-inline: 12px;
+  border-radius: 6px;
+  font-size: 13px;
+  line-height: 34px;
+}
+
 .content {
   width: 100%;
   max-width: var(--app-content-max-width);

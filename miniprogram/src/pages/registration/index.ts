@@ -7,6 +7,7 @@ import {
   sameDictionary,
 } from '@/features/grain/dictionary-service'
 import { applyAsync, errorMessage, requireLogin } from '@/features/grain/page'
+import { filterSearchableNames, searchableName } from '@/features/grain/pinyin'
 import { correctPlateOcrConfusions, isValidPlate, normalizePlate, plateProvinces } from '@/features/grain/plate'
 import { recognizePlatePhoto } from '@/features/grain/plate-scan'
 import { canEdit } from '@/features/grain/presentation'
@@ -38,14 +39,22 @@ Page({
     id: '',
     version: 0,
     form: emptyForm(),
+    fieldErrors: {
+      site: '',
+      plate: '',
+      material: '',
+      supplier: '',
+    },
     sites: [] as string[],
     materials: [] as string[],
     materialNames: [] as string[],
     methods: [] as string[],
-    suppliers: [] as string[],
+    supplierItems: [] as ReturnType<typeof searchableName>[],
+    supplierResults: [] as ReturnType<typeof searchableName>[],
+    supplierOpen: false,
+    supplierQuery: '',
     siteIndex: 0,
     materialIndex: 0,
-    supplierIndex: 0,
     extraOpen: false,
     provinces: plateProvinces,
     province: '',
@@ -81,7 +90,7 @@ Page({
           item.method === 'lab' ? '化验' : '目测',
         ),
       ]
-      const suppliers = ['请选择供应商', ...options.suppliers]
+      const supplierItems = options.suppliers.map(name => searchableName(name))
       const applyTrip = (trip: Trip | null) => {
         try {
           if (trip && !canEdit(trip)) {
@@ -111,15 +120,24 @@ Page({
             materials,
             materialNames,
             methods,
-            suppliers,
+            supplierItems,
+            supplierResults: supplierItems,
+            supplierOpen: false,
+            supplierQuery: '',
             form,
+            fieldErrors: {
+              site: '',
+              plate: '',
+              material: '',
+              supplier: '',
+            },
+            formError: '',
             province,
             provinceIndex: Math.max(0, plateProvinces.indexOf(province)),
             plateBody,
             version: trip?.version || 0,
             siteIndex: Math.max(0, sites.indexOf(form.site)),
             materialIndex: Math.max(0, materialNames.indexOf(form.material)),
-            supplierIndex: Math.max(0, suppliers.indexOf(form.supplier)),
             extraOpen: !!(form.driver || form.phone || form.contract || form.note),
           })
         }
@@ -168,6 +186,7 @@ Page({
       province,
       'provinceIndex': index,
       'form.plate': `${province}${this.data.plateBody}`,
+      'fieldErrors.plate': '',
       'formError': '',
     })
   },
@@ -184,6 +203,7 @@ Page({
       'provinceIndex': Math.max(0, plateProvinces.indexOf(province)),
       'plateBody': value,
       'form.plate': `${province}${value}`,
+      'fieldErrors.plate': '',
       'formError': '',
     })
   },
@@ -197,6 +217,7 @@ Page({
       'provinceIndex': Math.max(0, plateProvinces.indexOf(province)),
       'plateBody': body,
       'form.plate': `${province}${body}`,
+      'fieldErrors.plate': '',
       'formError': '',
     })
   },
@@ -277,6 +298,7 @@ Page({
     this.setData({
       'siteIndex': index,
       'form.site': index ? this.data.sites[index] : '',
+      'fieldErrors.site': '',
       'formError': '',
     })
   },
@@ -285,14 +307,49 @@ Page({
     this.setData({
       'materialIndex': index,
       'form.material': this.data.materialNames[index],
+      'fieldErrors.material': '',
       'formError': '',
     })
   },
-  chooseSupplier(event: WechatMiniprogram.PickerChange) {
-    const index = Number(event.detail.value)
+  openSupplier() {
     this.setData({
-      'supplierIndex': index,
-      'form.supplier': index ? this.data.suppliers[index] : '',
+      'supplierOpen': true,
+      'supplierQuery': '',
+      'supplierResults': this.data.supplierItems,
+      'fieldErrors.supplier': '',
+      'formError': '',
+    })
+  },
+  closeSupplier() {
+    this.setData({ supplierOpen: false })
+  },
+  onSupplierVisibleChange(event: { detail?: { visible?: boolean } }) {
+    this.setData({ supplierOpen: !!(event.detail && event.detail.visible) })
+  },
+  inputSupplierQuery(event: WechatMiniprogram.Input) {
+    const query = event.detail.value
+    this.setData({
+      supplierQuery: query,
+      supplierResults: filterSearchableNames(this.data.supplierItems, query),
+    })
+  },
+  clearSupplierQuery() {
+    this.setData({
+      supplierQuery: '',
+      supplierResults: this.data.supplierItems,
+    })
+  },
+  chooseSupplierItem(event: WechatMiniprogram.BaseEvent) {
+    const name = String(event.currentTarget.dataset.name || '')
+    if (!name) {
+      return
+    }
+    this.setData({
+      'supplierOpen': false,
+      'supplierQuery': '',
+      'supplierResults': this.data.supplierItems,
+      'form.supplier': name,
+      'fieldErrors.supplier': '',
       'formError': '',
     })
   },
@@ -303,23 +360,27 @@ Page({
     if (this.data.submitting) {
       return
     }
+    const plate = normalizePlate(
+      this.data.province
+        ? `${this.data.province}${this.data.plateBody}`
+        : this.data.form.plate,
+    )
+    const form = {
+      ...this.data.form,
+      plate,
+    }
+    const fieldErrors = {
+      site: form.site ? '' : '请选择厂区',
+      plate: isValidPlate(form.plate) ? '' : '请输入正确的车牌号，例如 晋A12345',
+      material: form.material ? '' : '请选择货品',
+      supplier: form.supplier ? '' : '请选择供应商',
+    }
+    if (fieldErrors.site || fieldErrors.plate || fieldErrors.material || fieldErrors.supplier) {
+      this.setData({ fieldErrors, formError: '' })
+      return
+    }
     this.setData({ submitting: true, formError: '' })
     try {
-      const plate = normalizePlate(
-        this.data.province
-          ? `${this.data.province}${this.data.plateBody}`
-          : this.data.form.plate,
-      )
-      const form = {
-        ...this.data.form,
-        plate,
-      }
-      if (!isValidPlate(form.plate)) {
-        throw new Error('请输入正确的车牌号，例如 晋A12345')
-      }
-      if (!form.supplier) {
-        throw new Error('请选择供应商')
-      }
       const clientRequestId = this.data.edit
         ? ''
         : this.data.clientRequestId || newRequestId()

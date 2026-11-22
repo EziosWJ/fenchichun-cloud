@@ -1,1 +1,10 @@
-{ "navigationBarTitleText": "选择正式磅单", "usingComponents": { "loading-state": "/components/loading-state/index", "error-state": "/components/error-state/index", "empty-state": "/components/empty-state/index" } }
+{
+  "navigationBarTitleText": "选择正式磅单",
+  "usingComponents": {
+    "page-header": "/components/page-header/index",
+    "loading-state": "/components/loading-state/index",
+    "error-state": "/components/error-state/index",
+    "empty-state": "/components/empty-state/index",
+    "status-tag": "/components/status-tag/index"
+  }
+}

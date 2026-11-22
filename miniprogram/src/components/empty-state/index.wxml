@@ -1,1 +1,4 @@
-<t-empty description="{{text}}" /><slot />
+<view class="empty-state">
+  <t-empty description="{{text}}" />
+  <slot />
+</view>

@@ -41,6 +41,15 @@ describe('page tabs store', () => {
     expect(useTabsStore.getState().tabs.map((tab) => tab.key)).toEqual(['/dashboard', '/system/role']);
   });
 
+  it('closes several tabs at once but never removes home', () => {
+    const { openTab, closeTabs } = useTabsStore.getState();
+    openTab({ key: '/system/user', label: '用户管理', href: '/system/user', closable: true });
+    openTab({ key: '/system/role', label: '角色管理', href: '/system/role', closable: true });
+
+    closeTabs(['/dashboard', '/system/user']);
+    expect(useTabsStore.getState().tabs.map((tab) => tab.key)).toEqual(['/dashboard', '/system/role']);
+  });
+
   it('resets all tabs but keeps home', () => {
     useTabsStore.getState().openTab({ key: '/system/user', label: '用户管理', href: '/system/user', closable: true });
     useTabsStore.getState().resetTabs();

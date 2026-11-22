@@ -8,7 +8,7 @@
     "pages/registration/index",
     "pages/plate-camera/index",
     "pages/trip/index",
-    "pages/action/index",
+    "pages/trip-record/index",
     "pages/tickets/index",
     "pages/exit/index",
     "pages/ui/index"
@@ -17,11 +17,11 @@
     "navigationBarTitleText": "汾池春",
     "navigationBarBackgroundColor": "#ffffff",
     "navigationBarTextStyle": "black",
-    "backgroundColor": "#f5f6f8"
+    "backgroundColor": "#f7f6f3"
   },
   "tabBar": {
-    "color": "#687080",
-    "selectedColor": "#8c3b2e",
+    "color": "#777674",
+    "selectedColor": "#a74532",
     "backgroundColor": "#ffffff",
     "borderStyle": "black",
     "list": [
@@ -30,6 +30,12 @@
         "text": "工作台",
         "iconPath": "tabbar/workbench.png",
         "selectedIconPath": "tabbar/workbench-active.png"
+      },
+      {
+        "pagePath": "pages/trips/index",
+        "text": "台账",
+        "iconPath": "tabbar/ledger.png",
+        "selectedIconPath": "tabbar/ledger-active.png"
       },
       {
         "pagePath": "pages/profile/index",

@@ -1,1 +1,6 @@
-<t-empty description="{{text}}" /><t-button wx:if="{{retryable}}" variant="outline" bindtap="retry">重新加载</t-button>
+<view class="error-state">
+  <t-empty description="{{text}}" />
+  <view wx:if="{{retryable}}" class="error-state__action">
+    <t-button block variant="outline" size="medium" bindtap="retry">重新加载</t-button>
+  </view>
+</view>

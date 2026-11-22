@@ -6,6 +6,7 @@ import {
   cards,
   errorMessage,
   matches,
+  needsAction,
   requireLogin,
   sortTrips,
 } from '@/features/grain/page'
@@ -17,7 +18,6 @@ Page({
     error: '',
     role: 'warehouse' as Role,
     roleName: '',
-    canSwitch: false,
     query: '',
     gateHistory: false,
     trips: cards([]),
@@ -39,7 +39,7 @@ Page({
             return false
           }
           if (current.role === 'warehouse') {
-            return !trip.exitedAt
+            return !trip.exitedAt && needsAction(trip)
           }
           return this.data.gateHistory ? !!trip.exitedAt : exitEligible(trip)
         })
@@ -47,7 +47,6 @@ Page({
           trips: cards(sortTrips(trips, current.role)),
           role: current.role,
           roleName: roleLabels[current.role],
-          canSwitch: current.user.roles.length > 1,
         })
         this.setData({ loading: false })
       }
@@ -63,30 +62,12 @@ Page({
     this.setData({ query: event.detail.value })
     this.load()
   },
-  switchRole() {
-    try {
-      const current = requireLogin()
-      if (!current || current.user.roles.length < 2) {
-        return
-      }
-      const roles = current.user.roles
-      wx.showActionSheet({
-        itemList: roles.map(role => roleLabels[role]),
-        success: ({ tapIndex }) => {
-          try {
-            grainService.switchRole(roles[tapIndex])
-            this.setData({ query: '', gateHistory: false })
-            this.load()
-          }
-          catch (error) {
-            wx.showToast({ title: errorMessage(error), icon: 'none' })
-          }
-        },
-      })
+  clearSearch() {
+    if (!this.data.query) {
+      return
     }
-    catch (error) {
-      wx.showToast({ title: errorMessage(error), icon: 'none' })
-    }
+    this.setData({ query: '' })
+    this.load()
   },
   showPending() {
     this.setData({ gateHistory: false })
@@ -98,8 +79,5 @@ Page({
   },
   register() {
     wx.navigateTo({ url: routes.registration })
-  },
-  allTrips() {
-    wx.navigateTo({ url: routes.trips })
   },
 })

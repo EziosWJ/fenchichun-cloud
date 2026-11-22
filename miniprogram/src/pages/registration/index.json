@@ -1,1 +1,7 @@
-{ "navigationBarTitleText": "登记流转单", "usingComponents": { "loading-state": "/components/loading-state/index", "error-state": "/components/error-state/index" } }
+{
+  "navigationBarTitleText": "登记流转单",
+  "usingComponents": {
+    "loading-state": "/components/loading-state/index",
+    "error-state": "/components/error-state/index"
+  }
+}

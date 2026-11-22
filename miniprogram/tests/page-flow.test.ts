@@ -21,7 +21,6 @@ function runtime() {
   const storage = new Map<string, unknown>()
   let registered: Data | undefined
   let navigation = ''
-  let actionIndex = 0
   const responses = new Map<string, { data: unknown, statusCode: number }>()
   const requests: Request[] = []
   const unexpectedRequests: string[] = []
@@ -70,9 +69,6 @@ function runtime() {
       options.success?.({ confirm: true })
       options.complete?.()
     },
-    showActionSheet: (options: {
-      success: (result: { tapIndex: number }) => void
-    }) => options.success({ tapIndex: actionIndex }),
   }
   const context = vm.createContext({
     wx,
@@ -137,8 +133,12 @@ function runtime() {
   return {
     page,
     navigation: () => navigation,
-    select: (index: number) => {
-      actionIndex = index
+    setRole(role: string) {
+      const auth = storage.get('grain.auth.v1') as { role: string } | undefined
+      if (!auth) {
+        throw new Error('尚未登录，无法设置岗位')
+      }
+      storage.set('grain.auth.v1', { ...auth, role })
     },
     respond(method: string, path: string, data: unknown, statusCode = 200) {
       responses.set(`${method} /api/v1${path}`, { data, statusCode })
@@ -238,9 +238,14 @@ test('页面控制器通过后端接口登记、关联磅单并跨岗位确认�
   await call(register, 'chooseProvince', { detail: { value: '19' } })
   await call(register, 'inputPlateBody', { detail: { value: 'A90909' } })
   await call(register, 'save')
-  assert.equal(register.data.formError, '请选择供应商')
+  assert.equal((register.data.fieldErrors as Data).supplier, '请选择供应商')
   assert.equal(app.request('POST', '/grain-intake/trips'), undefined)
-  await call(register, 'chooseSupplier', { detail: { value: '1' } })
+  await call(register, 'openSupplier')
+  await call(register, 'inputSupplierQuery', { detail: { value: 'csgys' } })
+  assert.equal((register.data.supplierResults as Data[]).length, 1)
+  await call(register, 'chooseSupplierItem', {
+    currentTarget: { dataset: { name: '测试供应商' } },
+  })
   await call(register, 'save')
   assert.equal(app.navigation(), '/pages/trip/index?id=41')
   const registration = app.request('POST', '/grain-intake/trips')
@@ -253,24 +258,29 @@ test('页面控制器通过后端接口登记、关联磅单并跨岗位确认�
   await call(detail, 'onShow')
   assert.equal(detail.data.status, '待化验')
   assert.equal(detail.data.waiting, true)
-  assert.equal((detail.data.expanded as Data).inspection, true)
-  await call(detail, 'toggleSection', { currentTarget: { dataset: { section: 'inspection' } } })
-  assert.equal((detail.data.expanded as Data).inspection, false)
-  await call(detail, 'toggleSection', { currentTarget: { dataset: { section: 'inspection' } } })
-  assert.equal((detail.data.expanded as Data).inspection, true)
+  assert.equal(detail.data.stepTitle, '待化验')
+  const pendingTimeline = detail.data.timeline as Array<{ title: string, current: boolean }>
+  assert.equal(pendingTimeline[0]?.current, true)
+  assert.equal(pendingTimeline[0]?.title, '待化验')
+  assert.equal(pendingTimeline.some(item => item.title === '登记流转单'), true)
 
   evidence.inspections = [{ id: 5, status: 'confirmed', conclusion: 'accept', moisture: '12', impurity: '1' }]
   publish({ stage: 'pending_unload', version: 2, effectiveInspectionId: 5 })
   await call(detail, 'onShow')
   assert.equal(detail.data.status, '待卸货')
-  const action = app.page('action')
-  await call(action, 'onLoad', { id: '41', action: 'unload' })
-  await call(action, 'chooseGranary', { detail: { value: '1' } })
+  assert.equal(detail.data.stepTitle, '确认卸货')
+  const unloadTimeline = detail.data.timeline as Array<{ title: string }>
+  assert.equal(unloadTimeline[1]?.title, '化验接收')
+  assert.equal(unloadTimeline[2]?.title, '登记流转单')
+  assert.deepEqual(detail.data.granaries, ['一号仓'])
+  await call(detail, 'chooseGranary', { detail: { value: '0' } })
   publish({ stage: 'pending_ticket', version: 3, unloadedAt: time, unloadingLocation: '一号仓' }, 'confirm-unloading')
-  await call(action, 'submit')
+  await call(detail, 'act')
   assert.deepEqual(app.request('POST', `${tripPath}/confirm-unloading`)?.data, { version: 2, location: '一号仓' })
   await call(detail, 'onShow')
   assert.equal(detail.data.status, '待磅单')
+  const unloadedTimeline = detail.data.timeline as Array<{ title: string }>
+  assert.equal(unloadedTimeline[1]?.title, '卸货已确认')
   await call(detail, 'act')
   assert.equal(app.navigation(), '/pages/tickets/index?id=41')
 
@@ -286,6 +296,11 @@ test('页面控制器通过后端接口登记、关联磅单并跨岗位确认�
   assert.deepEqual(app.request('POST', `${tripPath}/link-ticket`)?.data, { version: 3, ticketSiteCode: 'TEST', ticketNo: 'BD001' })
   await call(detail, 'onShow')
   assert.equal(detail.data.status, '待开证')
+  const record = app.page('trip-record')
+  await call(record, 'onLoad', { id: '41', step: 'ticket' })
+  await call(record, 'onShow')
+  assert.equal(record.data.title, '正式磅单')
+  assert.equal((record.data.trip as { ticket: { id: string } }).ticket.id, 'BD001')
 
   evidence.permit = { id: 8, number: 'CZ001', createdAt: time }
   publish({ stage: 'permit_pending', version: 5 }, 'issue-permit')
@@ -300,20 +315,14 @@ test('页面控制器通过后端接口登记、关联磅单并跨岗位确认�
   assert.equal(detail.data.status, '等待出厂')
 
   const workbench = app.page('index')
+  app.setRole('guard')
   await call(workbench, 'onShow')
-  app.select(1)
-  await call(workbench, 'switchRole')
   assert.equal(workbench.data.role, 'guard')
   assert.equal((workbench.data.trips as TripCard[])[0]?.id, tripNumber)
   const exit = app.page('exit')
   await call(exit, 'onLoad', { id: '41' })
   await call(exit, 'onShow')
   assert.equal(exit.data.eligible, true)
-  assert.equal(exit.data.evidenceExpanded, false)
-  await call(exit, 'toggleEvidence')
-  assert.equal(exit.data.evidenceExpanded, true)
-  await call(exit, 'toggleEvidence')
-  assert.equal(exit.data.evidenceExpanded, false)
   app.respond('POST', `${tripPath}/confirm-exit`, { trip: { ...trip, stage: 'exited', exitedAt: time }, ...evidence })
   await call(exit, 'confirmExit')
   assert.deepEqual(app.request('POST', `${tripPath}/confirm-exit`)?.data, { version: 6, basis: 'permit', permitId: 8 })
@@ -359,10 +368,7 @@ test('目测拒收退厂显示依据并由门卫通过后端接口确认出厂',
   assert.equal((detail.data.trip as { inspection: { reason: string } }).inspection.reason, '含有明显异物')
   assert.equal(detail.data.action, '')
 
-  const workbench = app.page('index')
-  await call(workbench, 'onShow')
-  app.select(1)
-  await call(workbench, 'switchRole')
+  app.setRole('guard')
   const exit = app.page('exit')
   await call(exit, 'onLoad', { id: '41' })
   await call(exit, 'onShow')

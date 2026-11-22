@@ -1,21 +1,69 @@
 <view class="screen">
-  <view class="screen-title">选择正式磅单</view>
-  <view class="subtle">请核对车牌、货品、供应商及两次过磅信息</view>
+  <page-header title="选择正式磅单" description="请核对车牌、货品、供应商及两次过磅信息" />
+
+  <view class="notice ticket-notice">未查到同步磅单不代表现场没有称重，请稍后重试。</view>
+
   <loading-state wx:if="{{loading}}" text="正在加载磅单" />
   <error-state wx:elif="{{error}}" text="{{error}}" bind:retry="load" />
+  <empty-state wx:elif="{{!tickets.length}}" text="暂无可关联的正式磅单">
+    <view class="ticket-empty-action">
+      <t-button variant="outline" size="medium" bindtap="load">重新加载</t-button>
+    </view>
+  </empty-state>
   <block wx:else>
-    <view class="notice ticket-notice">未查到同步磅单不代表现场没有称重，请稍后重试。</view>
-    <empty-state wx:if="{{!tickets.length}}" text="暂无可关联的正式磅单" />
-    <view wx:for="{{tickets}}" wx:key="id" class="detail-card">
-      <view class="heading-row"><text class="section-heading">{{item.id}}</text><text class="status">{{item.linkable === false ? '暂不可关联' : '可关联'}}</text></view>
-      <view class="detail-row"><text class="detail-label">车牌 / 厂区</text><text class="detail-value">{{item.plate}} / {{item.site}}</text></view>
-      <view class="detail-row"><text class="detail-label">货品 / 供应商</text><text class="detail-value">{{item.material}} / {{item.supplier}}</text></view>
-      <view class="detail-row"><text class="detail-label">首磅 / 回磅</text><text class="detail-value">{{item.firstAt}} / {{item.secondAt}}</text></view>
-      <view class="detail-row"><text class="detail-label">毛重 / 皮重</text><text class="detail-value">{{item.gross}} / {{item.tare}}</text></view>
-      <view class="detail-row"><text class="detail-label">实际净重</text><text class="detail-value">{{item.net || '未提供'}}</text></view>
-      <view class="detail-row"><text class="detail-label">扣减后重量</text><text class="detail-value">{{item.deducted || '未提供'}}</text></view>
-      <view wx:if="{{item.linkable === false}}" class="detail-row"><text class="detail-label">暂不能关联</text><text class="detail-value">{{item.reason}}。请核对化验、首磅、卸货和回磅时间。</text></view>
-      <view class="button-space"><t-button block theme="primary" variant="outline" data-id="{{item.id}}" disabled="{{confirming || item.linkable === false}}" bindtap="link">关联此磅单</t-button></view>
+    <view wx:for="{{tickets}}" wx:key="id" class="ticket-card">
+      <view class="ticket-head">
+        <view class="ticket-title-wrap">
+          <view class="ticket-title">{{item.id}}</view>
+          <view class="ticket-sub">{{item.site}}</view>
+        </view>
+        <status-tag text="{{item.linkable === false ? '暂不可关联' : '可关联'}}" theme="{{item.linkable === false ? 'default' : 'success'}}" />
+      </view>
+
+      <view class="ticket-grid">
+        <view class="ticket-item">
+          <view class="ticket-k">车牌</view>
+          <view class="ticket-v">{{item.plate}}</view>
+        </view>
+        <view class="ticket-item">
+          <view class="ticket-k">货品</view>
+          <view class="ticket-v">{{item.material}}</view>
+        </view>
+        <view class="ticket-item">
+          <view class="ticket-k">供应商</view>
+          <view class="ticket-v">{{item.supplier}}</view>
+        </view>
+        <view class="ticket-item">
+          <view class="ticket-k">厂区</view>
+          <view class="ticket-v">{{item.site}}</view>
+        </view>
+        <view class="ticket-item ticket-item--full">
+          <view class="ticket-k">首磅 / 回磅</view>
+          <view class="ticket-v">{{item.firstAt}} / {{item.secondAt}}</view>
+        </view>
+        <view class="ticket-item">
+          <view class="ticket-k">毛重</view>
+          <view class="ticket-v">{{item.gross ? item.gross + ' 吨' : '未提供'}}</view>
+        </view>
+        <view class="ticket-item">
+          <view class="ticket-k">皮重</view>
+          <view class="ticket-v">{{item.tare ? item.tare + ' 吨' : '未提供'}}</view>
+        </view>
+        <view class="ticket-item">
+          <view class="ticket-k">实际净重</view>
+          <view class="ticket-v ticket-v--emphasis">{{item.net ? item.net + ' 吨' : '未提供'}}</view>
+        </view>
+        <view class="ticket-item">
+          <view class="ticket-k">扣减后重量</view>
+          <view class="ticket-v">{{item.deducted ? item.deducted + ' 吨' : '未提供'}}</view>
+        </view>
+      </view>
+
+      <view wx:if="{{item.linkable === false}}" class="ticket-warning">{{item.reason}}。请核对化验、首磅、卸货和回磅时间。</view>
+
+      <view class="ticket-action">
+        <t-button block variant="outline" size="medium" data-id="{{item.id}}" disabled="{{confirming || item.linkable === false}}" bindtap="link">关联此磅单</t-button>
+      </view>
     </view>
   </block>
 </view>

@@ -2,6 +2,7 @@
 
 先读根 AGENTS.md、CONTEXT.md、相关 ADR，再读本目录 README、生成 AGENTS.md、本文件和任务文档。保留生成 AGENTS.md。
 
+- UI 任务必须先读 [UI 设计系统与开发规范](docs/ui-design-system.md)，颜色、字号、间距、圆角、组件范式与验收以该文档为准；不得把设计截图当页面贴图。
 - 直接在本目录开发，使用 npm、package-lock.json 和 npm ci；本规则不改变 web 的 pnpm 规范。
 - 优先 TDesign，Tailwind 仅负责布局与间距；不得引入第二套 UI/图标体系。
 - 新增依赖必须说明现有能力不足的原因、用途和包体影响，不随意增加依赖。

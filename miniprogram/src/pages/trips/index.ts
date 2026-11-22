@@ -1,4 +1,5 @@
 import type { TimeRange } from '@/features/grain/page'
+import type { Role } from '@/features/grain/types'
 import { grainService } from '@/features/grain/api-service'
 import {
   applyAsync,
@@ -15,6 +16,7 @@ Page({
     error: '',
     query: '',
     range: 'all' as TimeRange,
+    role: 'warehouse' as Role,
     trips: cards([]),
   },
   onShow() {
@@ -23,13 +25,15 @@ Page({
   load() {
     this.setData({ loading: true, error: '' })
     try {
-      if (!requireLogin('warehouse')) {
+      const current = requireLogin()
+      if (!current) {
         return
       }
       applyAsync(
         grainService.listTrips(),
         (all) => {
           this.setData({
+            role: current.role,
             trips: cards(all.filter(trip =>
               withinTimeRange(trip, this.data.range) && matches(trip, this.data.query),
             )),
@@ -47,6 +51,13 @@ Page({
   },
   search(event: WechatMiniprogram.Input) {
     this.setData({ query: event.detail.value })
+    this.load()
+  },
+  clearSearch() {
+    if (!this.data.query) {
+      return
+    }
+    this.setData({ query: '' })
     this.load()
   },
   setRange(event: WechatMiniprogram.BaseEvent) {

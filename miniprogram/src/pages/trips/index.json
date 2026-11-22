@@ -1,1 +1,9 @@
-{ "navigationBarTitleText": "全部流转单", "usingComponents": { "trip-list": "/components/trip-list/index", "empty-state": "/components/empty-state/index", "loading-state": "/components/loading-state/index", "error-state": "/components/error-state/index" } }
+{
+  "navigationBarTitleText": "台账",
+  "usingComponents": {
+    "trip-list": "/components/trip-list/index",
+    "empty-state": "/components/empty-state/index",
+    "loading-state": "/components/loading-state/index",
+    "error-state": "/components/error-state/index"
+  }
+}

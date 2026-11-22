@@ -1,21 +1,40 @@
+.screen.ledger-screen {
+  padding: 0 32rpx calc(48rpx + env(safe-area-inset-bottom));
+}
+
+.ledger-sticky {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  padding: 16rpx 32rpx 12rpx;
+  margin: 0 -32rpx;
+  background: var(--fc-bg);
+}
+
 .range-row {
+  box-sizing: border-box;
   display: flex;
   gap: 12rpx;
-  margin-top: 20rpx;
-  overflow-x: auto;
+  width: 100%;
+  height: 88rpx;
+  margin-top: 16rpx;
   white-space: nowrap;
 }
 
 .range-chip {
+  display: flex;
   flex: 0 0 auto;
-  padding: 10rpx 22rpx;
+  align-items: center;
+  min-height: 80rpx;
+  padding: 0 24rpx;
   font-size: 26rpx;
-  color: #687080;
-  background: #f3f5f7;
+  color: var(--fc-text-secondary);
+  background: var(--fc-control-track);
   border-radius: 999rpx;
 }
 
 .range-chip.active {
+  font-weight: 600;
   color: #fff;
-  background: #8c3b2e;
+  background: var(--fc-brand);
 }
