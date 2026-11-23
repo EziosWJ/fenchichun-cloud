@@ -4,6 +4,7 @@ import type {
   Registration,
   Role,
   Ticket,
+  TicketAdjustment,
   Trip,
   User,
 } from './types'
@@ -95,6 +96,15 @@ interface ServerTicketRecord {
     finalGross: string
     finalTare: string
     finalNet?: string
+    netAdjustment?: string
+    netAdjustmentMode?: string
+    netAdjustmentRateBp?: number | null
+    netAdjustmentCategory?: string
+    netAdjustmentCategoryName?: string
+    netAdjustments?: TicketAdjustment[]
+    adjustmentRemark?: string
+    adjustedBy?: string
+    adjustedAt?: string
   }
 }
 
@@ -193,7 +203,6 @@ function siteName(code: string) {
 function inspectionValues(value: ServerInspection) {
   return `水分 ${value.moisture}% / 容量 ${value.bulkDensity || '—'}${value.bulkDensity ? ' g/L' : ''}`
 }
-
 function inspectionsOf(trip: ServerTrip, detail?: ServerDetail): Inspection | null {
   if (trip.inspectionMethod === 'visual') {
     if (!trip.visualConclusion) {
@@ -219,6 +228,8 @@ function inspectionsOf(trip: ServerTrip, detail?: ServerDetail): Inspection | nu
       at: formatTime(inspection.confirmedAt ?? inspection.createdAt),
       operator: '化验员',
       values: inspectionValues(inspection),
+      moisture: inspection.moisture,
+      capacity: inspection.bulkDensity,
       id: inspection.id,
       version: inspection.version,
     }
@@ -244,6 +255,10 @@ function ticketOf(detail?: ServerDetail): Ticket | null {
     return null
   }
   const value = record.ticket
+  const net = actualNet(value.finalGross, value.finalTare)
+  const finalNet = value.finalNet ?? ''
+  const adjustmentTotal = value.netAdjustment
+    ?? (net && finalNet ? (Number(net) - Number(finalNet)).toFixed(3) : '')
   return {
     id: value.ticketNo,
     site: siteName(record.siteCode),
@@ -254,8 +269,24 @@ function ticketOf(detail?: ServerDetail): Ticket | null {
     secondAt: formatTime(value.secondConfirmedAt),
     gross: value.finalGross,
     tare: value.finalTare,
-    net: actualNet(value.finalGross, value.finalTare),
-    deducted: value.finalNet ?? '',
+    net,
+    deducted: finalNet,
+    adjustments: (value.netAdjustments ?? []).map(item => ({
+      mode: item.mode,
+      amount: item.amount,
+      rateBp: item.rateBp ?? null,
+      category: item.category,
+      categoryName: item.categoryName,
+      remark: item.remark,
+    })),
+    adjustmentTotal,
+    adjustmentMode: value.netAdjustmentMode ?? '',
+    adjustmentRateBp: value.netAdjustmentRateBp ?? null,
+    adjustmentCategory: value.netAdjustmentCategory ?? '',
+    adjustmentCategoryName: value.netAdjustmentCategoryName ?? '',
+    adjustmentRemark: value.adjustmentRemark ?? '',
+    adjustedBy: value.adjustedBy ?? '',
+    adjustedAt: value.adjustedAt ? formatTime(value.adjustedAt) : '',
   }
 }
 

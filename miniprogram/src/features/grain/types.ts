@@ -28,8 +28,19 @@ export interface Inspection {
   at: string
   operator: string
   values: string
+  moisture?: string
+  capacity?: string
   id?: number
   version?: number
+}
+
+export interface TicketAdjustment {
+  mode: string
+  amount: string
+  rateBp?: number | null
+  category: string
+  categoryName: string
+  remark: string
 }
 
 export interface Ticket {
@@ -44,6 +55,15 @@ export interface Ticket {
   tare: string
   net: string
   deducted: string
+  adjustments?: TicketAdjustment[]
+  adjustmentTotal?: string
+  adjustmentMode?: string
+  adjustmentRateBp?: number | null
+  adjustmentCategory?: string
+  adjustmentCategoryName?: string
+  adjustmentRemark?: string
+  adjustedBy?: string
+  adjustedAt?: string
   linkable?: boolean
   reason?: string
 }

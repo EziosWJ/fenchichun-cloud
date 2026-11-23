@@ -284,7 +284,23 @@ test('页面控制器通过后端接口登记、关联磅单并跨岗位确认�
   await call(detail, 'act')
   assert.equal(app.navigation(), '/pages/tickets/index?id=41')
 
-  const candidate = { siteCode: 'TEST', ticketNo: 'BD001', linkable: true, finalGross: '35', finalTare: '15', finalNet: '19' }
+  const candidate = {
+    siteCode: 'TEST',
+    ticketNo: 'BD001',
+    linkable: true,
+    finalGross: '35',
+    finalTare: '15',
+    finalNet: '19.4',
+    netAdjustment: '0.6',
+    netAdjustments: [{
+      mode: 'percent',
+      amount: '0.6',
+      rateBp: 300,
+      category: 'moisture',
+      categoryName: '水分扣量',
+      remark: '水分 13.5%，基准 13.0%',
+    }],
+  }
   app.respond('GET', `${tripPath}/ticket-candidates`, [candidate])
   const tickets = app.page('tickets')
   await call(tickets, 'onLoad', { id: '41' })
@@ -299,8 +315,30 @@ test('页面控制器通过后端接口登记、关联磅单并跨岗位确认�
   const record = app.page('trip-record')
   await call(record, 'onLoad', { id: '41', step: 'ticket' })
   await call(record, 'onShow')
-  assert.equal(record.data.title, '正式磅单')
+  assert.equal(record.data.title, '磅单数据')
   assert.equal((record.data.trip as { ticket: { id: string } }).ticket.id, 'BD001')
+  const ticketView = record.data.ticketView as {
+    before: string
+    deduction: string
+    deductionSigned: string
+    final: string
+    rules: Array<{ title: string, amount: string }>
+    fields: Array<{ label: string, value: string }>
+    rows: Array<Array<{ label: string }>>
+  }
+  assert.equal(ticketView.before, '20 吨')
+  assert.equal(ticketView.deduction, '0.6 吨')
+  assert.equal(ticketView.deductionSigned, '-0.6 吨')
+  assert.equal(ticketView.final, '19.4')
+  assert.equal(ticketView.rules.length, 1)
+  assert.equal(ticketView.rules[0]?.title, '水分扣量')
+  assert.equal(ticketView.rules[0]?.amount, '-0.6 吨')
+  assert.equal(
+    ticketView.fields.slice(0, 5).map(field => field.label).join(' / '),
+    '调整前净重 / 扣减合计 / 毛重 / 皮重 / 车牌号码',
+  )
+  assert.equal(ticketView.rows.length, 4)
+  assert.equal(ticketView.rows[0]?.map(field => field.label).join(' / '), '调整前净重 / 扣减合计')
 
   evidence.permit = { id: 8, number: 'CZ001', createdAt: time }
   publish({ stage: 'permit_pending', version: 5 }, 'issue-permit')

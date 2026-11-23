@@ -1,133 +1,151 @@
-<view class="record-page">
+<view class="record-page {{step === 'permit' ? 'record-page--permit' : ''}}">
   <loading-state wx:if="{{loading}}" text="正在加载详情" />
   <error-state wx:elif="{{error}}" text="{{error}}" bind:retry="load" />
   <block wx:elif="{{trip}}">
-    <view wx:if="{{step === 'current'}}" class="record-sheet">
-      <view class="record-header">
-        <view>
-          <view class="record-title">当前步骤</view>
-          <view class="record-caption">{{trip.plate}} · {{trip.material}}</view>
+    <block wx:if="{{step === 'permit'}}">
+      <view class="permit-sheet">
+        <view class="permit-frame">
+          <view class="permit-head">
+            <view class="permit-brand">
+              <view class="permit-logo" aria-hidden="true">
+                <view class="permit-logo__chimney"></view>
+                <view class="permit-logo__block permit-logo__block--left"></view>
+                <view class="permit-logo__block permit-logo__block--mid"></view>
+                <view class="permit-logo__block permit-logo__block--right"></view>
+                <view class="permit-logo__base"></view>
+              </view>
+              <view class="permit-name">汾池春酒厂</view>
+            </view>
+            <view class="permit-no">编号：{{permitView.no}}</view>
+          </view>
+
+          <view class="permit-title-row">
+            <view class="permit-laurel permit-laurel--left"></view>
+            <view class="permit-title">出门证</view>
+            <view class="permit-laurel permit-laurel--right"></view>
+          </view>
+          <view class="permit-title-en">EXIT PERMIT</view>
+          <view class="permit-double-rule"></view>
+
+          <view class="permit-table">
+            <view class="permit-row">
+              <view class="permit-cell permit-cell--label">出门人</view>
+              <view class="permit-cell permit-cell--value">{{permitView.driver}}</view>
+            </view>
+            <view class="permit-row">
+              <view class="permit-cell permit-cell--label">物品</view>
+              <view class="permit-cell permit-cell--value">{{permitView.material}}</view>
+            </view>
+            <view class="permit-row">
+              <view class="permit-cell permit-cell--label">供货商</view>
+              <view class="permit-cell permit-cell--value">{{permitView.supplier}}</view>
+            </view>
+            <view class="permit-row">
+              <view class="permit-cell permit-cell--label">规格</view>
+              <view class="permit-cell permit-cell--value">{{permitView.spec}}</view>
+            </view>
+            <view class="permit-row">
+              <view class="permit-cell permit-cell--label">数量</view>
+              <view class="permit-cell permit-cell--value">{{permitView.quantity}}</view>
+            </view>
+            <view class="permit-row">
+              <view class="permit-cell permit-cell--label">车号（型）</view>
+              <view class="permit-cell permit-cell--value">{{permitView.plate}}</view>
+              <view class="permit-cell permit-cell--label permit-cell--narrow">司机</view>
+              <view class="permit-cell permit-cell--value permit-cell--narrow">{{permitView.driver}}</view>
+            </view>
+            <view class="permit-row">
+              <view class="permit-cell permit-cell--label">签发部门</view>
+              <view class="permit-cell permit-cell--value">{{permitView.site}}</view>
+              <view class="permit-cell permit-cell--label permit-cell--narrow">签发人</view>
+              <view class="permit-cell permit-cell--value permit-cell--narrow">{{permitView.issuer}}</view>
+            </view>
+          </view>
+
+          <view class="permit-footer">
+            <view class="permit-plant" aria-hidden="true">
+              <view class="permit-plant__silo permit-plant__silo--one"></view>
+              <view class="permit-plant__silo permit-plant__silo--two"></view>
+              <view class="permit-plant__silo permit-plant__silo--three"></view>
+              <view class="permit-plant__house"></view>
+            </view>
+            <view class="permit-notes">
+              <view class="permit-notes__title">注意事项：</view>
+              <view>1. 本证为车辆出场凭证，遗失无效。</view>
+              <view>2. 请携带本证至门卫处核验后放行。</view>
+              <view>3. 涂改、复印无效。</view>
+            </view>
+            <view class="permit-sign">
+              <view class="permit-seal">
+                <text class="permit-seal__name">汾池春酒厂</text>
+                <text class="permit-seal__star">★</text>
+                <text class="permit-seal__text">出门专用章</text>
+              </view>
+              <view class="permit-date">签发日期：{{permitView.date}}</view>
+            </view>
+          </view>
         </view>
-        <text class="record-badge">{{status}}</text>
       </view>
-      <view class="record-row"><text class="record-label">当前状态</text><text class="record-value">{{status}}</text></view>
-      <view class="record-row"><text class="record-label">下一步</text><text class="record-value">{{next}}</text></view>
+    </block>
 
-      <view wx:if="{{trip.ticket && (action === 'confirm-ticket' || action === 'issue' || action === 'approve')}}" class="record-block">
-        <view class="record-block__title">待核对磅单</view>
-        <view class="record-row"><text class="record-label">磅单号</text><text class="record-value">{{trip.ticket.id}}</text></view>
-        <view class="record-row"><text class="record-label">车牌 / 厂区</text><text class="record-value">{{trip.ticket.plate}} / {{trip.ticket.site}}</text></view>
-        <view class="record-row"><text class="record-label">货品 / 供应商</text><text class="record-value">{{trip.ticket.material}} / {{trip.ticket.supplier || '未提供'}}</text></view>
-        <view class="record-row record-row-emphasis"><text class="record-label">实际净重</text><text class="record-value">{{trip.ticket.net ? trip.ticket.net + ' 吨' : '未提供'}}</text></view>
-      </view>
-
-      <view wx:if="{{trip.permit && action === 'approve'}}" class="record-block">
-        <view class="record-block__title">待审批出门证</view>
-        <view class="record-row"><text class="record-label">出门证号</text><text class="record-value">{{trip.permit.id}}</text></view>
-        <view class="record-row"><text class="record-label">开具时间</text><text class="record-value">{{trip.permit.issuedAt}}</text></view>
-        <view class="record-row"><text class="record-label">审批状态</text><text class="record-value">{{trip.permit.approvedAt ? '已审批' : '待审批'}}</text></view>
-      </view>
-
-      <view wx:if="{{trip.ticketWarning}}" class="record-note record-note-reject">
-        <view class="record-note-label">磅单提示</view>
-        <view>{{trip.ticketWarning}}</view>
-      </view>
-    </view>
-
-    <view wx:elif="{{step === 'registration'}}" class="record-sheet">
-      <view class="record-header">
-        <view>
-          <view class="record-title">车辆登记信息</view>
-          <view class="record-caption">流转单号 {{trip.id}}</view>
+    <block wx:else>
+      <view class="record-hero record-hero--{{hero.tone || 'default'}} record-hero--size-{{hero.size || 'md'}} {{step === 'ticket' ? 'record-hero--compact' : ''}}">
+        <text class="record-hero__watermark">春</text>
+        <view class="record-hero__label"><view class="record-hero__dot"></view>{{hero.label}}</view>
+        <view class="record-hero__value record-hero__value--{{hero.size || 'md'}}">
+          <text>{{hero.value}}</text>
+          <text wx:if="{{hero.unit}}" class="record-hero__unit">{{hero.unit}}</text>
         </view>
-        <text class="record-badge">本趟登记</text>
       </view>
-      <view class="record-row"><text class="record-label">车牌号码</text><text class="record-value">{{trip.plate}}</text></view>
-      <view class="record-row"><text class="record-label">厂区 / 货品</text><text class="record-value">{{trip.site}} / {{trip.material}}</text></view>
-      <view class="record-row"><text class="record-label">供应商</text><text class="record-value">{{trip.supplier || '待核实'}}</text></view>
-      <view class="record-row"><text class="record-label">司机</text><text class="record-value">{{trip.driver || '未填写'}}</text></view>
-      <view class="record-row"><text class="record-label">联系电话</text><text class="record-value">{{trip.phone || '未填写'}}</text></view>
-      <view class="record-row"><text class="record-label">合同编号</text><text class="record-value">{{trip.contract || '未填写'}}</text></view>
-      <view class="record-row"><text class="record-label">登记时间</text><text class="record-value">{{trip.createdAt}}</text></view>
-      <view class="record-row"><text class="record-label">备注</text><text class="record-value">{{trip.note || '未填写'}}</text></view>
-      <view wx:if="{{editable}}" class="record-action"><text class="text-link" bindtap="edit">更正登记 ›</text></view>
-    </view>
 
-    <view wx:elif="{{step === 'inspection'}}" class="record-sheet">
-      <view class="record-header">
-        <view>
-          <view class="record-title">{{trip.method === 'lab' ? '化验结果' : '目测结果'}}</view>
-          <view class="record-caption">{{trip.plate}} · {{trip.material}}</view>
-        </view>
-        <text class="record-badge {{trip.inspection && trip.inspection.conclusion === 'reject' ? 'record-badge-reject' : ''}}">{{inspection}}</text>
-      </view>
-      <view class="record-row"><text class="record-label">检验方式</text><text class="record-value">{{trip.method === 'lab' ? '化验' : '目测'}}</text></view>
-      <view class="record-row"><text class="record-label">检验结论</text><text class="record-value">{{trip.inspection ? (trip.inspection.conclusion === 'accept' ? '接收' : '拒收') : '待确认'}}</text></view>
-      <block wx:if="{{trip.inspection}}">
-        <view wx:if="{{trip.inspection.values}}" class="record-note"><view class="record-note-label">检测数据</view><view>{{trip.inspection.values}}</view></view>
-        <view wx:if="{{trip.inspection.reason}}" class="record-note record-note-reject"><view class="record-note-label">拒收原因</view><view>{{trip.inspection.reason}}</view></view>
-        <view class="record-row"><text class="record-label">确认人</text><text class="record-value">{{trip.inspection.operator}}</text></view>
-        <view class="record-row"><text class="record-label">确认时间</text><text class="record-value">{{trip.inspection.at}}</text></view>
-      </block>
-      <view wx:else class="record-empty">{{trip.method === 'lab' ? '等待化验员确认结果' : '等待库管确认目测结果'}}</view>
-    </view>
+      <view class="record-body">
+        <block wx:if="{{step === 'ticket' && ticketView}}">
+          <view class="ticket-heading">
+            <text>结算</text>
+            <text class="ticket-heading__no">{{ticketView.no}}</text>
+          </view>
+          <view class="field-grid">
+            <view wx:for="{{ticketView.rows}}" wx:for-item="row" wx:key="index" class="record-row">
+              <view wx:for="{{row}}" wx:for-item="field" wx:key="label" class="record-field {{field.full ? 'record-field--full' : ''}}">
+                <text class="record-field__label">{{field.label}}</text>
+                <text class="record-field__value record-field__value--{{field.tone || 'default'}} record-field__value--size-{{field.size || 'md'}}">{{field.value}}</text>
+              </view>
+            </view>
+          </view>
 
-    <view wx:elif="{{step === 'unload'}}" class="record-sheet">
-      <view class="record-header">
-        <view>
-          <view class="record-title">现场卸货确认</view>
-          <view class="record-caption">{{trip.plate}} · {{trip.site}}</view>
-        </view>
-        <text class="record-badge">{{trip.unload ? '已确认' : '待确认'}}</text>
-      </view>
-      <view class="record-row"><text class="record-label">货品</text><text class="record-value">{{trip.material}}</text></view>
-      <view class="record-row"><text class="record-label">实际卸货地点</text><text class="record-value">{{trip.unload ? trip.unload.location : '未确认'}}</text></view>
-      <view wx:if="{{trip.unload}}" class="record-row"><text class="record-label">确认时间</text><text class="record-value">{{trip.unload.at}}</text></view>
-      <view wx:else class="record-empty">现场首磅及卸货完成后，由库管确认实际地点</view>
-    </view>
+          <view class="rule-section">
+            <view class="section-heading">扣减规则</view>
+            <view wx:for="{{ticketView.rules}}" wx:key="index" class="rule-row">
+              <view class="rule-main">
+                <text class="rule-title">{{item.title}}</text>
+                <text class="rule-meta">{{item.meta}}</text>
+              </view>
+              <text class="rule-amount">{{item.amount}}</text>
+            </view>
+            <view wx:if="{{ticketView.ruleEmpty}}" class="rule-empty">{{ticketView.ruleEmpty}}</view>
+            <view wx:if="{{ticketView.rules.length}}" class="rule-total">
+              <text>合计扣减</text>
+              <text>{{ticketView.deductionSigned}}</text>
+            </view>
+          </view>
+        </block>
 
-    <view wx:elif="{{step === 'ticket'}}" class="record-sheet">
-      <view class="record-header">
-        <view>
-          <view class="record-title">正式过磅单</view>
-          <view class="record-caption">{{trip.ticket ? '磅单号 ' + trip.ticket.id : '磅单关联信息'}}</view>
-        </view>
-        <text class="record-badge">{{trip.ticket ? (trip.ticketConfirmedAt ? '已确认' : '待确认') : '未关联'}}</text>
-      </view>
-      <view wx:if="{{!trip.ticket}}" class="record-empty">尚未关联磅单</view>
-      <block wx:else>
-        <view class="record-row"><text class="record-label">关联确认</text><text class="record-value">{{trip.ticketConfirmedAt ? '已确认' : '待确认'}}</text></view>
-        <view class="record-row"><text class="record-label">车牌 / 厂区</text><text class="record-value">{{trip.ticket.plate}} / {{trip.ticket.site}}</text></view>
-        <view class="record-row"><text class="record-label">货品 / 供应商</text><text class="record-value">{{trip.ticket.material}} / {{trip.ticket.supplier || '未提供'}}</text></view>
-        <view class="record-row"><text class="record-label">首磅时间</text><text class="record-value">{{trip.ticket.firstAt || '未提供'}}</text></view>
-        <view class="record-row"><text class="record-label">回磅时间</text><text class="record-value">{{trip.ticket.secondAt || '未提供'}}</text></view>
-        <view class="record-row"><text class="record-label">毛重</text><text class="record-value">{{trip.ticket.gross ? trip.ticket.gross + ' 吨' : '未提供'}}</text></view>
-        <view class="record-row"><text class="record-label">皮重</text><text class="record-value">{{trip.ticket.tare ? trip.ticket.tare + ' 吨' : '未提供'}}</text></view>
-        <view class="record-row record-row-emphasis"><text class="record-label">实际净重</text><text class="record-value">{{trip.ticket.net ? trip.ticket.net + ' 吨' : '未提供'}}</text></view>
-        <view class="record-row"><text class="record-label">扣减后重量</text><text class="record-value">{{trip.ticket.deducted ? trip.ticket.deducted + ' 吨' : '未提供'}}</text></view>
-      </block>
-      <view wx:if="{{trip.ticketWarning}}" class="record-note record-note-reject">
-        <view class="record-note-label">磅单提示</view>
-        <view>{{trip.ticketWarning}}</view>
-      </view>
-    </view>
+        <block wx:else>
+          <view wx:for="{{sections}}" wx:key="index" class="record-section">
+            <view wx:if="{{item.title}}" class="section-heading">{{item.title}}</view>
+            <view class="field-grid">
+              <view wx:for="{{item.rows}}" wx:for-item="row" wx:key="index" class="record-row">
+                <view wx:for="{{row}}" wx:for-item="field" wx:key="label" class="record-field {{field.full ? 'record-field--full' : ''}}">
+                  <text class="record-field__label">{{field.label}}</text>
+                  <text class="record-field__value record-field__value--{{field.tone || 'default'}} record-field__value--size-{{field.size || 'md'}}">{{field.value}}</text>
+                </view>
+              </view>
+            </view>
+          </view>
 
-    <view wx:elif="{{step === 'permit'}}" class="record-sheet">
-      <view class="record-header">
-        <view>
-          <view class="record-title">出门证记录</view>
-          <view class="record-caption">{{trip.plate}} · {{trip.site}}</view>
-        </view>
-        <text class="record-badge">{{trip.permit ? (trip.permit.approvedAt ? '已审批' : '待审批') : '未开具'}}</text>
+          <view wx:if="{{step === 'registration' && editable}}" class="record-edit" bindtap="edit">更正登记 ›</view>
+        </block>
       </view>
-      <view wx:if="{{!trip.permit}}" class="record-empty">尚未开具出门证</view>
-      <block wx:else>
-        <view class="record-row"><text class="record-label">出门证号</text><text class="record-value">{{trip.permit.id}}</text></view>
-        <view class="record-row"><text class="record-label">审批状态</text><text class="record-value">{{trip.permit.approvedAt ? '已审批' : '待审批'}}</text></view>
-        <view class="record-row"><text class="record-label">开具时间</text><text class="record-value">{{trip.permit.issuedAt}}</text></view>
-        <view class="record-row"><text class="record-label">审批时间</text><text class="record-value">{{trip.permit.approvedAt || '未审批'}}</text></view>
-        <view class="record-footnote">出门证审批完成后，仍需门卫确认实际出厂</view>
-      </block>
-    </view>
+    </block>
   </block>
 </view>
