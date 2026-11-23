@@ -3,7 +3,7 @@
   <error-state wx:elif="{{error}}" text="{{error}}" bind:retry="load" />
   <block wx:elif="{{trip}}">
     <view class="detail-plate-panel">
-      <view class="detail-plate"><text class="detail-plate__province">{{plateProvince}}</text><text class="detail-plate__number">{{plateNumber}}</text></view>
+      <view class="detail-plate"><text class="detail-plate__province">{{plateProvince}}</text><text class="detail-plate__dot"></text><text class="detail-plate__number">{{plateNumber}}</text></view>
     </view>
 
     <view wx:if="{{trip.exitedAt}}" class="status-card status-card--done">
@@ -200,11 +200,23 @@
             </view>
           </block>
 
-          <block wx:elif="{{action === 'confirm-ticket' || action === 'issue'}}">
+          <block wx:elif="{{action === 'confirm-ticket'}}">
             <view wx:if="{{trip.ticket}}" class="step-rows">
               <view class="record-row"><text class="record-label">磅单号</text><text class="record-value">{{trip.ticket.id}}</text></view>
               <view class="record-row"><text class="record-label">车牌 / 厂区</text><text class="record-value">{{trip.ticket.plate}} / {{trip.ticket.site}}</text></view>
               <view class="record-row"><text class="record-label">货品 / 供应商</text><text class="record-value">{{trip.ticket.material}} / {{trip.ticket.supplier || '未提供'}}</text></view>
+              <view class="record-row record-row-emphasis"><text class="record-label">实际净重</text><text class="record-value">{{trip.ticket.net ? trip.ticket.net + ' 吨' : '未提供'}}</text></view>
+            </view>
+            <view wx:else class="step-waiting">暂无磅单信息，请刷新后重试。</view>
+            <view wx:if="{{trip.ticketWarning}}" class="notice-card warning">
+              <view class="notice-title">磅单需要核对</view>
+              <view class="notice-text">{{trip.ticketWarning}}</view>
+            </view>
+          </block>
+
+          <block wx:elif="{{action === 'issue'}}">
+            <view wx:if="{{trip.ticket}}" class="step-rows">
+              <view class="record-row"><text class="record-label">磅单号</text><text class="record-value">{{trip.ticket.id}}</text></view>
               <view class="record-row record-row-emphasis"><text class="record-label">实际净重</text><text class="record-value">{{trip.ticket.net ? trip.ticket.net + ' 吨' : '未提供'}}</text></view>
             </view>
             <view wx:else class="step-waiting">暂无磅单信息，请刷新后重试。</view>

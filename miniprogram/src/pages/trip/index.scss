@@ -47,6 +47,10 @@
   overflow-wrap: anywhere;
 }
 
+.step-rows .record-row {
+  align-items: center;
+}
+
 .step-rows .record-row:last-child {
   border-bottom: none;
 }

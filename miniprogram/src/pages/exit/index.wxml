@@ -3,7 +3,7 @@
   <error-state wx:elif="{{error}}" text="{{error}}" bind:retry="load" />
   <block wx:elif="{{trip}}">
     <view class="detail-plate-panel">
-      <view class="detail-plate"><text class="detail-plate__province">{{plateProvince}}</text><text class="detail-plate__number">{{plateNumber}}</text></view>
+      <view class="detail-plate"><text class="detail-plate__province">{{plateProvince}}</text><text class="detail-plate__dot"></text><text class="detail-plate__number">{{plateNumber}}</text></view>
     </view>
 
     <view wx:if="{{trip.exitedAt}}" class="status-card status-card--done">
