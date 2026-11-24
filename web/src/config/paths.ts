@@ -31,6 +31,13 @@ export const paths = Object.freeze({
   analyticsQuality: '/analytics/quality',
   analyticsStatement: '/analytics/reconciliation',
   analyticsStatementDetail: '/analytics/reconciliation/detail',
+  distillerGrainsToday: '/distiller-grains/today',
+  distillerGrainsYesterday: '/distiller-grains/yesterday',
+  distillerGrainsWeek: '/distiller-grains/week',
+  distillerGrainsLastWeek: '/distiller-grains/last-week',
+  distillerGrainsMonth: '/distiller-grains/month',
+  distillerGrainsLastMonth: '/distiller-grains/last-month',
+  distillerGrainsDetail: '/distiller-grains/detail',
   accountProfile: '/account/profile',
   changePassword: '/account/change-password',
 });

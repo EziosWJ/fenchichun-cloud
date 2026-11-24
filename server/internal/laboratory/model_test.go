@@ -22,6 +22,8 @@ func TestConfirmationValidation(t *testing.T) {
 		{"zero capacity", func(v *Input) { v.BulkDensity = "0" }},
 		{"exponent capacity", func(v *Input) { v.BulkDensity = "1e3" }},
 		{"too precise", func(v *Input) { v.Moisture = "1.0000001" }},
+		{"moisture over two decimals", func(v *Input) { v.Moisture = "14.123" }},
+		{"capacity over two decimals", func(v *Input) { v.BulkDensity = "750.123" }},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			v := complete

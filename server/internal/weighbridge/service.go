@@ -130,3 +130,8 @@ func (s *Service) TemporaryParties(ctx context.Context, actorID int64) ([]Tempor
 func (s *Service) DecideTemporaryParty(ctx context.Context, id int64, in TemporaryPartyDecision, event audit.Event) error {
 	return s.store.DecideTemporaryParty(ctx, id, in, event)
 }
+
+// DistillerGrainsStats serves the dedicated 酒糟统计 page.
+func (s *Service) DistillerGrainsStats(ctx context.Context, q DistillerGrainsQuery) (DistillerGrainsStats, error) {
+	return s.store.DistillerGrainsStats(ctx, q)
+}

@@ -27,6 +27,8 @@ type AnalyticsStore interface {
 	AnalyticsByproductMaterials(context.Context, AnalyticsQuery) ([]analyticsByproductMaterialRow, error)
 	AnalyticsByproductTrend(context.Context, AnalyticsQuery) ([]analyticsByproductTrendRow, error)
 
+	DistillerGrainsStats(context.Context, DistillerGrainsQuery) (DistillerGrainsStats, error)
+
 	AnalyticsPartyTotals(context.Context, AnalyticsQuery) (analyticsPartyTotalsRow, error)
 	AnalyticsPartyRows(context.Context, AnalyticsQuery) ([]analyticsPartyRow, int64, error)
 	AnalyticsPartyNewCount(context.Context, AnalyticsQuery) (int64, error)

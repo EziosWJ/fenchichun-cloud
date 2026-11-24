@@ -69,7 +69,7 @@ type Page struct {
 	PageSize int          `json:"pageSize"`
 }
 
-var decimal = regexp.MustCompile(`^(0|[1-9][0-9]{0,5})(\.[0-9]{1,6})?$`)
+var decimal = regexp.MustCompile(`^(0|[1-9][0-9]{0,5})(\.[0-9]{1,2})?$`)
 
 func (in *Input) normalize() {
 	in.SiteCode = strings.TrimSpace(in.SiteCode)
@@ -102,7 +102,7 @@ func (in Input) validate(confirm bool) error {
 		}
 	} else {
 		if !decimal.MatchString(in.Moisture) {
-			return fmt.Errorf("%w：检测值须为非负十进制数，最多6位小数", ErrInvalid)
+			return fmt.Errorf("%w：检测值须为非负十进制数，最多2位小数", ErrInvalid)
 		}
 		n, ok := new(big.Rat).SetString(in.Moisture)
 		if !ok || n.Cmp(big.NewRat(100, 1)) > 0 {
@@ -112,7 +112,7 @@ func (in Input) validate(confirm bool) error {
 	// 杂质现场无法检测，化验单不再要求填写；仍保留字段以兼容历史数据。
 	if in.Impurity != "" {
 		if !decimal.MatchString(in.Impurity) {
-			return fmt.Errorf("%w：检测值须为非负十进制数，最多6位小数", ErrInvalid)
+			return fmt.Errorf("%w：检测值须为非负十进制数，最多2位小数", ErrInvalid)
 		}
 		n, ok := new(big.Rat).SetString(in.Impurity)
 		if !ok || n.Cmp(big.NewRat(100, 1)) > 0 {
@@ -125,7 +125,7 @@ func (in Input) validate(confirm bool) error {
 		}
 	} else {
 		if !decimal.MatchString(in.BulkDensity) {
-			return fmt.Errorf("%w：容量须为大于0的十进制数，最多6位小数", ErrInvalid)
+			return fmt.Errorf("%w：容量须为大于0的十进制数，最多2位小数", ErrInvalid)
 		}
 		n, ok := new(big.Rat).SetString(in.BulkDensity)
 		if !ok || n.Sign() <= 0 {

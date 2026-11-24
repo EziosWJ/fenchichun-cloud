@@ -527,7 +527,7 @@ export default function AppLayout() {
         <main
           id="main-content"
           ref={mainRef}
-          className={styles.content}
+          className={`${styles.content} ${collapsed ? styles.contentCollapsed : ''}`}
           tabIndex={-1}
           aria-label={pageTitle}
         >

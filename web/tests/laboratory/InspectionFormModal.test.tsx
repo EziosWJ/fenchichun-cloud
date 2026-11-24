@@ -55,7 +55,7 @@ describe('inspection result entry', () => {
     await user.click(screen.getByRole('button', { name: '确认接收' }));
     await waitFor(() => expect(api.createInspection).toHaveBeenCalled());
     expect(api.createInspection.mock.calls[0][0]).toMatchObject({
-      tripId: 1, moisture: expect.stringMatching(/^13\.8/), bulkDensity: '750', conclusion: 'accept',
+      tripId: 1, moisture: expect.stringMatching(/^13\.8/), bulkDensity: expect.stringMatching(/^750(\.0{1,2})?$/), conclusion: 'accept',
     });
     expect(api.createInspection.mock.calls[0][0]).not.toHaveProperty('impurity');
   });

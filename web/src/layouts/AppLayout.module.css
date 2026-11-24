@@ -303,6 +303,10 @@
   padding: var(--app-content-padding-y) var(--app-content-padding-x) 32px;
 }
 
+.contentCollapsed {
+  margin-inline-start: 0;
+}
+
 .content:focus {
   outline: none;
 }
