@@ -89,8 +89,8 @@
     </block>
 
     <block wx:else>
-      <view class="record-hero record-hero--{{hero.tone || 'default'}} record-hero--size-{{hero.size || 'md'}} {{step === 'ticket' ? 'record-hero--compact' : ''}}">
-        <text class="record-hero__watermark">春</text>
+      <view class="record-hero record-hero--{{hero.tone || 'default'}} record-hero--size-{{hero.size || 'md'}} record-hero--dot-{{hero.dotTone || 'brand'}}">
+        <image class="record-hero__bg" src="/ui-kit/record-top-bg.png" mode="aspectFill" aria-hidden="true" />
         <view class="record-hero__label"><view class="record-hero__dot"></view>{{hero.label}}</view>
         <view class="record-hero__value record-hero__value--{{hero.size || 'md'}}">
           <text>{{hero.value}}</text>
@@ -100,47 +100,104 @@
 
       <view class="record-body">
         <block wx:if="{{step === 'ticket' && ticketView}}">
-          <view class="ticket-heading">
-            <text>结算</text>
-            <text class="ticket-heading__no">{{ticketView.no}}</text>
-          </view>
-          <view class="field-grid">
-            <view wx:for="{{ticketView.rows}}" wx:for-item="row" wx:key="index" class="record-row">
-              <view wx:for="{{row}}" wx:for-item="field" wx:key="label" class="record-field {{field.full ? 'record-field--full' : ''}}">
-                <text class="record-field__label">{{field.label}}</text>
-                <text class="record-field__value record-field__value--{{field.tone || 'default'}} record-field__value--size-{{field.size || 'md'}}">{{field.value}}</text>
+          <view class="record-card ticket-card">
+            <view class="ticket-heading">
+              <text>结算</text>
+              <text class="ticket-heading__no">{{ticketView.no}}</text>
+            </view>
+            <view class="field-grid">
+              <view wx:for="{{ticketView.rows}}" wx:for-item="row" wx:key="index" class="record-row">
+                <view wx:for="{{row}}" wx:for-item="field" wx:key="label" class="record-field {{field.full ? 'record-field--full' : ''}} {{field.alignPlate ? 'record-field--align-plate' : ''}}">
+                  <text class="record-field__label">{{field.label}}</text>
+                  <view wx:if="{{field.plate}}" class="plate-badge plate-badge--compact">{{field.value}}</view>
+                  <text wx:else class="record-field__value record-field__value--{{field.tone || 'default'}} record-field__value--size-{{field.size || 'md'}}">{{field.value}}</text>
+                </view>
               </view>
             </view>
-          </view>
 
-          <view class="rule-section">
-            <view class="section-heading">扣减规则</view>
-            <view wx:for="{{ticketView.rules}}" wx:key="index" class="rule-row">
-              <view class="rule-main">
-                <text class="rule-title">{{item.title}}</text>
-                <text class="rule-meta">{{item.meta}}</text>
+            <view class="rule-panel">
+              <view class="rule-panel__head">
+                <text>扣减规则</text>
+                <text wx:if="{{ticketView.rules.length}}">{{ticketView.deductionSigned}}</text>
               </view>
-              <text class="rule-amount">{{item.amount}}</text>
-            </view>
-            <view wx:if="{{ticketView.ruleEmpty}}" class="rule-empty">{{ticketView.ruleEmpty}}</view>
-            <view wx:if="{{ticketView.rules.length}}" class="rule-total">
-              <text>合计扣减</text>
-              <text>{{ticketView.deductionSigned}}</text>
+              <view wx:for="{{ticketView.rules}}" wx:key="index" class="rule-row">
+                <view class="rule-main">
+                  <text class="rule-title">{{item.title}}</text>
+                  <text class="rule-meta">{{item.meta}}</text>
+                </view>
+                <text class="rule-amount">{{item.amount}}</text>
+              </view>
+              <view wx:if="{{ticketView.ruleEmpty}}" class="rule-empty">{{ticketView.ruleEmpty}}</view>
             </view>
           </view>
         </block>
 
         <block wx:else>
-          <view wx:for="{{sections}}" wx:key="index" class="record-section">
-            <view wx:if="{{item.title}}" class="section-heading">{{item.title}}</view>
-            <view class="field-grid">
-              <view wx:for="{{item.rows}}" wx:for-item="row" wx:key="index" class="record-row">
-                <view wx:for="{{row}}" wx:for-item="field" wx:key="label" class="record-field {{field.full ? 'record-field--full' : ''}}">
-                  <text class="record-field__label">{{field.label}}</text>
-                  <text class="record-field__value record-field__value--{{field.tone || 'default'}} record-field__value--size-{{field.size || 'md'}}">{{field.value}}</text>
+          <view class="record-card">
+            <view wx:if="{{timeRow}}" class="record-time-row">
+              <view class="record-time__icon"></view>
+              <text class="record-time__label">{{timeRow.label}}</text>
+              <text class="record-time__value">{{timeRow.value}}</text>
+            </view>
+
+            <view wx:if="{{plate}}" class="record-plate-row">
+              <text class="record-plate-row__label">车牌号码</text>
+              <view class="plate-badge">{{plateText || plate}}</view>
+            </view>
+
+            <view wx:if="{{goods || method}}" class="record-row">
+              <view wx:if="{{goods}}" class="record-field">
+                <text class="record-field__label">货品</text>
+                <text class="record-field__value record-field__value--size-md">{{goods}}</text>
+              </view>
+              <view wx:if="{{method}}" class="record-field">
+                <text class="record-field__label">检验方式</text>
+                <text class="record-field__value record-field__value--size-md">{{method}}</text>
+              </view>
+            </view>
+
+            <view wx:if="{{lab}}" class="record-row record-row--panel">
+              <view class="record-field record-field--full">
+                <view class="lab-panel">
+                  <view class="lab-panel__cell">
+                    <text class="lab-panel__label">水分含量</text>
+                    <view class="lab-panel__value-row">
+                      <text class="lab-panel__value">{{lab.moisture}}</text>
+                      <text wx:if="{{lab.moisture !== '—'}}" class="lab-panel__unit">%</text>
+                    </view>
+                  </view>
+                  <view class="lab-panel__divider"></view>
+                  <view class="lab-panel__cell">
+                    <text class="lab-panel__label">容量</text>
+                    <text class="lab-panel__value lab-panel__value--capacity">{{lab.capacity}}</text>
+                  </view>
                 </view>
               </view>
             </view>
+
+            <view wx:for="{{sections}}" wx:key="index" class="record-section">
+              <view wx:if="{{item.title}}" class="section-heading">
+                <view class="section-heading__bar"></view>
+                <text>{{item.title}}</text>
+              </view>
+              <view class="field-grid">
+                <view wx:for="{{item.rows}}" wx:for-item="row" wx:key="index" class="record-row">
+                  <view wx:for="{{row}}" wx:for-item="field" wx:key="label" class="record-field {{field.full ? 'record-field--full' : ''}}">
+                    <text class="record-field__label">{{field.label}}</text>
+                    <text class="record-field__value record-field__value--{{field.tone || 'default'}} record-field__value--size-{{field.size || 'md'}}">{{field.value}}</text>
+                  </view>
+                </view>
+              </view>
+            </view>
+
+          </view>
+
+          <view wx:if="{{status}}" class="status-panel">
+            <view class="status-panel__body">
+              <view class="status-panel__label"><view class="status-panel__dot"></view>{{status.label}}</view>
+              <view class="status-panel__value">{{status.value}}</view>
+            </view>
+            <view class="status-panel__check"></view>
           </view>
 
           <view wx:if="{{step === 'registration' && editable}}" class="record-edit" bindtap="edit">更正登记 ›</view>

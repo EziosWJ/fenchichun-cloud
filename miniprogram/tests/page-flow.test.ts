@@ -273,6 +273,40 @@ test('页面控制器通过后端接口登记、关联磅单并跨岗位确认�
   assert.equal(unloadTimeline[1]?.title, '化验接收')
   assert.equal(unloadTimeline[2]?.title, '登记流转单')
   assert.deepEqual(detail.data.granaries, ['一号仓'])
+
+  const inspectionRecord = app.page('trip-record')
+  await call(inspectionRecord, 'onLoad', { id: '41', step: 'inspection' })
+  await call(inspectionRecord, 'onShow')
+  assert.equal(inspectionRecord.data.title, '化验结果')
+  assert.equal(inspectionRecord.data.plate, trip.plate)
+  assert.equal(inspectionRecord.data.plateText, '晋·A90909')
+
+  const registrationRecord = app.page('trip-record')
+  await call(registrationRecord, 'onLoad', { id: '41', step: 'registration' })
+  await call(registrationRecord, 'onShow')
+  assert.equal(registrationRecord.data.title, '登记信息')
+  assert.equal((registrationRecord.data.hero as { tone: string, size: string }).tone, 'brand')
+  assert.equal((registrationRecord.data.hero as { tone: string, size: string }).size, 'md')
+  assert.equal(registrationRecord.data.plate, '')
+  assert.equal((registrationRecord.data.timeRow as { label: string }).label, '登记时间')
+  const registrationSections = registrationRecord.data.sections as Array<{ title?: string }>
+  assert.equal(registrationSections.map(section => section.title).join(' / '), '货物与来源 / 运输与补充')
+  assert.equal(inspectionRecord.data.goods, trip.materialName)
+  assert.equal(inspectionRecord.data.method, '化验')
+  assert.equal((inspectionRecord.data.hero as { label: string, size: string }).label, '检验结论')
+  assert.equal((inspectionRecord.data.hero as { label: string, size: string }).size, 'sm')
+  const lab = inspectionRecord.data.lab as { moisture: string, capacity: string }
+  assert.equal(lab.moisture, '12')
+  assert.equal(lab.capacity, '—')
+
+  const currentUnloadRecord = app.page('trip-record')
+  await call(currentUnloadRecord, 'onLoad', { id: '41', step: 'current' })
+  await call(currentUnloadRecord, 'onShow')
+  assert.equal(currentUnloadRecord.data.title, '待卸货')
+  assert.equal((currentUnloadRecord.data.hero as { label: string, value: string }).label, '化验结果')
+  assert.equal((currentUnloadRecord.data.hero as { label: string, value: string }).value, '化验接收')
+  assert.equal(currentUnloadRecord.data.plate, trip.plate)
+  assert.equal(currentUnloadRecord.data.plateText, '晋·A90909')
   await call(detail, 'chooseGranary', { detail: { value: '0' } })
   publish({ stage: 'pending_ticket', version: 3, unloadedAt: time, unloadingLocation: '一号仓' }, 'confirm-unloading')
   await call(detail, 'act')
@@ -281,6 +315,21 @@ test('页面控制器通过后端接口登记、关联磅单并跨岗位确认�
   assert.equal(detail.data.status, '待磅单')
   const unloadedTimeline = detail.data.timeline as Array<{ title: string }>
   assert.equal(unloadedTimeline[1]?.title, '卸货已确认')
+  const currentTicketRecord = app.page('trip-record')
+  await call(currentTicketRecord, 'onLoad', { id: '41', step: 'current' })
+  await call(currentTicketRecord, 'onShow')
+  assert.equal(currentTicketRecord.data.title, '待磅单')
+  assert.equal((currentTicketRecord.data.hero as { label: string, value: string }).label, '卸货地点')
+  assert.equal((currentTicketRecord.data.hero as { label: string, value: string }).value, '一号仓')
+  assert.equal(currentTicketRecord.data.plate, trip.plate)
+  assert.ok(!currentTicketRecord.data.lab)
+  assert.equal(currentTicketRecord.data.goods, '')
+  const unloadRecord = app.page('trip-record')
+  await call(unloadRecord, 'onLoad', { id: '41', step: 'unload' })
+  await call(unloadRecord, 'onShow')
+  assert.equal(unloadRecord.data.title, '卸货信息')
+  assert.equal((unloadRecord.data.hero as { label: string, value: string }).value, '一号仓')
+  assert.ok(!unloadRecord.data.status)
   await call(detail, 'act')
   assert.equal(app.navigation(), '/pages/tickets/index?id=41')
 
@@ -333,6 +382,7 @@ test('页面控制器通过后端接口登记、关联磅单并跨岗位确认�
   assert.equal(ticketView.rules.length, 1)
   assert.equal(ticketView.rules[0]?.title, '水分扣量')
   assert.equal(ticketView.rules[0]?.amount, '-0.6 吨')
+  assert.equal(ticketView.fields[4]?.value, '晋·A90909')
   assert.equal(
     ticketView.fields.slice(0, 5).map(field => field.label).join(' / '),
     '调整前净重 / 扣减合计 / 毛重 / 皮重 / 车牌号码',
@@ -345,6 +395,17 @@ test('页面控制器通过后端接口登记、关联磅单并跨岗位确认�
   await call(detail, 'act')
   assert.deepEqual(app.request('POST', `${tripPath}/issue-permit`)?.data, { version: 4 })
   assert.equal(detail.data.status, '待审批')
+  const approveRecord = app.page('trip-record')
+  await call(approveRecord, 'onLoad', { id: '41', step: 'current' })
+  await call(approveRecord, 'onShow')
+  assert.equal(approveRecord.data.title, '待审批')
+  assert.equal((approveRecord.data.hero as { label: string }).label, '出单净重')
+  assert.equal(approveRecord.data.plate, trip.plate)
+  assert.ok(!approveRecord.data.status)
+  const approveSections = approveRecord.data.sections as Array<{ rows: Array<Array<{ label: string }>> }>
+  const approveLabels = approveSections.flatMap(section => section.rows.flat()).map(field => field.label)
+  assert.ok(approveLabels.includes('出门证号'))
+  assert.ok(!approveLabels.includes('出单净重'))
 
   evidence.permit = { ...evidence.permit, approvedAt: time }
   publish({ stage: 'permit_approved', version: 6 }, 'approve-permit')

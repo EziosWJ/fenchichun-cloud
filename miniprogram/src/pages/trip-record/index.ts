@@ -7,7 +7,7 @@ import { canEdit, inspectionText, tripStatus } from '@/features/grain/presentati
 const stepTitles: Record<string, string> = {
   current: '当前步骤',
   registration: '登记信息',
-  inspection: '检验结果',
+  inspection: '化验结果',
   unload: '卸货信息',
   ticket: '磅单数据',
   permit: '出门证',
@@ -19,6 +19,8 @@ interface RecordField {
   tone?: 'brand' | 'success' | 'warning' | 'error'
   full?: boolean
   size?: 'lg' | 'md' | 'sm' | 'xs'
+  plate?: boolean
+  alignPlate?: boolean
 }
 
 interface RecordSection {
@@ -32,6 +34,22 @@ interface RecordHero {
   unit?: string
   tone?: 'default' | 'brand' | 'success' | 'error'
   size?: 'sm' | 'md' | 'lg' | 'xl'
+  dotTone?: 'brand' | 'success' | 'accent'
+}
+
+interface RecordTimeRow {
+  label: string
+  value: string
+}
+
+interface RecordLab {
+  moisture: string
+  capacity: string
+}
+
+interface RecordStatus {
+  label: string
+  value: string
 }
 
 interface TicketRule {
@@ -70,6 +88,13 @@ interface RecordView {
   sections: RecordSection[]
   ticketView: TicketView | null
   permitView: PermitView | null
+  plate?: string
+  plateText?: string
+  timeRow?: RecordTimeRow
+  goods?: string
+  lab?: RecordLab
+  method?: string
+  status?: RecordStatus
 }
 
 function rateText(rateBp?: number | null) {
@@ -101,6 +126,14 @@ function adjustmentTotalOf(ticket: Trip['ticket']) {
     return (Number(ticket.net) - Number(ticket.deducted)).toFixed(3)
   }
   return ''
+}
+
+function plateLabel(value: string) {
+  const text = value.trim()
+  if (text.length < 2 || text.includes('·')) {
+    return text
+  }
+  return `${text.slice(0, 1)}·${text.slice(1)}`
 }
 
 function trimWeight(value: string) {
@@ -179,10 +212,10 @@ function currentView(trip: Trip, status: ReturnType<typeof tripStatus>): RecordV
 
   if (status.action === 'unload') {
     return {
-      hero: { label: '检验结果', value: inspection, tone: 'success', size: 'md' },
+      hero: { label: '化验结果', value: inspection, tone: 'success', size: 'md', dotTone: 'success' },
+      plate,
       sections: [{
         rows: toRows([
-          { label: '车牌号码', value: plate, full: true, size: 'lg' },
           { label: '货品', value: trip.material, size: 'md' },
           { label: '供应商', value: trip.supplier || '未提供', size: 'sm' },
         ]),
@@ -194,13 +227,12 @@ function currentView(trip: Trip, status: ReturnType<typeof tripStatus>): RecordV
 
   if (status.action === 'ticket') {
     return {
-      hero: { label: '卸货地点', value: trip.unload?.location || '未确认', size: 'lg' },
+      hero: { label: '卸货地点', value: trip.unload?.location || '未确认', size: 'lg', dotTone: 'accent' },
+      plate,
       sections: [{
         rows: toRows([
-          { label: '车牌号码', value: plate, full: true, size: 'lg' },
           { label: '货品', value: trip.material, size: 'md' },
           { label: '供应商', value: trip.supplier || '未提供', size: 'sm' },
-          { label: '检验结果', value: inspection, tone: 'success', full: true, size: 'md' },
         ]),
       }],
       ticketView: null,
@@ -210,11 +242,11 @@ function currentView(trip: Trip, status: ReturnType<typeof tripStatus>): RecordV
 
   if (status.action === 'confirm-ticket') {
     return {
-      hero: { label: '磅单号', value: ticket?.id || empty, size: 'sm' },
+      hero: { label: '磅单号', value: ticket?.id || empty, size: 'sm', dotTone: 'accent' },
+      plate,
       sections: [{
         rows: toRows([
-          { label: '车牌号码', value: plate, full: true, size: 'lg' },
-          { label: '出单净重', value: finalNet === empty ? empty : tonnes(finalNet), tone: 'brand', size: 'md' },
+          { label: '出单净重', value: finalNet === empty ? empty : tonnes(finalNet), tone: 'brand', size: 'lg' },
           { label: '供应商', value: trip.supplier || '未提供', size: 'sm' },
           { label: '卸货地点', value: trip.unload?.location || '未确认', size: 'md' },
           { label: '货品', value: trip.material, size: 'md' },
@@ -232,14 +264,14 @@ function currentView(trip: Trip, status: ReturnType<typeof tripStatus>): RecordV
         value: finalNet === empty ? empty : trimWeight(finalNet),
         unit: finalNet === empty ? '' : '吨',
         tone: 'brand',
-        size: 'xl',
+        size: 'lg',
+        dotTone: 'brand',
       },
+      plate,
       sections: [{
         rows: toRows([
-          { label: '车牌号码', value: plate, full: true, size: 'lg' },
-          { label: '卸货地点', value: trip.unload?.location || '未确认', size: 'md' },
+          { label: '磅单号', value: ticket?.id || empty, full: true, size: 'sm' },
           { label: '检验结果', value: inspection, tone: 'success', size: 'md' },
-          { label: '磅单号', value: ticket?.id || empty, size: 'sm' },
           { label: '货品', value: trip.material, size: 'md' },
           { label: '供应商', value: trip.supplier || '未提供', full: true, size: 'sm' },
         ]),
@@ -251,14 +283,21 @@ function currentView(trip: Trip, status: ReturnType<typeof tripStatus>): RecordV
 
   if (status.action === 'approve') {
     return {
-      hero: { label: '出门证号', value: permit?.id || empty, size: 'sm' },
+      hero: {
+        label: '出单净重',
+        value: finalNet === empty ? empty : trimWeight(finalNet),
+        unit: finalNet === empty ? '' : '吨',
+        tone: 'brand',
+        size: 'lg',
+        dotTone: 'brand',
+      },
+      plate,
       sections: [{
         rows: toRows([
-          { label: '车牌号码', value: plate, full: true, size: 'lg' },
-          { label: '出单净重', value: finalNet === empty ? empty : tonnes(finalNet), tone: 'brand', size: 'md' },
-          { label: '磅单号', value: ticket?.id || empty, size: 'sm' },
+          { label: '出门证号', value: permit?.id || empty, size: 'sm' },
           { label: '开具时间', value: permit?.issuedAt || empty, size: 'xs' },
-          { label: '供应商', value: trip.supplier || '未提供', size: 'sm' },
+          { label: '磅单号', value: ticket?.id || empty, full: true, size: 'sm' },
+          { label: '供应商', value: trip.supplier || '未提供', full: true, size: 'sm' },
         ]),
       }],
       ticketView: null,
@@ -268,12 +307,12 @@ function currentView(trip: Trip, status: ReturnType<typeof tripStatus>): RecordV
 
   if (trip.stage === 'permit_approved') {
     return {
-      hero: { label: '出门证号', value: permit?.id || empty, size: 'sm' },
+      hero: { label: '出门证号', value: permit?.id || empty, size: 'sm', dotTone: 'success' },
+      plate,
       sections: [{
         rows: toRows([
-          { label: '车牌号码', value: plate, full: true, size: 'lg' },
           { label: '审批状态', value: '已审批', tone: 'success', size: 'md' },
-          { label: '出单净重', value: finalNet === empty ? empty : tonnes(finalNet), tone: 'brand', size: 'md' },
+          { label: '出单净重', value: finalNet === empty ? empty : tonnes(finalNet), tone: 'brand', size: 'lg' },
           { label: '审批时间', value: permit?.approvedAt || empty, size: 'xs' },
           { label: '供应商', value: trip.supplier || '未提供', size: 'sm' },
         ]),
@@ -285,10 +324,10 @@ function currentView(trip: Trip, status: ReturnType<typeof tripStatus>): RecordV
 
   if (trip.stage === 'rejected') {
     return {
-      hero: { label: '检验结论', value: inspection, tone: 'error', size: 'lg' },
+      hero: { label: '检验结论', value: inspection, tone: 'error', size: 'md', dotTone: 'brand' },
+      plate,
       sections: [{
         rows: toRows([
-          { label: '车牌号码', value: plate, full: true, size: 'lg' },
           { label: '货品', value: trip.material, size: 'md' },
           { label: '供应商', value: trip.supplier || '未提供', size: 'sm' },
           { label: '拒收原因', value: trip.inspection?.reason || '未填写', full: true, tone: 'error', size: 'sm' },
@@ -317,9 +356,9 @@ function currentView(trip: Trip, status: ReturnType<typeof tripStatus>): RecordV
   if (status.action === 'visual') {
     return {
       hero: { label: '检验方式', value: '目测', size: 'md' },
+      plate,
       sections: [{
         rows: toRows([
-          { label: '车牌号码', value: plate, full: true, size: 'lg' },
           { label: '货品', value: trip.material, size: 'md' },
           { label: '供应商', value: trip.supplier || '未提供', size: 'sm' },
         ]),
@@ -331,9 +370,9 @@ function currentView(trip: Trip, status: ReturnType<typeof tripStatus>): RecordV
 
   return {
     hero: { label: '检验方式', value: '化验', size: 'md' },
+    plate,
     sections: [{
       rows: toRows([
-        { label: '车牌号码', value: plate, full: true, size: 'lg' },
         { label: '货品', value: trip.material, size: 'md' },
         { label: '供应商', value: trip.supplier || '未提供', size: 'sm' },
       ]),
@@ -345,19 +384,27 @@ function currentView(trip: Trip, status: ReturnType<typeof tripStatus>): RecordV
 
 function registrationView(trip: Trip): RecordView {
   return {
-    hero: { label: '车牌号码', value: trip.plate, size: 'lg' },
-    sections: [{
-      rows: toRows([
-        { label: '登记时间', value: trip.createdAt || '—', full: true, size: 'sm' },
-        { label: '厂区', value: trip.site || '—', size: 'md' },
-        { label: '货品', value: trip.material || '—', size: 'md' },
-        { label: '供应商', value: trip.supplier || '未提供', size: 'md' },
-        { label: '司机', value: trip.driver || '未填写', size: 'md' },
-        { label: '联系电话', value: trip.phone || '未填写', size: 'sm' },
-        { label: '合同编号', value: trip.contract || '未填写', size: 'xs' },
-        { label: '备注', value: trip.note || '未填写', full: true, size: 'sm' },
-      ]),
-    }],
+    hero: { label: '车牌号码', value: trip.plate, tone: 'brand', size: 'md', dotTone: 'brand' },
+    timeRow: { label: '登记时间', value: trip.createdAt || '—' },
+    sections: [
+      {
+        title: '货物与来源',
+        rows: toRows([
+          { label: '货品', value: trip.material || '—', size: 'md' },
+          { label: '厂区', value: trip.site || '—', size: 'md' },
+          { label: '供应商', value: trip.supplier || '未提供', full: true, size: 'md' },
+        ]),
+      },
+      {
+        title: '运输与补充',
+        rows: toRows([
+          { label: '司机', value: trip.driver || '未填写', size: 'md' },
+          { label: '联系电话', value: trip.phone || '未填写', size: 'sm' },
+          { label: '合同编号', value: trip.contract || '未填写', full: true, size: 'xs' },
+          { label: '备注', value: trip.note || '未填写', full: true, size: 'sm' },
+        ]),
+      },
+    ],
     ticketView: null,
     permitView: null,
   }
@@ -367,23 +414,12 @@ function inspectionView(trip: Trip): RecordView {
   const inspection = trip.inspection
   const conclusion = inspectionText(trip)
   const rejected = inspection?.conclusion === 'reject'
+  const isLab = trip.method === 'lab'
   const fields: RecordField[] = [
-    { label: '车牌号码', value: trip.plate, full: true, size: 'lg' },
-    { label: '货品', value: trip.material || '—', size: 'md' },
-    { label: '供应商', value: trip.supplier || '未提供', size: 'md' },
-    { label: '检验方式', value: trip.method === 'lab' ? '化验' : '目测', size: 'md' },
+    { label: '供应商', value: trip.supplier || '未提供', full: true, size: 'md' },
     { label: '检验时间', value: inspection?.at || '—', size: 'xs' },
-  ]
-  if (trip.method === 'lab') {
-    fields.push(
-      { label: '水分', value: inspection?.moisture ? `${inspection.moisture}%` : '—', size: 'md' },
-      { label: '容量', value: inspection?.capacity ? `${inspection.capacity} g/L` : '—', size: 'md' },
-    )
-  }
-  fields.push(
-    { label: '确认人', value: inspection?.operator || '—', size: 'sm' },
     { label: '确认时间', value: inspection?.at || '—', size: 'xs' },
-  )
+  ]
   if (rejected && inspection?.reason) {
     fields.push({ label: '拒收原因', value: inspection.reason, full: true, tone: 'error', size: 'sm' })
   }
@@ -392,8 +428,18 @@ function inspectionView(trip: Trip): RecordView {
       label: '检验结论',
       value: conclusion,
       tone: rejected ? 'error' : 'success',
-      size: 'lg',
+      size: 'sm',
+      dotTone: rejected ? 'brand' : 'success',
     },
+    plate: trip.plate,
+    goods: trip.material || '—',
+    lab: isLab
+      ? {
+          moisture: inspection?.moisture || '—',
+          capacity: inspection?.capacity ? `${inspection.capacity} g/L` : '—',
+        }
+      : undefined,
+    method: isLab ? '化验' : '目测',
     sections: [{ rows: toRows(fields) }],
     ticketView: null,
     permitView: null,
@@ -403,16 +449,17 @@ function inspectionView(trip: Trip): RecordView {
 function unloadView(trip: Trip): RecordView {
   return {
     hero: {
-      label: '实际卸货地点',
+      label: '卸货地点',
       value: trip.unload?.location || '未确认',
       size: 'lg',
+      dotTone: 'success',
     },
+    plate: trip.plate,
     sections: [{
       rows: toRows([
-        { label: '车牌号码', value: trip.plate, full: true, size: 'lg' },
         { label: '货品', value: trip.material || '—', size: 'md' },
-        { label: '供应商', value: trip.supplier || '未提供', size: 'md' },
-        { label: '确认时间', value: trip.unload?.at || '—', full: true, size: 'sm' },
+        { label: '供应商', value: trip.supplier || '未提供', size: 'sm' },
+        { label: '确认时间', value: trip.unload?.at || '—', full: true, size: 'md' },
       ]),
     }],
     ticketView: null,
@@ -445,12 +492,12 @@ function ticketView(trip: Trip): RecordView {
     })
   }
   const ticketFields: RecordField[] = [
-    { label: '调整前净重', value: before ? tonnes(before) : '—', size: 'md' },
-    { label: '扣减合计', value: deduction ? tonnes(deduction) : '—', tone: 'warning', size: 'md' },
-    { label: '毛重', value: ticket?.gross ? tonnes(ticket.gross) : '—', size: 'md' },
-    { label: '皮重', value: ticket?.tare ? tonnes(ticket.tare) : '—', size: 'md' },
-    { label: '车牌号码', value: trip.plate, size: 'md' },
-    { label: '供应商', value: ticket?.supplier || trip.supplier || '未提供', size: 'sm' },
+    { label: '调整前净重', value: before ? tonnes(before) : '—', size: 'lg' },
+    { label: '扣减合计', value: deduction ? tonnes(deduction) : '—', tone: 'warning', size: 'lg' },
+    { label: '毛重', value: ticket?.gross ? tonnes(ticket.gross) : '—', size: 'lg' },
+    { label: '皮重', value: ticket?.tare ? tonnes(ticket.tare) : '—', size: 'lg' },
+    { label: '车牌号码', value: plateLabel(trip.plate), plate: true, size: 'sm' },
+    { label: '供应商', value: ticket?.supplier || trip.supplier || '未提供', size: 'sm', alignPlate: true },
     { label: '首磅时间', value: ticket?.firstAt || '—', size: 'xs' },
     { label: '回磅时间', value: ticket?.secondAt || '—', size: 'xs' },
   ]
@@ -460,7 +507,8 @@ function ticketView(trip: Trip): RecordView {
       value: final ? trimWeight(final) : '—',
       unit: final ? '吨' : '',
       tone: 'brand',
-      size: 'xl',
+      size: 'lg',
+      dotTone: 'brand',
     },
     sections: [],
     ticketView: {
@@ -502,22 +550,21 @@ function permitView(trip: Trip): RecordView {
 
 function buildView(step: string, trip: Trip) {
   const status = tripStatus(trip)
-  if (step === 'current') {
-    return currentView(trip, status)
+  const view = step === 'current'
+    ? currentView(trip, status)
+    : step === 'registration'
+      ? registrationView(trip)
+      : step === 'inspection'
+        ? inspectionView(trip)
+        : step === 'unload'
+          ? unloadView(trip)
+          : step === 'ticket'
+            ? ticketView(trip)
+            : permitView(trip)
+  if (view.plate) {
+    view.plateText = plateLabel(view.plate)
   }
-  if (step === 'registration') {
-    return registrationView(trip)
-  }
-  if (step === 'inspection') {
-    return inspectionView(trip)
-  }
-  if (step === 'unload') {
-    return unloadView(trip)
-  }
-  if (step === 'ticket') {
-    return ticketView(trip)
-  }
-  return permitView(trip)
+  return view
 }
 
 Page({
@@ -532,6 +579,13 @@ Page({
     sections: [] as RecordSection[],
     ticketView: null as TicketView | null,
     permitView: null as PermitView | null,
+    plate: '',
+    plateText: '',
+    timeRow: null as RecordTimeRow | null,
+    goods: '',
+    lab: null as RecordLab | null,
+    method: '',
+    status: null as RecordStatus | null,
     editable: false,
   },
   onLoad(query: Record<string, string | undefined>) {
@@ -550,13 +604,24 @@ Page({
       }
       const apply = (trip: Trip) => {
         const status = tripStatus(trip)
-        const title = this.data.step === 'current' ? status.label : stepTitles[this.data.step]
+        const title = this.data.step === 'current'
+          ? status.label
+          : this.data.step === 'inspection' && trip.method !== 'lab'
+            ? '目测结果'
+            : stepTitles[this.data.step]
         const view = buildView(this.data.step, trip)
         wx.setNavigationBarTitle({ title })
         this.setData({
           trip,
           title,
           editable: canEdit(trip),
+          plate: '',
+          plateText: '',
+          timeRow: null,
+          goods: '',
+          lab: null,
+          method: '',
+          status: null,
           ...view,
         })
         this.setData({ loading: false })
