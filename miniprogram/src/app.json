@@ -11,6 +11,7 @@
     "pages/trip-record/index",
     "pages/tickets/index",
     "pages/exit/index",
+    "pages/distiller-grains/index",
     "pages/ui/index"
   ],
   "window": {

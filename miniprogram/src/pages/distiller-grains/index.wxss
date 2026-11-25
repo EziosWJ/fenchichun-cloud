@@ -1,0 +1,374 @@
+.page {
+  min-height: 100vh;
+  padding: 24rpx 24rpx calc(48rpx + env(safe-area-inset-bottom));
+  background: var(--fc-bg);
+}
+
+.head {
+  padding: 8rpx 8rpx 20rpx;
+}
+
+.head-title {
+  font-size: 48rpx;
+  font-weight: 600;
+  color: var(--fc-text);
+  letter-spacing: -0.5rpx;
+}
+
+.head-sub {
+  margin-top: 8rpx;
+  font-size: 26rpx;
+  color: var(--fc-text-secondary);
+}
+
+.mode-scroll {
+  width: 100%;
+  white-space: nowrap;
+}
+
+.mode-row {
+  display: inline-flex;
+  gap: 12rpx;
+  padding: 4rpx 0 16rpx;
+}
+
+.mode-chip {
+  flex: none;
+  min-width: 108rpx;
+  padding: 20rpx 26rpx;
+  font-size: 30rpx;
+  color: var(--fc-text-secondary);
+  text-align: center;
+  background: var(--fc-surface);
+  border: 1rpx solid var(--fc-border);
+  border-radius: 999rpx;
+}
+
+.mode-chip.active {
+  font-weight: 600;
+  color: #fff;
+  background: var(--fc-brand);
+  border-color: var(--fc-brand);
+}
+
+.filter-card {
+  padding: 8rpx 28rpx;
+  background: var(--fc-surface);
+  border: 1rpx solid var(--fc-border);
+  border-radius: 28rpx;
+}
+
+.filter-row {
+  display: flex;
+  gap: 20rpx;
+  align-items: center;
+  min-height: 96rpx;
+}
+
+.filter-label {
+  flex: none;
+  font-size: 28rpx;
+  color: var(--fc-text-secondary);
+}
+
+.filter-value {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: 32rpx;
+  font-weight: 500;
+  color: var(--fc-text);
+  white-space: nowrap;
+}
+
+.date-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16rpx;
+  padding: 16rpx 0 20rpx;
+  border-top: 1rpx solid var(--fc-border);
+}
+
+.date-field {
+  display: flex;
+  gap: 12rpx;
+  align-items: center;
+  min-height: 80rpx;
+  padding: 0 20rpx;
+  background: var(--fc-surface-muted);
+  border-radius: 20rpx;
+}
+
+.date-label {
+  flex: none;
+  font-size: 26rpx;
+  color: var(--fc-text-secondary);
+}
+
+.date-value {
+  font-size: 30rpx;
+  font-weight: 500;
+  color: var(--fc-text);
+}
+
+.summary {
+  padding: 32rpx;
+  margin-top: 24rpx;
+  background: var(--fc-surface);
+  border: 1rpx solid var(--fc-border);
+  border-radius: 28rpx;
+}
+
+.summary-label {
+  font-size: 30rpx;
+  color: var(--fc-text-secondary);
+}
+
+.summary-date {
+  margin-top: 6rpx;
+  font-size: 24rpx;
+  color: var(--fc-text-placeholder);
+}
+
+.summary-value {
+  margin-top: 16rpx;
+  font-size: 88rpx;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.05;
+  color: var(--fc-brand);
+}
+
+.summary-unit {
+  margin-left: 12rpx;
+  font-size: 34rpx;
+  font-weight: 500;
+  color: var(--fc-text);
+}
+
+.summary-meta {
+  margin-top: 12rpx;
+  font-size: 32rpx;
+  color: var(--fc-text);
+}
+
+.hint {
+  margin: 20rpx 8rpx 0;
+  font-size: 26rpx;
+  color: var(--fc-text-secondary);
+}
+
+.day-list,
+.record-list {
+  margin-top: 16rpx;
+  overflow: hidden;
+  background: var(--fc-surface);
+  border: 1rpx solid var(--fc-border);
+  border-radius: 28rpx;
+}
+
+.day-row {
+  display: flex;
+  gap: 20rpx;
+  align-items: center;
+  min-height: 128rpx;
+  padding: 20rpx 28rpx;
+  border-top: 1rpx solid var(--fc-border);
+}
+
+.day-list .day-row:first-child {
+  border-top: none;
+}
+
+.day-row--hover {
+  background: var(--fc-surface-muted);
+}
+
+.day-main {
+  flex: 1;
+  min-width: 0;
+}
+
+.day-label {
+  font-size: 34rpx;
+  font-weight: 600;
+  color: var(--fc-text);
+}
+
+.day-meta {
+  margin-top: 6rpx;
+  font-size: 26rpx;
+  color: var(--fc-text-secondary);
+}
+
+.weight {
+  display: flex;
+  flex: none;
+  gap: 6rpx;
+  align-items: baseline;
+}
+
+.weight-value {
+  font-size: 40rpx;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--fc-brand);
+}
+
+.weight-unit {
+  font-size: 24rpx;
+  color: var(--fc-text-secondary);
+}
+
+.group-head {
+  display: flex;
+  justify-content: space-between;
+  padding: 18rpx 28rpx;
+  font-size: 28rpx;
+  font-weight: 600;
+  color: var(--fc-text-secondary);
+  background: var(--fc-surface-muted);
+}
+
+.record-row {
+  display: flex;
+  gap: 16rpx;
+  align-items: center;
+  min-height: 112rpx;
+  padding: 18rpx 28rpx;
+  border-top: 1rpx solid var(--fc-border);
+}
+
+.record-time {
+  flex: none;
+  width: 92rpx;
+  font-size: 30rpx;
+  font-variant-numeric: tabular-nums;
+  color: var(--fc-text-secondary);
+}
+
+.record-plate {
+  flex: none;
+  min-width: 150rpx;
+  font-size: 32rpx;
+  font-weight: 600;
+  color: var(--fc-text);
+}
+
+.record-customer {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: 28rpx;
+  color: var(--fc-text-secondary);
+  white-space: nowrap;
+}
+
+.record-row .weight {
+  margin-left: auto;
+}
+
+.sheet-mask {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  align-items: flex-end;
+  background: rgb(37 40 43 / 45%);
+}
+
+.sheet {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-height: 86vh;
+  background: var(--fc-surface);
+  border-radius: 36rpx 36rpx 0 0;
+}
+
+.sheet-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 28rpx 32rpx 20rpx;
+}
+
+.sheet-title {
+  font-size: 34rpx;
+  font-weight: 600;
+  color: var(--fc-text);
+}
+
+.sheet-close {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 64rpx;
+  height: 64rpx;
+  font-size: 44rpx;
+  line-height: 1;
+  color: var(--fc-text-secondary);
+}
+
+.sheet-body {
+  flex: 1;
+  min-height: 0;
+  max-height: 62vh;
+  padding: 0 32rpx;
+}
+
+.sheet-summary {
+  display: flex;
+  gap: 20rpx;
+  align-items: baseline;
+  justify-content: space-between;
+  padding: 8rpx 0 20rpx;
+}
+
+.sheet-total {
+  font-size: 52rpx;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--fc-brand);
+}
+
+.sheet-count {
+  font-size: 28rpx;
+  color: var(--fc-text-secondary);
+}
+
+.sheet-body .record-row,
+.sheet-body .group-head {
+  padding-right: 0;
+  padding-left: 0;
+}
+
+.sheet-error {
+  padding: 40rpx 0;
+  font-size: 28rpx;
+  color: var(--fc-error);
+  text-align: center;
+}
+
+.sheet-footer {
+  padding: 20rpx 32rpx calc(24rpx + env(safe-area-inset-bottom));
+  border-top: 1rpx solid var(--fc-border);
+}
+
+.sheet-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 96rpx;
+  font-size: 32rpx;
+  font-weight: 600;
+  color: #fff;
+  background: var(--fc-brand);
+  border-radius: 24rpx;
+}
+
+.sheet-btn--hover {
+  background: var(--fc-brand-pressed);
+}

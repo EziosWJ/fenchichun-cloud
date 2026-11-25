@@ -32,6 +32,15 @@ Page({
       if (!current) {
         return
       }
+      if (current.role === 'finance') {
+        this.setData({
+          role: 'finance',
+          roleName: roleLabels.finance,
+          trips: [],
+          loading: false,
+        })
+        return
+      }
       const apply = (all: Trip[]) => {
         const query = this.data.query
         const trips = all.filter((trip) => {
@@ -79,5 +88,8 @@ Page({
   },
   register() {
     wx.navigateTo({ url: routes.registration })
+  },
+  openDistillerGrains() {
+    wx.navigateTo({ url: routes.distillerGrains })
   },
 })

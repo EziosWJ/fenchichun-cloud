@@ -3,6 +3,7 @@ import type { Role, Trip } from './types'
 export const roleLabels: Record<Role, string> = {
   warehouse: '库管',
   guard: '门卫',
+  finance: '财务',
 }
 
 const stageStatuses: Record<string, {

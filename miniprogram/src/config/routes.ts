@@ -9,5 +9,6 @@ export const routes = {
   tripRecord: '/pages/trip-record/index',
   tickets: '/pages/tickets/index',
   exit: '/pages/exit/index',
+  distillerGrains: '/pages/distiller-grains/index',
   components: '/pages/ui/index',
 } as const

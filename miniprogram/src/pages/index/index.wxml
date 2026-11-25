@@ -6,6 +6,16 @@
     />
   </view>
 
+  <block wx:if="{{role === 'finance'}}">
+    <view class="finance-entry" bindtap="openDistillerGrains" hover-class="finance-entry--hover" aria-role="button" aria-label="酒糟统计">
+      <view class="finance-entry__main">
+        <view class="finance-entry__title">酒糟统计</view>
+        <view class="finance-entry__desc">查看酒糟出库量，可按客户、时段查询</view>
+      </view>
+      <t-icon name="chevron-right" size="40rpx" color="#a74532" />
+    </view>
+  </block>
+  <block wx:else>
   <view class="search-sticky">
     <view class="search-row">
       <view class="search-field">
@@ -49,4 +59,5 @@
     mode="workbench"
     show-action="{{role === 'guard' ? !gateHistory : true}}"
   />
+  </block>
 </view>

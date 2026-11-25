@@ -1,4 +1,8 @@
 <view class="screen ledger-screen">
+  <block wx:if="{{role === 'finance'}}">
+    <empty-state text="财务账号请从工作台进入酒糟统计" />
+  </block>
+  <block wx:else>
   <view class="ledger-sticky">
     <view class="search-field">
       <t-icon class="search-field__icon" name="search" size="32rpx" color="#777674" />
@@ -26,4 +30,5 @@
   <error-state wx:elif="{{error}}" text="{{error}}" bind:retry="load" />
   <empty-state wx:elif="{{!trips.length}}" text="{{query ? '没有匹配的流转单' : '暂无流转单'}}" />
   <trip-list wx:else trips="{{trips}}" kind="{{role}}" mode="ledger" />
+  </block>
 </view>

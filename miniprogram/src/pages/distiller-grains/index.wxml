@@ -1,0 +1,137 @@
+<view class="page">
+  <view class="head">
+    <view class="head-title">酒糟统计</view>
+    <view class="head-sub">财务专用 · 出库量与明细</view>
+  </view>
+
+  <scroll-view scroll-x class="mode-scroll" show-scrollbar="{{false}}" enhanced>
+    <view class="mode-row">
+      <view
+        wx:for="{{modes}}"
+        wx:key="value"
+        class="mode-chip {{mode === item.value ? 'active' : ''}}"
+        data-mode="{{item.value}}"
+        bindtap="changeMode"
+      >{{item.label}}</view>
+    </view>
+  </scroll-view>
+
+  <view class="filter-card">
+    <picker range="{{customerNames}}" value="{{customerIndex}}" bindchange="changeCustomer">
+      <view class="filter-row">
+        <text class="filter-label">客户</text>
+        <text class="filter-value">{{customerNames[customerIndex]}}</text>
+        <t-icon name="chevron-down" size="32rpx" color="#a5a39f" />
+      </view>
+    </picker>
+    <view wx:if="{{isDetail}}" class="date-row">
+      <picker mode="date" value="{{from}}" bindchange="changeFrom">
+        <view class="date-field">
+          <text class="date-label">开始</text>
+          <text class="date-value">{{fromText}}</text>
+        </view>
+      </picker>
+      <picker mode="date" value="{{to}}" bindchange="changeTo">
+        <view class="date-field">
+          <text class="date-label">结束</text>
+          <text class="date-value">{{toText}}</text>
+        </view>
+      </picker>
+    </view>
+  </view>
+
+  <loading-state wx:if="{{loading}}" text="正在加载酒糟出库" />
+  <error-state wx:elif="{{error}}" text="{{error}}" bind:retry="load" />
+  <block wx:else>
+    <view class="summary">
+      <view class="summary-label">{{summaryLabel}}</view>
+      <view class="summary-date">{{dateText}}<text wx:if="{{customerName}}"> · {{customerName}}</text></view>
+      <view class="summary-value">{{totalText}}<text class="summary-unit">吨</text></view>
+      <view class="summary-meta">共 {{ticketCount}} 车</view>
+    </view>
+
+    <view wx:if="{{(unit === 'week' || unit === 'month') && hasData}}" class="hint">
+      点{{unit === 'week' ? '某一天' : '某一周'}}，查看每车明细
+    </view>
+
+    <empty-state wx:if="{{!hasData}}" text="{{emptyText}}" />
+
+    <view wx:elif="{{unit === 'week' || unit === 'month'}}" class="day-list">
+      <view
+        wx:for="{{rows}}"
+        wx:key="key"
+        class="day-row"
+        hover-class="day-row--hover"
+        data-start="{{item.start}}"
+        data-end="{{item.end}}"
+        data-label="{{item.label}}"
+        bindtap="openDetail"
+      >
+        <view class="day-main">
+          <view class="day-label">{{item.label}}</view>
+          <view class="day-meta">{{item.meta}}</view>
+        </view>
+        <view class="weight">
+          <text class="weight-value">{{item.weight}}</text>
+          <text class="weight-unit">吨</text>
+        </view>
+        <t-icon name="chevron-right" size="36rpx" color="#a5a39f" />
+      </view>
+    </view>
+
+    <view wx:else class="record-list">
+      <block wx:for="{{groups}}" wx:key="date" wx:for-item="group">
+        <view wx:if="{{isDetail}}" class="group-head">
+          <text>{{group.label}}</text>
+          <text>{{group.total}} 吨</text>
+        </view>
+        <view wx:for="{{group.records}}" wx:key="ticketNo" wx:for-item="record" class="record-row">
+          <text class="record-time">{{record.time}}</text>
+          <text class="record-plate">{{record.plate}}</text>
+          <text wx:if="{{showCustomer}}" class="record-customer">{{record.customer}}</text>
+          <view class="weight">
+            <text class="weight-value">{{record.weight}}</text>
+            <text class="weight-unit">吨</text>
+          </view>
+        </view>
+      </block>
+    </view>
+  </block>
+
+  <view wx:if="{{modalOpen}}" class="sheet-mask" bindtap="closeModal">
+    <view class="sheet" catchtap="stopTap">
+      <view class="sheet-head">
+        <text class="sheet-title">{{modalTitle}}</text>
+        <view class="sheet-close" bindtap="closeModal" aria-role="button" aria-label="关闭">×</view>
+      </view>
+      <scroll-view scroll-y class="sheet-body">
+        <loading-state wx:if="{{modalLoading}}" text="正在加载明细" />
+        <view wx:elif="{{modalError}}" class="sheet-error">{{modalError}}</view>
+        <block wx:else>
+          <view class="sheet-summary">
+            <text class="sheet-total">{{modalTotal}} 吨</text>
+            <text class="sheet-count">共 {{modalCount}} 车</text>
+          </view>
+          <block wx:for="{{modalGroups}}" wx:key="date" wx:for-item="group">
+            <view class="group-head">
+              <text>{{group.label}}</text>
+              <text>{{group.total}} 吨</text>
+            </view>
+            <view wx:for="{{group.records}}" wx:key="ticketNo" wx:for-item="record" class="record-row">
+              <text class="record-time">{{record.time}}</text>
+              <text class="record-plate">{{record.plate}}</text>
+              <text wx:if="{{showCustomer}}" class="record-customer">{{record.customer}}</text>
+              <view class="weight">
+                <text class="weight-value">{{record.weight}}</text>
+                <text class="weight-unit">吨</text>
+              </view>
+            </view>
+          </block>
+        </block>
+      </scroll-view>
+      <view class="sheet-footer">
+        <view class="sheet-btn" bindtap="closeModal" hover-class="sheet-btn--hover">关闭</view>
+      </view>
+    </view>
+  </view>
+</view>
