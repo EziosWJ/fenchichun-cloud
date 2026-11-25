@@ -32,7 +32,11 @@ Page({
       if (!current) {
         return
       }
-      if (current.role === 'finance' || current.role === 'outbound') {
+      if (current.role === 'outbound') {
+        wx.reLaunch({ url: routes.outboundWeigh })
+        return
+      }
+      if (current.role === 'finance') {
         this.setData({
           role: current.role,
           roleName: roleLabels[current.role],
