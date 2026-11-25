@@ -2,6 +2,9 @@
   <block wx:if="{{role === 'finance'}}">
     <empty-state text="财务账号请从工作台进入酒糟统计" />
   </block>
+  <block wx:elif="{{role === 'outbound'}}">
+    <empty-state text="出库账号请从工作台进入酒糟过磅" />
+  </block>
   <block wx:else>
   <view class="ledger-sticky">
     <view class="search-field">

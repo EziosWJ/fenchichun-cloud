@@ -4,6 +4,7 @@ export const roleLabels: Record<Role, string> = {
   warehouse: '库管',
   guard: '门卫',
   finance: '财务',
+  outbound: '酒糟出库',
 }
 
 const stageStatuses: Record<string, {

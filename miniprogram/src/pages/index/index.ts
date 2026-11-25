@@ -32,10 +32,10 @@ Page({
       if (!current) {
         return
       }
-      if (current.role === 'finance') {
+      if (current.role === 'finance' || current.role === 'outbound') {
         this.setData({
-          role: 'finance',
-          roleName: roleLabels.finance,
+          role: current.role,
+          roleName: roleLabels[current.role],
           trips: [],
           loading: false,
         })
@@ -91,5 +91,8 @@ Page({
   },
   openDistillerGrains() {
     wx.navigateTo({ url: routes.distillerGrains })
+  },
+  openOutboundWeigh() {
+    wx.navigateTo({ url: routes.outboundWeigh })
   },
 })

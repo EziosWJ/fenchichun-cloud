@@ -88,9 +88,9 @@ Page({
       }
       applyAsync(
         grainService.login(this.data.account, this.data.password),
-        () => {
+        (user) => {
           this.setData({ password: '', submitting: false })
-          wx.reLaunch({ url: routes.workbench })
+          wx.reLaunch({ url: user.roles.includes('outbound') ? routes.outboundWeigh : routes.workbench })
         },
         (error) => {
           this.setData({ error: errorMessage(error), submitting: false })

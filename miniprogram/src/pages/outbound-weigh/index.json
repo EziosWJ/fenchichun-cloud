@@ -1,0 +1,7 @@
+{
+  "navigationBarTitleText": "酒糟过磅",
+  "usingComponents": {
+    "loading-state": "/components/loading-state/index",
+    "error-state": "/components/error-state/index"
+  }
+}

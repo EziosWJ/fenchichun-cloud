@@ -15,6 +15,7 @@ import (
 	"fenchichun.local/server/internal/dictionary"
 	"fenchichun.local/server/internal/filemgmt"
 	"fenchichun.local/server/internal/grainintake"
+	"fenchichun.local/server/internal/grainoutbound"
 	"fenchichun.local/server/internal/granary"
 	"fenchichun.local/server/internal/laboratory"
 	"fenchichun.local/server/internal/logmgmt"
@@ -50,6 +51,7 @@ type Dependencies struct {
 	Deduction    *deduction.Handler
 	Granary      *granary.Handler
 	MiniProgram  *miniprogram.Handler
+	Outbound     *grainoutbound.Handler
 }
 
 // Application is the assembled HTTP application and its process logger.
@@ -107,6 +109,10 @@ func New(cfg config.Config, readiness platformhttp.ReadinessChecker, deps Depend
 	}
 	if deps.Weighbridge != nil {
 		weighbridge.RegisterManagementRoutes(authenticated, deps.Weighbridge)
+	}
+
+	if deps.Outbound != nil {
+		deps.Outbound.Register(authenticated)
 	}
 
 	if deps.Laboratory != nil {
