@@ -1,12 +1,18 @@
 import type { Ticket, Trip } from '@/features/grain/types'
+import type { TicketWeightView } from '@/features/grain/weight'
 import { grainService } from '@/features/grain/api-service'
 import { applyAsync, errorMessage, requireLogin } from '@/features/grain/page'
+import { ticketWeightOf } from '@/features/grain/weight'
+
+interface TicketCard extends Ticket {
+  weight: TicketWeightView
+}
 
 Page({
   data: {
     id: '',
     trip: null as Trip | null,
-    tickets: [] as Ticket[],
+    tickets: [] as TicketCard[],
     loading: true,
     error: '',
     confirming: false,
@@ -30,7 +36,11 @@ Page({
         applyAsync(
           grainService.candidates(trip.serverId),
           (tickets) => {
-            this.setData({ trip, tickets })
+            const cards = tickets.map(ticket => ({
+              ...ticket,
+              weight: ticketWeightOf(ticket) as TicketWeightView,
+            }))
+            this.setData({ trip, tickets: cards })
             this.setData({ loading: false })
           },
           (error) => {

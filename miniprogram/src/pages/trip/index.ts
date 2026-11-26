@@ -1,9 +1,11 @@
 import type { Conclusion, EventRecord, Trip } from '@/features/grain/types'
+import type { TicketWeightView } from '@/features/grain/weight'
 import { routes } from '@/config/routes'
 import { grainService } from '@/features/grain/api-service'
 import { currentDictionary, refreshDictionary } from '@/features/grain/dictionary-service'
 import { applyAsync, errorMessage, requireLogin } from '@/features/grain/page'
 import { canEdit, inspectionText, tripStatus } from '@/features/grain/presentation'
+import { ticketWeightOf } from '@/features/grain/weight'
 
 const actionLabels: Record<string, string> = {
   'visual': '确认目测',
@@ -84,6 +86,7 @@ Page({
     actionLabel: '',
     editable: false,
     inspection: '',
+    ticketWeight: null as TicketWeightView | null,
     tab: 'current' as 'current' | 'timeline',
     expanded: {
       registration: false,
@@ -155,6 +158,7 @@ Page({
           actionLabel: actionLabels[status.action] || '',
           editable: canEdit(trip),
           inspection: inspectionText(trip),
+          ticketWeight: ticketWeightOf(trip.ticket),
           plateProvince: trip.plate.slice(0, 1),
           plateNumber: trip.plate.slice(1),
           granaries,

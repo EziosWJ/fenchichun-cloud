@@ -290,3 +290,118 @@
 .step-timeline__detail .chevron {
   color: var(--fc-brand);
 }
+
+/* 磅单重量摘要 */
+.weight-summary {
+  padding: 20rpx;
+  margin-top: 16rpx;
+  background: var(--fc-surface-muted);
+  border-radius: 16rpx;
+}
+
+.weight-summary__title {
+  font-size: 24rpx;
+  line-height: 1.4;
+  color: var(--fc-text-secondary);
+}
+
+.weight-summary__grid {
+  display: flex;
+  gap: 24rpx;
+  margin-top: 12rpx;
+}
+
+.weight-summary__cell {
+  flex: 1;
+  min-width: 0;
+}
+
+.weight-summary__label {
+  display: block;
+  font-size: 24rpx;
+  line-height: 1.4;
+  color: var(--fc-text-secondary);
+}
+
+.weight-summary__value {
+  display: block;
+  margin-top: 4rpx;
+  font-size: 30rpx;
+  font-weight: 600;
+  line-height: 1.35;
+  color: var(--fc-text);
+  overflow-wrap: anywhere;
+}
+
+.weight-summary__row {
+  display: flex;
+  gap: 24rpx;
+  align-items: baseline;
+  justify-content: space-between;
+  padding: 12rpx 0;
+  border-top: 1rpx solid var(--fc-border);
+}
+
+.weight-summary__row .weight-summary__label,
+.weight-summary__row .weight-summary__value {
+  margin-top: 0;
+}
+
+.weight-summary__row--adjust .weight-summary__value {
+  color: var(--fc-warning-text);
+}
+
+.weight-summary__row--settled {
+  padding-top: 16rpx;
+  border-top-color: var(--fc-border-strong);
+}
+
+.weight-summary__row--settled .weight-summary__label {
+  font-size: 26rpx;
+  font-weight: 600;
+  color: var(--fc-text);
+}
+
+.weight-summary__row--settled .weight-summary__value {
+  font-size: 38rpx;
+  font-weight: 700;
+  color: var(--fc-brand);
+}
+
+.weight-summary__details {
+  padding-top: 8rpx;
+  margin-top: 4rpx;
+  border-top: 1rpx solid var(--fc-border);
+}
+
+.weight-summary__detail {
+  display: flex;
+  gap: 24rpx;
+  align-items: baseline;
+  justify-content: space-between;
+  padding: 8rpx 0;
+  font-size: 24rpx;
+  line-height: 1.4;
+  color: var(--fc-text-secondary);
+}
+
+.weight-summary__detail text:last-child {
+  flex: none;
+  font-weight: 600;
+  color: var(--fc-warning-text);
+}
+
+.weight-summary__hint {
+  padding-top: 8rpx;
+  font-size: 24rpx;
+  line-height: 1.5;
+  color: var(--fc-text-secondary);
+}
+
+.weight-summary__settled-note {
+  padding-top: 4rpx;
+  font-size: 24rpx;
+  line-height: 1.4;
+  color: var(--fc-text-secondary);
+  text-align: right;
+}

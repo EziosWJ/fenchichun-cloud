@@ -355,12 +355,21 @@ test('页面控制器通过后端接口登记、关联磅单并跨岗位确认�
   await call(tickets, 'onLoad', { id: '41' })
   await call(tickets, 'onShow')
   assert.equal((tickets.data.tickets as Array<{ id: string }>)[0]?.id, candidate.ticketNo)
+  const ticketCard = (tickets.data.tickets as Array<{ weight: { netText: string, adjustmentText: string, settledText: string, hasAdjustment: boolean } }>)[0]
+  assert.equal(ticketCard.weight.netText, '20 吨')
+  assert.equal(ticketCard.weight.adjustmentText, '-0.6 吨')
+  assert.equal(ticketCard.weight.settledText, '19.4 吨')
+  assert.equal(ticketCard.weight.hasAdjustment, true)
   evidence.ticket = { siteCode: 'TEST', ticket: candidate }
   publish({ stage: 'ready', version: 4, ticketConfirmedAt: time }, 'link-ticket')
   await call(tickets, 'link', tap(candidate.ticketNo))
   assert.deepEqual(app.request('POST', `${tripPath}/link-ticket`)?.data, { version: 3, ticketSiteCode: 'TEST', ticketNo: 'BD001' })
   await call(detail, 'onShow')
   assert.equal(detail.data.status, '待开证')
+  const tripWeight = detail.data.ticketWeight as { netText: string, adjustmentText: string, settledText: string }
+  assert.equal(tripWeight.netText, '20 吨')
+  assert.equal(tripWeight.adjustmentText, '-0.6 吨')
+  assert.equal(tripWeight.settledText, '19.4 吨')
   const record = app.page('trip-record')
   await call(record, 'onLoad', { id: '41', step: 'ticket' })
   await call(record, 'onShow')

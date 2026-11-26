@@ -102,14 +102,13 @@
               <view wx:if="{{!trip.ticket}}" class="record-empty">{{trip.inspection && trip.inspection.conclusion === 'reject' ? '本趟拒收退厂，无需关联磅单' : (trip.unload ? '尚未关联；等待同步不代表现场没有称重' : '尚未关联')}}</view>
               <block wx:if="{{trip.ticket}}">
                 <view class="record-row"><text class="record-label">关联确认</text><text class="record-value">{{trip.ticketConfirmedAt ? '已确认' : '待确认'}}</text></view>
-                <view class="record-row"><text class="record-label">车牌 / 厂区</text><text class="record-value">{{trip.ticket.plate}} / {{trip.ticket.site}}</text></view>
-                <view class="record-row"><text class="record-label">货品 / 供应商</text><text class="record-value">{{trip.ticket.material}} / {{trip.ticket.supplier || '未提供'}}</text></view>
+                <view class="record-row"><text class="record-label">车牌号码</text><text class="record-value">{{trip.ticket.plate}}</text></view>
+                <view class="record-row"><text class="record-label">厂区</text><text class="record-value">{{trip.ticket.site}}</text></view>
+                <view class="record-row"><text class="record-label">货品</text><text class="record-value">{{trip.ticket.material}}</text></view>
+                <view class="record-row"><text class="record-label">供应商</text><text class="record-value">{{trip.ticket.supplier || '未提供'}}</text></view>
                 <view class="record-row"><text class="record-label">首磅时间</text><text class="record-value">{{trip.ticket.firstAt || '未提供'}}</text></view>
                 <view class="record-row"><text class="record-label">回磅时间</text><text class="record-value">{{trip.ticket.secondAt || '未提供'}}</text></view>
-                <view class="record-row"><text class="record-label">毛重</text><text class="record-value">{{trip.ticket.gross ? trip.ticket.gross + ' 吨' : '未提供'}}</text></view>
-                <view class="record-row"><text class="record-label">皮重</text><text class="record-value">{{trip.ticket.tare ? trip.ticket.tare + ' 吨' : '未提供'}}</text></view>
-                <view class="record-row record-row-emphasis"><text class="record-label">实际净重</text><text class="record-value">{{trip.ticket.net ? trip.ticket.net + ' 吨' : '未提供'}}</text></view>
-                <view class="record-row"><text class="record-label">扣减后重量</text><text class="record-value">{{trip.ticket.deducted ? trip.ticket.deducted + ' 吨' : '未提供'}}</text></view>
+                <template is="ticket-weight" data="{{weight: ticketWeight}}" />
               </block>
             </view>
           </view>
@@ -203,9 +202,11 @@
           <block wx:elif="{{action === 'confirm-ticket'}}">
             <view wx:if="{{trip.ticket}}" class="step-rows">
               <view class="record-row"><text class="record-label">磅单号</text><text class="record-value">{{trip.ticket.id}}</text></view>
-              <view class="record-row"><text class="record-label">车牌 / 厂区</text><text class="record-value">{{trip.ticket.plate}} / {{trip.ticket.site}}</text></view>
-              <view class="record-row"><text class="record-label">货品 / 供应商</text><text class="record-value">{{trip.ticket.material}} / {{trip.ticket.supplier || '未提供'}}</text></view>
-              <view class="record-row record-row-emphasis"><text class="record-label">实际净重</text><text class="record-value">{{trip.ticket.net ? trip.ticket.net + ' 吨' : '未提供'}}</text></view>
+              <view class="record-row"><text class="record-label">车牌号码</text><text class="record-value">{{trip.ticket.plate}}</text></view>
+              <view class="record-row"><text class="record-label">厂区</text><text class="record-value">{{trip.ticket.site}}</text></view>
+              <view class="record-row"><text class="record-label">货品</text><text class="record-value">{{trip.ticket.material}}</text></view>
+              <view class="record-row"><text class="record-label">供应商</text><text class="record-value">{{trip.ticket.supplier || '未提供'}}</text></view>
+              <template is="ticket-weight" data="{{weight: ticketWeight}}" />
             </view>
             <view wx:else class="step-waiting">暂无磅单信息，请刷新后重试。</view>
             <view wx:if="{{trip.ticketWarning}}" class="notice-card warning">
@@ -217,7 +218,7 @@
           <block wx:elif="{{action === 'issue'}}">
             <view wx:if="{{trip.ticket}}" class="step-rows">
               <view class="record-row"><text class="record-label">磅单号</text><text class="record-value">{{trip.ticket.id}}</text></view>
-              <view class="record-row record-row-emphasis"><text class="record-label">实际净重</text><text class="record-value">{{trip.ticket.net ? trip.ticket.net + ' 吨' : '未提供'}}</text></view>
+              <template is="ticket-weight" data="{{weight: ticketWeight}}" />
             </view>
             <view wx:else class="step-waiting">暂无磅单信息，请刷新后重试。</view>
             <view wx:if="{{trip.ticketWarning}}" class="notice-card warning">
@@ -233,7 +234,7 @@
             </view>
             <view wx:if="{{trip.ticket}}" class="step-rows">
               <view class="record-row"><text class="record-label">磅单号</text><text class="record-value">{{trip.ticket.id}}</text></view>
-              <view class="record-row record-row-emphasis"><text class="record-label">实际净重</text><text class="record-value">{{trip.ticket.net ? trip.ticket.net + ' 吨' : '未提供'}}</text></view>
+              <template is="ticket-weight" data="{{weight: ticketWeight}}" />
             </view>
             <view wx:if="{{trip.ticketWarning}}" class="notice-card warning">
               <view class="notice-title">磅单需要核对</view>
@@ -276,3 +277,40 @@
     </block>
   </block>
 </view>
+
+<template name="ticket-weight">
+  <view wx:if="{{weight}}" class="weight-summary">
+    <view class="weight-summary__title">重量</view>
+    <view class="weight-summary__grid">
+      <view class="weight-summary__cell">
+        <text class="weight-summary__label">毛重</text>
+        <text class="weight-summary__value">{{weight.grossText}}</text>
+      </view>
+      <view class="weight-summary__cell">
+        <text class="weight-summary__label">皮重</text>
+        <text class="weight-summary__value">{{weight.tareText}}</text>
+      </view>
+    </view>
+    <view class="weight-summary__row">
+      <text class="weight-summary__label">过磅净重</text>
+      <text class="weight-summary__value">{{weight.netText}}</text>
+    </view>
+    <view wx:if="{{weight.items.length}}" class="weight-summary__details">
+      <view wx:for="{{weight.items}}" wx:key="index" class="weight-summary__detail">
+        <text>{{item.title}}</text>
+        <text>{{item.amount}}</text>
+      </view>
+    </view>
+    <view wx:if="{{weight.hasAdjustment}}" class="weight-summary__row weight-summary__row--adjust">
+      <text class="weight-summary__label">{{weight.items.length ? '净重调整合计' : '净重调整'}}</text>
+      <text class="weight-summary__value">{{weight.adjustmentText}}</text>
+    </view>
+    <view wx:if="{{weight.hasAdjustment && !weight.items.length}}" class="weight-summary__hint">净重调整明细未同步，以关联后的磅单为准。</view>
+    <view wx:if="{{!weight.hasAdjustment}}" class="weight-summary__hint">无净重调整</view>
+    <view class="weight-summary__row weight-summary__row--settled">
+      <text class="weight-summary__label">结算净重</text>
+      <text class="weight-summary__value">{{weight.settledText}}</text>
+    </view>
+    <view class="weight-summary__settled-note">{{weight.hasAdjustment ? '已扣减' : '未扣减'}}</view>
+  </view>
+</template>
