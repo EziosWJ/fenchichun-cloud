@@ -29,6 +29,10 @@ Page({
       if (!current) {
         return
       }
+      if (current.role === 'finance' || current.role === 'outbound') {
+        this.setData({ role: current.role, trips: [], loading: false })
+        return
+      }
       applyAsync(
         grainService.listTrips(),
         (all) => {

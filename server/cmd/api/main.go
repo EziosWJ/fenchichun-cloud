@@ -20,6 +20,7 @@ import (
 	"fenchichun.local/server/internal/dictionary"
 	"fenchichun.local/server/internal/filemgmt"
 	"fenchichun.local/server/internal/grainintake"
+	"fenchichun.local/server/internal/grainoutbound"
 	"fenchichun.local/server/internal/granary"
 	"fenchichun.local/server/internal/laboratory"
 	"fenchichun.local/server/internal/logmgmt"
@@ -124,6 +125,8 @@ func main() {
 	deductionService := deduction.NewService(deduction.NewRepository(database.GORM))
 	grainRepository := grainintake.NewRepository(database.GORM)
 
+	weighService := weighbridge.NewService(weighbridge.NewRepository(database.GORM))
+
 	application, err := app.New(*cfg, database, app.Dependencies{
 		Auth:         authService,
 		RBAC:         rbacService,
@@ -141,7 +144,8 @@ func main() {
 		Granary:      granary.NewHandler(granary.NewService(granary.NewRepository(database.GORM))),
 		Laboratory:   laboratory.NewHandler(laboratory.NewService(laboratory.NewRepository(database.GORM))),
 		MiniProgram:  miniprogram.NewHandler(miniprogram.NewService(miniprogram.NewRepository(database.GORM))),
-		Weighbridge:  weighbridge.NewHandler(weighbridge.NewService(weighbridge.NewRepository(database.GORM))),
+		Weighbridge:  weighbridge.NewHandler(weighService),
+		Outbound:     grainoutbound.NewHandler(database.GORM, weighService),
 	})
 	if err != nil {
 		slog.Error("build application", "error", err)

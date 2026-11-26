@@ -29,6 +29,17 @@ function newRequestId() {
   return `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 10)}`
 }
 
+// 新登记默认预选汾池春酒业二厂；字典中没有该厂区时保持“请选择厂区”。
+const defaultSiteCode = 'FCC02'
+const defaultSiteName = '汾池春酒业二厂'
+
+function defaultSite(siteNames: string[]) {
+  const dictionarySites = currentDictionary().sites
+  const preferred = dictionarySites.find(item => item.code === defaultSiteCode)
+    ?? dictionarySites.find(item => item.name === defaultSiteName)
+  return preferred && siteNames.includes(preferred.name) ? preferred.name : ''
+}
+
 Page({
   data: {
     loading: true,
@@ -76,6 +87,7 @@ Page({
       }
       const options = grainService.options()
       const sites = ['请选择厂区', ...options.sites]
+      const initialSite = this.data.edit ? '' : defaultSite(options.sites)
       const materialNames = ['', ...options.materials.map(item => item.name)]
       const materials = [
         '请选择货品',
@@ -107,7 +119,7 @@ Page({
                 contract: trip.contract,
                 note: trip.note,
               }
-            : emptyForm()
+            : { ...emptyForm(), site: initialSite }
           if (trip) {
             wx.setNavigationBarTitle({ title: '更正登记' })
           }

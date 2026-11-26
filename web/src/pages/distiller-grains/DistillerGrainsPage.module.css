@@ -1,0 +1,307 @@
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  margin-top: 20px;
+  max-width: 1040px;
+}
+
+.tabs {
+  padding: 4px;
+}
+
+.tabs :global(.ant-segmented-item-label) {
+  min-height: 46px;
+  line-height: 34px;
+  padding: 6px 12px;
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 16px 24px;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.fieldLabel {
+  font-size: 17px;
+  color: var(--ant-color-text-secondary);
+}
+
+.customer {
+  min-width: 300px;
+  min-height: 46px;
+  font-size: 18px;
+}
+
+.datePicker {
+  width: 190px;
+  min-height: 46px;
+  font-size: 17px;
+}
+
+.summary {
+  background: var(--ant-color-bg-container);
+  border: 1px solid var(--ant-color-border-secondary);
+  border-radius: 20px;
+  padding: 26px 30px;
+  box-shadow: var(--app-shadow-card);
+}
+
+.summaryLabel {
+  font-size: 19px;
+  color: var(--ant-color-text-secondary);
+}
+
+.summaryDate {
+  margin-top: 4px;
+  font-size: 15px;
+  color: var(--ant-color-text-tertiary);
+}
+
+.summaryValue {
+  margin-top: 12px;
+  font-size: 64px;
+  font-weight: 700;
+  line-height: 1.05;
+  color: var(--ant-color-primary);
+  font-variant-numeric: tabular-nums;
+}
+
+.summaryUnit {
+  margin-left: 10px;
+  font-size: 26px;
+  font-weight: 600;
+  color: var(--ant-color-text);
+}
+
+.summaryMeta {
+  margin-top: 8px;
+  font-size: 20px;
+  color: var(--ant-color-text);
+}
+
+.list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  background: var(--ant-color-bg-container);
+  border: 1px solid var(--ant-color-border-secondary);
+  border-radius: 20px;
+  overflow: hidden;
+  box-shadow: var(--app-shadow-card);
+}
+
+.list li {
+  list-style: none;
+}
+
+.dayRow {
+  display: grid;
+  grid-template-columns: 1fr auto auto 24px;
+  align-items: center;
+  gap: 24px;
+  width: 100%;
+  padding: 18px 26px;
+  border: 0;
+  border-top: 1px solid var(--ant-color-border-secondary);
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-size: 20px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.list li:first-child .dayRow {
+  border-top: none;
+}
+
+.dayRow:hover {
+  background: var(--ant-color-fill-quaternary);
+}
+
+.dayRow:focus-visible {
+  outline: 2px solid var(--ant-color-primary);
+  outline-offset: -2px;
+}
+
+.rowArrow {
+  color: var(--ant-color-text-tertiary);
+}
+
+.clickHint {
+  font-size: 16px;
+  color: var(--ant-color-text-secondary);
+  margin-top: -8px;
+}
+
+.dayName {
+  font-weight: 600;
+}
+
+.dayCount {
+  font-size: 18px;
+  color: var(--ant-color-text-secondary);
+}
+
+.dayWeight {
+  min-width: 150px;
+  text-align: right;
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--ant-color-primary);
+  font-variant-numeric: tabular-nums;
+}
+
+.dayWeight small,
+.recordWeight small {
+  margin-left: 4px;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--ant-color-text-secondary);
+}
+
+.groupHead {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 26px;
+  background: var(--ant-color-fill-quaternary);
+  font-size: 19px;
+  font-weight: 600;
+}
+
+.recordRow {
+  display: grid;
+  grid-template-columns: 78px minmax(120px, 1.1fr) minmax(140px, 1.4fr) auto;
+  align-items: center;
+  gap: 16px;
+  padding: 16px 26px;
+  border-top: 1px solid var(--ant-color-border-secondary);
+  font-size: 19px;
+}
+
+.recordRowNoCustomer {
+  grid-template-columns: 78px minmax(120px, 1.2fr) auto;
+}
+
+.recordTime {
+  color: var(--ant-color-text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
+.recordPlate {
+  font-weight: 600;
+  letter-spacing: 0.5px;
+}
+
+.recordCustomer {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.recordWeight {
+  min-width: 140px;
+  text-align: right;
+  font-size: 23px;
+  font-weight: 700;
+  color: var(--ant-color-primary);
+  font-variant-numeric: tabular-nums;
+}
+
+.modalBody {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.modalSummary {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.modalSummary strong {
+  font-size: 30px;
+  color: var(--ant-color-primary);
+  font-variant-numeric: tabular-nums;
+}
+
+.modalSummary span {
+  font-size: 18px;
+  color: var(--ant-color-text-secondary);
+}
+
+.modalList {
+  border: 1px solid var(--ant-color-border-secondary);
+  border-radius: 14px;
+  overflow: hidden;
+}
+
+.modalList section:first-child .recordRow:first-child {
+  border-top: none;
+}
+
+.empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  padding: 64px 24px;
+  background: var(--ant-color-bg-container);
+  border: 1px dashed var(--ant-color-border);
+  border-radius: 20px;
+  color: var(--ant-color-text-secondary);
+}
+
+.emptyTitle {
+  font-size: 22px;
+  font-weight: 600;
+  color: var(--ant-color-text);
+}
+
+.emptyHint {
+  font-size: 16px;
+}
+
+@media (max-width: 720px) {
+  .summaryValue {
+    font-size: 48px;
+  }
+
+  .dayRow,
+  .recordRow {
+    padding: 14px 16px;
+    gap: 12px;
+    font-size: 17px;
+  }
+
+  .recordRow,
+  .recordRowNoCustomer {
+    grid-template-columns: 64px minmax(96px, 1fr) auto;
+  }
+
+  .dayRow {
+    grid-template-columns: 1fr auto auto 20px;
+    gap: 12px;
+  }
+
+  .recordCustomer {
+    display: none;
+  }
+
+  .customer {
+    min-width: 220px;
+  }
+}

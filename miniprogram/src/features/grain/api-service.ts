@@ -181,6 +181,12 @@ function rolesFrom(user: ServerUser): Role[] {
   if (codes.has('GUARD') || codes.has('ADMIN')) {
     roles.push('guard')
   }
+  if (codes.has('FINANCE')) {
+    roles.push('finance')
+  }
+  if (codes.has('GRAIN_OUT')) {
+    roles.push('outbound')
+  }
   return roles
 }
 
@@ -373,7 +379,7 @@ export const grainService = {
       const me = await request<ServerUser>({ path: '/auth/me' })
       const roles = rolesFrom(me)
       if (!roles.length) {
-        finish('小程序仅支持库管、门卫和管理员账号')
+        finish('小程序仅支持库管、门卫、财务、酒糟出库和管理员账号')
       }
       const user: User = {
         account: me.username,

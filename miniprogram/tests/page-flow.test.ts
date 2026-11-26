@@ -185,20 +185,22 @@ const baseTrip = {
   stage: 'pending_inspection',
 }
 
-async function loginAsAdmin(app: ReturnType<typeof runtime>) {
+const defaultDictionary = {
+  version: '1',
+  sites: [{ code: 'TEST', name: '测试厂区' }],
+  materials: [{ code: 'GRAIN', name: '高粱', inspectionMethod: 'lab' }],
+  suppliers: [{ code: 'SUPPLIER', name: '测试供应商' }],
+  granaries: [{ id: 1, name: '一号仓' }],
+}
+
+async function loginAsAdmin(app: ReturnType<typeof runtime>, dictionary: unknown = defaultDictionary) {
   app.respond('POST', '/auth/login', { tokenValue: 'test-token' })
   app.respond('GET', '/auth/me', {
     username: 'test-admin',
     nickname: '测试管理员',
     roles: [{ roleCode: 'ADMIN' }],
   })
-  app.respond('GET', '/miniprogram/dictionaries', {
-    version: '1',
-    sites: [{ code: 'TEST', name: '测试厂区' }],
-    materials: [{ code: 'GRAIN', name: '高粱', inspectionMethod: 'lab' }],
-    suppliers: [{ code: 'SUPPLIER', name: '测试供应商' }],
-    granaries: [{ id: 1, name: '一号仓' }],
-  })
+  app.respond('GET', '/miniprogram/dictionaries', dictionary)
 
   const login = app.page('login')
   await call(login, 'onShow')
@@ -209,6 +211,24 @@ async function loginAsAdmin(app: ReturnType<typeof runtime>) {
   assert.equal(app.request('POST', '/auth/login')?.header.Authorization, undefined)
   assert.equal(app.request('GET', '/miniprogram/dictionaries')?.header.Authorization, 'Bearer test-token')
 }
+
+test('新登记默认选中汾池春酒业二厂', async () => {
+  const app = runtime()
+  await loginAsAdmin(app, {
+    version: '2',
+    sites: [
+      { code: 'FCC02', name: '汾池春酒业二厂' },
+      { code: 'TEST', name: '测试厂区' },
+    ],
+    materials: [{ code: 'GRAIN', name: '高粱', inspectionMethod: 'lab' }],
+    suppliers: [{ code: 'SUPPLIER', name: '测试供应商' }],
+    granaries: [{ id: 1, name: '一号仓' }],
+  })
+  const register = app.page('registration')
+  await call(register, 'onLoad', {})
+  assert.equal((register.data.form as Data).site, '汾池春酒业二厂')
+  assert.equal(register.data.siteIndex, 1)
+})
 
 test('页面控制器通过后端接口登记、关联磅单并跨岗位确认实际出厂', async () => {
   const app = runtime()

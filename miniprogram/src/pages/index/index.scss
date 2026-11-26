@@ -90,3 +90,36 @@
   background: var(--fc-brand);
   border-radius: 999rpx;
 }
+
+.finance-entry {
+  display: flex;
+  gap: 24rpx;
+  align-items: center;
+  padding: 40rpx 32rpx;
+  margin-top: 32rpx;
+  background: var(--fc-surface);
+  border: 1rpx solid var(--fc-border);
+  border-radius: 28rpx;
+}
+
+.finance-entry--hover {
+  background: var(--fc-surface-muted);
+}
+
+.finance-entry__main {
+  flex: 1;
+  min-width: 0;
+}
+
+.finance-entry__title {
+  font-size: 42rpx;
+  font-weight: 600;
+  color: var(--fc-text);
+}
+
+.finance-entry__desc {
+  margin-top: 12rpx;
+  font-size: 26rpx;
+  line-height: 1.55;
+  color: var(--fc-text-secondary);
+}

@@ -368,6 +368,19 @@ export default function AppLayout() {
     if (key === 'logout') void handleLogout();
   };
 
+  const mobileOnly = user?.roles?.some((role) => role.roleCode === 'GRAIN_OUT');
+  if (mobileOnly) {
+    return (
+      <div className={styles.mobileOnly}>
+        <div className={styles.mobileOnlyCard}>
+          <h1>该账号仅支持手机端登录</h1>
+          <p>酒糟出库账号请使用微信小程序进行过磅。</p>
+          <Button type="primary" size="large" onClick={() => void handleLogout()}>退出登录</Button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <Layout className={styles.shell}>
       <a className={styles.skipLink} href="#main-content">
@@ -527,7 +540,7 @@ export default function AppLayout() {
         <main
           id="main-content"
           ref={mainRef}
-          className={styles.content}
+          className={`${styles.content} ${collapsed ? styles.contentCollapsed : ''}`}
           tabIndex={-1}
           aria-label={pageTitle}
         >

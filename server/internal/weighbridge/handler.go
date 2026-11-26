@@ -68,6 +68,7 @@ func RegisterManagementRoutes(authenticated gin.IRouter, handler *Handler) {
 	authenticated.GET("/weighbridge/statements/parties/export", handler.statementPartiesExport)
 	authenticated.GET("/weighbridge/statements/parties/detail/export", handler.statementDetailExport)
 	RegisterAnalyticsRoutes(authenticated, handler)
+	RegisterDistillerGrainsRoutes(authenticated, handler)
 	master := authenticated.Group("/weighbridge/master")
 	master.GET("/categories", handler.categories)
 	master.POST("/categories", handler.saveCategory)

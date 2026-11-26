@@ -16,7 +16,7 @@ interface Values {
 }
 
 const blank: Values = { moisture: '', bulkDensity: '', reason: '', remark: '' };
-const decimal = /^(0|[1-9][0-9]{0,5})(\.[0-9]{1,6})?$/;
+const decimal = /^(0|[1-9][0-9]{0,5})(\.[0-9]{1,2})?$/;
 
 function formatRate(rateBp: number) {
   return `${(rateBp / 100).toFixed(2)}%`;
@@ -130,10 +130,10 @@ export default function InspectionFormModal({ trip, open, onClose, onSaved }: {
           </div>
           <div className={styles.resultGrid}>
             <Form.Item className={styles.resultField} name="moisture" label="水分（%）" rules={[{ required: true, message: '请填写水分' }]}>
-              <InputNumber stringMode min="0" max="100" precision={6} suffix="%" />
+              <InputNumber stringMode min="0" max="100" precision={2} suffix="%" />
             </Form.Item>
             <Form.Item className={styles.resultField} name="bulkDensity" label="容量（g/L）" rules={[{ required: true, message: '请填写容量' }]}>
-              <InputNumber stringMode min="0.000001" max="999999.999999" precision={6} suffix="g/L" />
+              <InputNumber stringMode min="0.01" max="999999.99" precision={2} suffix="g/L" />
             </Form.Item>
           </div>
           <div className={styles.preview}>

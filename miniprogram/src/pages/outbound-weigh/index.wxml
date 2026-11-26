@@ -1,0 +1,43 @@
+<view class="weigh-page">
+  <view class="head">
+    <view class="plate">{{plate}}</view>
+    <view class="meta">{{partyName}} · {{siteName}}</view>
+  </view>
+
+  <loading-state wx:if="{{loading}}" text="正在加载出库信息" />
+  <error-state wx:elif="{{error}}" text="{{error}}" bind:retry="load" />
+  <block wx:else>
+    <view class="weight-card">
+      <view class="weight-label">当前地磅读数</view>
+      <view class="weight-value">{{weightText}}<text class="weight-unit">吨</text></view>
+      <view class="status {{available ? 'status-ok' : 'status-bad'}}">
+        {{statusText}}<text wx:if="{{mock}}"> · 模拟读数</text>
+      </view>
+    </view>
+
+    <view wx:if="{{result}}" class="result-card">
+      <view class="result-title">过磅完成</view>
+      <view class="result-net">{{netText}}<text class="result-unit">吨</text></view>
+      <view class="result-row"><text class="result-k">磅单号</text><text class="result-v">{{result.ticketNo}}</text></view>
+      <view class="result-row"><text class="result-k">首磅</text><text class="result-v">{{resultFirstText}} 吨</text></view>
+      <view class="result-row"><text class="result-k">回磅</text><text class="result-v">{{resultSecondText}} 吨</text></view>
+      <view class="primary-btn" bindtap="finish">完成，继续下一车</view>
+    </view>
+
+    <view wx:elif="{{pending}}" class="action-card">
+      <view class="pending-title">首磅已记录</view>
+      <view class="pending-weight">{{firstText}}<text class="pending-unit">吨</text></view>
+      <view class="pending-time">首磅时间 {{firstTime}}</view>
+      <view class="action-hint">卸货完成后请再次上磅，点击回磅</view>
+      <view class="primary-btn {{available && !busy ? '' : 'primary-btn--disabled'}}" bindtap="doSecond">回磅</view>
+      <view class="text-btn" bindtap="cancelFirst">取消首磅</view>
+    </view>
+
+    <view wx:else class="action-card">
+      <view class="action-hint">车辆上磅停稳后，点击记录首磅</view>
+      <view class="primary-btn {{available && !busy ? '' : 'primary-btn--disabled'}}" bindtap="doFirst">首磅</view>
+    </view>
+  </block>
+
+  <view class="exit-link" bindtap="exit">退出登录</view>
+</view>

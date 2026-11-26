@@ -1,4 +1,4 @@
-export type Role = 'warehouse' | 'guard'
+export type Role = 'warehouse' | 'guard' | 'finance' | 'outbound'
 export type InspectionMethod = 'lab' | 'visual'
 export type Conclusion = 'accept' | 'reject'
 
