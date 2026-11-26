@@ -6,15 +6,16 @@
 
 .head {
   display: flex;
-  gap: 20rpx;
+  gap: 64rpx;
   align-items: baseline;
   padding: 8rpx 8rpx 24rpx;
 }
 
 .name {
-  font-size: 36rpx;
-  font-weight: 600;
-  color: var(--fc-text-secondary);
+  font-size: 64rpx;
+  font-weight: 700;
+  color: var(--fc-text);
+  letter-spacing: 2rpx;
 }
 
 .plate {
@@ -269,9 +270,9 @@
 }
 
 .nav-exit {
-  display: flex;
-  align-items: center;
-  padding: 0 28rpx;
-  font-size: 26rpx;
-  color: var(--fc-text-placeholder);
+  flex: 1;
+  padding: 28rpx 0 24rpx;
+  font-size: 32rpx;
+  color: var(--fc-text-secondary);
+  text-align: center;
 }
