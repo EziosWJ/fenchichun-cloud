@@ -64,6 +64,11 @@ tasks:
     cmds:
       - docker exec -i postgres psql -U postgres -d base_go_api < server/scripts/local-flow-seed.sql
 
+  db:seed:local-distiller-grains:
+    desc: 写入本地酒糟出库与财务统计测试账号
+    cmds:
+      - docker exec -i postgres psql -U postgres -d base_go_api < server/scripts/local-distiller-grains.sql
+
   api:
     summary: Start the Go API
     dir: server
