@@ -23,7 +23,6 @@ type ScaleClient struct {
 	username     string
 	password     string
 	defaultScale string
-	mock         bool
 	http         *http.Client
 	mu           sync.Mutex
 	token        string
@@ -39,8 +38,8 @@ func NewScaleClient() *ScaleClient {
 		http:         &http.Client{Timeout: 4 * time.Second},
 	}
 	if client.baseURL == "" && strings.EqualFold(os.Getenv("APP_ENV"), "dev") {
+		// 开发环境读取本厂过磅服务里的 mock Agent，与真实地磅走同一条设备接口。
 		client.baseURL = "http://127.0.0.1:8900/api"
-		client.mock = true
 	}
 	if client.defaultScale == "" {
 		client.defaultScale = "WB01"
@@ -48,23 +47,12 @@ func NewScaleClient() *ScaleClient {
 	return client
 }
 
-// Read reads the latest weight. stage is only used by the development mock so
-// the first and second confirmations differ.
+// Read reads the latest weight. stage is kept for callers that distinguish the
+// first and second weighing; the device endpoint reports one current value.
 func (c *ScaleClient) Read(ctx context.Context, scaleCode, stage string) (ScaleReading, error) {
+	_ = stage
 	if scaleCode == "" {
 		scaleCode = c.defaultScale
-	}
-	if c.mock {
-		weight := int64(32500)
-		if stage == "second" {
-			weight = int64(8200)
-		}
-		now := time.Now()
-		return ScaleReading{
-			Available: true, Online: true, Stable: true, DeviceOK: true,
-			WeightMilliTonne: weight, ReceivedAt: &now, Mock: true,
-			Message: "模拟读数（开发环境未接现场地磅）",
-		}, nil
 	}
 	if c.baseURL == "" {
 		return ScaleReading{Message: "地磅接口未配置"}, nil
