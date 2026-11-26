@@ -150,6 +150,7 @@
   color: var(--fc-text);
 }
 
+.action-card .primary-btn,
 .result-card .primary-btn {
   margin-top: 28rpx;
 }
