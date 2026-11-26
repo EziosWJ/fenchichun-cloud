@@ -11,7 +11,7 @@ import { tickets, type Ticket, type TicketRecord } from '../../features/weighbri
 import { formatBeijingTime } from '../../features/weighbridge/time';
 import styles from './TicketsPage.module.css';
 
-const config = { filters: { entryType: ['manual_supplement'], siteCode: 'text', direction: ['inbound', 'outbound'], status: ['valid', 'void'], from: 'text', to: 'text', materialCode: 'text', partyCode: 'text' }, sortKeys: [], pageSizeOptions: [10, 20, 50, 100], defaultPageSize: 10 } as const;
+const config = { filters: { entryType: ['manual_supplement', 'mobile_direct', 'mobile_scan'], siteCode: 'text', direction: ['inbound', 'outbound'], status: ['valid', 'void'], from: 'text', to: 'text', materialCode: 'text', partyCode: 'text' }, sortKeys: [], pageSizeOptions: [10, 20, 50, 100], defaultPageSize: 10 } as const;
 function difference(a: string, b: string): string {
   const milli = (value: string) => { const negative = value.startsWith('-'); const [whole, fractional = ''] = (negative ? value.slice(1) : value).split('.'); const result = BigInt(whole) * 1000n + BigInt((fractional + '000').slice(0, 3)); return negative ? -result : result; };
   const value = milli(a) - milli(b);
@@ -65,6 +65,8 @@ const baseColumns: ColumnsType<TicketRecord> = [
   { title: '单号', key: 'ticketNo', render: (_, row) => <Space size={4} orientation="vertical">
     {row.ticket.ticketNo}
     {row.ticket.entryType === 'manual_supplement' && <Tag color="blue">人工补单</Tag>}
+    {row.ticket.entryType === 'mobile_direct' && <Tag color="orange">手机直出</Tag>}
+    {row.ticket.entryType === 'mobile_scan' && <Tag color="green">手机扫码</Tag>}
   </Space> },
   { title: '车牌', key: 'plate', render: (_, row) => row.ticket.plate },
   { title: '方向', key: 'direction', render: (_, row) => row.ticket.direction === 'inbound' ? '入厂卸货' : '出厂装货' },
@@ -97,7 +99,7 @@ export default function TicketsPage() {
         <Input className={styles.field} aria-label="物料编码" placeholder="物料编码" value={state.filters.materialCode ?? ''} onChange={(e) => actions.setFilter('materialCode', e.target.value)} />
         <Input className={styles.field} aria-label="供收方编码" placeholder="供收方编码" value={state.filters.partyCode ?? ''} onChange={(e) => actions.setFilter('partyCode', e.target.value)} />
         <Select className={styles.select} aria-label="方向" placeholder="方向" allowClear value={state.filters.direction || undefined} onChange={(v) => actions.setFilter('direction', v)} options={[{value:'inbound',label:'入厂卸货'},{value:'outbound',label:'出厂装货'}]} />
-        <Select className={styles.select} aria-label="单据类型" placeholder="单据类型" allowClear value={state.filters.entryType || undefined} onChange={(v) => actions.setFilter('entryType', v)} options={[{value:'manual_supplement',label:'人工补单'}]} />
+        <Select className={styles.select} aria-label="单据类型" placeholder="单据类型" allowClear value={state.filters.entryType || undefined} onChange={(v) => actions.setFilter('entryType', v)} options={[{value:'manual_supplement',label:'人工补单'},{value:'mobile_direct',label:'手机直出'},{value:'mobile_scan',label:'手机扫码'}]} />
         <Select className={styles.select} aria-label="状态" placeholder="状态" allowClear value={state.filters.status || undefined} onChange={(v) => actions.setFilter('status', v)} options={[{value:'valid',label:'有效'},{value:'void',label:'作废'}]} />
         <Button className={styles.reset} onClick={() => { actions.reset(); setKeyword(''); }}>重置</Button>
       </div>
@@ -167,7 +169,7 @@ export default function TicketsPage() {
           {key:'site',label:'出单厂区编码',children:detail.siteCode},
         ]} /></section>
         <section className={styles.section}><h3>称重信息</h3><Descriptions size="small" layout="vertical" column={{ xs: 1, sm: 2 }} items={[
-          {key:'entryType',label:'单据类型',children:detail.ticket.entryType === 'manual_supplement' ? '人工补单' : '普通单据'},
+          {key:'entryType',label:'单据类型',children:detail.ticket.entryType === 'manual_supplement' ? '人工补单' : detail.ticket.entryType === 'mobile_direct' ? '手机直出' : detail.ticket.entryType === 'mobile_scan' ? '手机扫码' : '普通单据'},
           ...(detail.ticket.entryType === 'manual_supplement' ? [{key:'actualFirst',label:'实际首磅时间',children:detail.ticket.firstWeighedAt ? formatBeijingTime(detail.ticket.firstWeighedAt) : '—'}] : []),
           {key:'first',label:'首次称重',children:formatBeijingTime(detail.ticket.firstConfirmedAt)},
           ...(manualSupplement ? [{key:'second',label:'二次称重确认',children:formatBeijingTime(detail.ticket.secondConfirmedAt)}] : []),

@@ -145,7 +145,7 @@ func main() {
 		Laboratory:   laboratory.NewHandler(laboratory.NewService(laboratory.NewRepository(database.GORM))),
 		MiniProgram:  miniprogram.NewHandler(miniprogram.NewService(miniprogram.NewRepository(database.GORM))),
 		Weighbridge:  weighbridge.NewHandler(weighService),
-		Outbound:     grainoutbound.NewHandler(database.GORM, weighService),
+		Outbound:     grainoutbound.NewHandler(database.GORM),
 	})
 	if err != nil {
 		slog.Error("build application", "error", err)

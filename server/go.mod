@@ -15,6 +15,7 @@ require (
 	github.com/prometheus/client_golang v1.24.1
 	github.com/prometheus/procfs v0.21.1
 	github.com/shirou/gopsutil/v4 v4.26.9
+	github.com/skip2/go-qrcode v0.0.0-20200617195104-da1b6568686e
 	github.com/swaggo/files v1.0.1
 	github.com/swaggo/gin-swagger v1.6.1
 	github.com/swaggo/swag v1.8.12

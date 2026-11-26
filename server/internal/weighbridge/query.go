@@ -93,7 +93,7 @@ func applyTicketFilter(tx *gorm.DB, q TicketQuery) *gorm.DB {
 	return tx
 }
 func (r *Repository) TicketPage(ctx context.Context, q TicketQuery) (TicketPage, error) {
-	if (q.EntryType != "" && q.EntryType != "manual_supplement") || q.Page < 1 || q.PageSize < 1 || q.PageSize > 100 || (q.Direction != "" && q.Direction != "inbound" && q.Direction != "outbound") || (q.Status != "" && q.Status != "valid" && q.Status != "void") {
+	if (q.EntryType != "" && q.EntryType != "manual_supplement" && q.EntryType != "mobile_direct" && q.EntryType != "mobile_scan") || q.Page < 1 || q.PageSize < 1 || q.PageSize > 100 || (q.Direction != "" && q.Direction != "inbound" && q.Direction != "outbound") || (q.Status != "" && q.Status != "valid" && q.Status != "void") {
 		return TicketPage{}, ErrInvalid
 	}
 	page := TicketPage{Records: []TicketResult{}, Page: q.Page, PageSize: q.PageSize}

@@ -110,16 +110,25 @@
 }
 
 .primary-btn {
+  box-sizing: border-box;
   display: flex;
   align-items: center;
   justify-content: center;
+  width: 100%;
   min-height: 112rpx;
+  padding: 0;
   margin-top: 8rpx;
   font-size: 38rpx;
   font-weight: 600;
+  line-height: 1.2;
   color: #fff;
   background: var(--fc-brand);
+  border: none;
   border-radius: 28rpx;
+}
+
+.primary-btn::after {
+  border: none;
 }
 
 .primary-btn--disabled {
@@ -275,4 +284,112 @@
   font-size: 32rpx;
   color: var(--fc-text-secondary);
   text-align: center;
+}
+
+.weight-label {
+  margin-bottom: 12rpx;
+  font-size: 26rpx;
+  color: var(--fc-text-secondary);
+}
+
+.qr-card {
+  padding: 32rpx;
+  margin-top: 24rpx;
+  text-align: center;
+  background: var(--fc-surface);
+  border: 1rpx solid var(--fc-border);
+  border-radius: 32rpx;
+}
+
+.qr-title {
+  font-size: 38rpx;
+  font-weight: 700;
+  color: var(--fc-text);
+}
+
+.qr-status {
+  margin-top: 8rpx;
+  font-size: 28rpx;
+  color: var(--fc-text-secondary);
+}
+
+.qr-code {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: fit-content;
+  padding: 24rpx;
+  margin: 24rpx auto 0;
+  background: #fff;
+  border-radius: 24rpx;
+}
+
+.qr-image {
+  width: 480rpx;
+  height: 480rpx;
+}
+
+.qr-hint {
+  margin-top: 20rpx;
+  font-size: 30rpx;
+  font-weight: 500;
+  color: var(--fc-text);
+}
+
+.qr-expire {
+  margin-top: 8rpx;
+  font-size: 24rpx;
+  color: var(--fc-text-secondary);
+}
+
+.secondary-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 92rpx;
+  margin-top: 24rpx;
+  font-size: 32rpx;
+  font-weight: 500;
+  color: var(--fc-brand);
+  background: var(--fc-brand-soft);
+  border-radius: 24rpx;
+}
+
+.pending-meta,
+.action-note {
+  margin-top: 12rpx;
+  font-size: 26rpx;
+  line-height: 1.5;
+  color: var(--fc-text-secondary);
+  text-align: center;
+}
+
+.result-message {
+  padding: 16rpx 20rpx;
+  margin-top: 16rpx;
+  font-size: 26rpx;
+  line-height: 1.5;
+  color: var(--fc-warning-text);
+  background: var(--fc-warning-soft);
+  border-radius: 16rpx;
+}
+
+.history-status {
+  display: flex;
+  gap: 16rpx;
+  align-items: center;
+  margin-top: 10rpx;
+}
+
+.history-badge {
+  padding: 4rpx 14rpx;
+  font-size: 22rpx;
+  color: var(--fc-brand);
+  background: var(--fc-brand-soft);
+  border-radius: 999rpx;
+}
+
+.history-state {
+  font-size: 24rpx;
+  color: var(--fc-text-secondary);
 }

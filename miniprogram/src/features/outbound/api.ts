@@ -1,3 +1,4 @@
+import { env } from '@/config/env'
 import { request } from '@/utils/api'
 
 export interface OutboundAccount {
@@ -9,14 +10,41 @@ export interface OutboundAccount {
   scaleCode: string
 }
 
-export interface PendingWeighing {
+export interface OutboundQr {
+  value: string
+  expiresAt: string
+  image: string
+}
+
+export interface OutboundWeighing {
   id: number
+  status: string
+  source: string
+  plate: string
+  partyCode: string
+  partyName: string
+  siteCode: string
+  siteName: string
+  scaleCode: string
   firstWeightMilliTonne: number
   firstAt: string
+  secondWeightMilliTonne: number
+  secondAt?: string
+  netMilliTonne: number
+  ticketNo: string
+  factoryTaskNo: string
+  captureStatus: string
+  message: string
+  expiresAt?: string
+  qr?: OutboundQr
 }
 
 export interface OutboundProfile extends OutboundAccount {
-  pending?: PendingWeighing
+  current?: OutboundWeighing
+}
+
+export interface CurrentResponse {
+  current?: OutboundWeighing
 }
 
 export interface ScaleReading {
@@ -30,48 +58,46 @@ export interface ScaleReading {
   message: string
 }
 
-export interface FirstWeighResult {
-  weight: ScaleReading
-  pending: PendingWeighing
-}
-
-export interface TicketResult {
-  ticketNo: string
-  firstWeightMilliTonne: number
-  secondWeightMilliTonne: number
-  netMilliTonne: number
-  issuedAt: string
-  mock: boolean
-}
-
 export interface HistoryWeighing {
+  id: number
   ticketNo: string
+  status: string
+  source: string
   plate: string
   firstWeightMilliTonne: number
   secondWeightMilliTonne: number
   netMilliTonne: number
   firstAt: string
-  secondAt: string
+  secondAt?: string
+  factoryTaskNo: string
 }
 
 export interface HistoryPage {
   records: HistoryWeighing[]
 }
 
+export function handoffQrImage(value: string) {
+  return `${env.baseURL.replace(/\/$/, '')}/grain-outbound/handoffs/qr?value=${encodeURIComponent(value)}`
+}
+
 export function outboundProfile() {
   return request<OutboundProfile>({ path: '/grain-outbound/me' })
+}
+
+export function outboundCurrent() {
+  return request<CurrentResponse>({ path: '/grain-outbound/current' })
 }
 
 export function outboundWeight() {
   return request<ScaleReading>({ path: '/grain-outbound/weight' })
 }
 
-export function firstWeigh() {
-  return request<FirstWeighResult>({ path: '/grain-outbound/weighings/first', method: 'POST', data: {} })
+export function firstWeighQR() {
+  return request<OutboundWeighing>({ path: '/grain-outbound/weighings/first-qr', method: 'POST', data: {} })
 }
 
-export function secondWeigh() {
-  return request<TicketResult>({ path: '/grain-outbound/weighings/second', method: 'POST', data: {} })
+export function secondWeighQR() {
+  return request<OutboundWeighing>({ path: '/grain-outbound/weighings/second-qr', method: 'POST', data: {} })
 }
 
 export function cancelPending() {

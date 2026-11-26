@@ -42,7 +42,7 @@ func (c ChangeV5) Validate() (int64, error) {
 		if t.EntryType != "manual_supplement" || t.FirstWeighedAt == nil || t.SecondWeighedAt == nil || t.FirstWeighedAt.IsZero() || t.SecondWeighedAt.IsZero() || t.FirstWeighedAt.After(*t.SecondWeighedAt) || t.SecondWeighedAt.After(t.IssuedAt) || t.GrossSource != "manual" || t.TareSource != "manual" {
 			return 0, ErrInvalid
 		}
-	} else if t.EntryType != "" || t.FirstWeighedAt != nil || t.SecondWeighedAt != nil {
+	} else if (t.EntryType != "" && t.EntryType != "mobile_scan") || t.FirstWeighedAt != nil || t.SecondWeighedAt != nil {
 		return 0, ErrInvalid
 	}
 	changeType := c.Type

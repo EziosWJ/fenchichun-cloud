@@ -112,6 +112,7 @@ func New(cfg config.Config, readiness platformhttp.ReadinessChecker, deps Depend
 	}
 
 	if deps.Outbound != nil {
+		deps.Outbound.RegisterFactory(api)
 		deps.Outbound.Register(authenticated)
 	}
 

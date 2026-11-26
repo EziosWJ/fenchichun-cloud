@@ -1,38 +1,68 @@
 package grainoutbound
 
 import (
-	"context"
 	"errors"
-	"fmt"
 	"net/http"
+	"strings"
 	"time"
 
 	"fenchichun.local/server/internal/auth"
 	platformhttp "fenchichun.local/server/internal/platform/http"
-	"fenchichun.local/server/internal/weighbridge"
 
 	"github.com/gin-gonic/gin"
+	qrcode "github.com/skip2/go-qrcode"
 	"gorm.io/gorm"
 )
 
 type Handler struct {
 	repo  *Repository
 	scale *ScaleClient
-	weigh *weighbridge.Service
 }
 
-func NewHandler(db *gorm.DB, weigh *weighbridge.Service) *Handler {
-	return &Handler{repo: NewRepository(db), scale: NewScaleClient(), weigh: weigh}
+func NewHandler(db *gorm.DB) *Handler {
+	return &Handler{repo: NewRepository(db), scale: NewScaleClient()}
 }
 
+// Register exposes the authenticated mobile endpoints.
 func (h *Handler) Register(router gin.IRouter) {
 	group := router.Group("/grain-outbound")
 	group.GET("/me", h.me)
+	group.GET("/current", h.current)
 	group.GET("/weight", h.weight)
 	group.GET("/weighings", h.history)
-	group.POST("/weighings/first", h.first)
-	group.POST("/weighings/second", h.second)
+	group.POST("/weighings/first-qr", h.firstQR)
+	group.POST("/weighings/second-qr", h.secondQR)
 	group.DELETE("/weighings/pending", h.cancel)
+}
+
+// RegisterFactory exposes the token-authenticated handoff endpoints used by the
+// factory scanner. They are intentionally outside the mobile user session:
+// the one-time token plus site/scale is the handoff proof.
+func (h *Handler) RegisterFactory(router gin.IRouter) {
+	group := router.Group("/grain-outbound/handoffs")
+	group.POST("/claim", h.claim)
+	group.POST("/result", h.result)
+	group.POST("/terminate", h.terminate)
+	group.GET("/qr", h.qrImage)
+}
+
+// qrImage renders the same one-time handoff value as a PNG so the mini program
+// does not depend on a canvas QR component. The value is already a one-time
+// secret token; the image endpoint is intentionally public for the phone image
+// request.
+func (h *Handler) qrImage(c *gin.Context) {
+	value := strings.TrimSpace(c.Query("value"))
+	if value == "" || len(value) > 512 {
+		platformhttp.WriteError(c, http.StatusBadRequest, platformhttp.CodeBadRequest, "二维码内容无效", nil)
+		return
+	}
+	png, err := qrcode.Encode(value, qrcode.Medium, 512)
+	if err != nil {
+		platformhttp.WriteError(c, http.StatusInternalServerError, platformhttp.CodeInternalError, "生成二维码失败", nil)
+		return
+	}
+	c.Header("Cache-Control", "no-store")
+	c.Data(http.StatusOK, "image/png", png)
 }
 
 func (h *Handler) me(c *gin.Context) {
@@ -40,12 +70,27 @@ func (h *Handler) me(c *gin.Context) {
 	if !ok {
 		return
 	}
-	pending, err := h.repo.Pending(c.Request.Context(), account.UserID)
+	current, err := h.repo.Current(c.Request.Context(), account.UserID)
 	if err != nil {
 		platformhttp.WriteError(c, http.StatusInternalServerError, platformhttp.CodeInternalError, "读取过磅状态失败", nil)
 		return
 	}
-	platformhttp.OK(c, Profile{Account: account, Pending: pending})
+	markExpiredMessage(current)
+	platformhttp.OK(c, Profile{Account: account, Current: current})
+}
+
+func (h *Handler) current(c *gin.Context) {
+	account, ok := h.account(c)
+	if !ok {
+		return
+	}
+	current, err := h.repo.Current(c.Request.Context(), account.UserID)
+	if err != nil {
+		platformhttp.WriteError(c, http.StatusInternalServerError, platformhttp.CodeInternalError, "读取过磅状态失败", nil)
+		return
+	}
+	markExpiredMessage(current)
+	platformhttp.OK(c, gin.H{"current": current})
 }
 
 func (h *Handler) weight(c *gin.Context) {
@@ -53,13 +98,13 @@ func (h *Handler) weight(c *gin.Context) {
 	if !ok {
 		return
 	}
-	pending, err := h.repo.Pending(c.Request.Context(), account.UserID)
+	current, err := h.repo.Current(c.Request.Context(), account.UserID)
 	if err != nil {
 		platformhttp.WriteError(c, http.StatusInternalServerError, platformhttp.CodeInternalError, "读取过磅状态失败", nil)
 		return
 	}
 	stage := "first"
-	if pending != nil {
+	if current != nil && (current.Status == statusFirstRecorded || current.Status == statusSecondQRReady || current.Status == statusSecondScanning) {
 		stage = "second"
 	}
 	reading, _ := h.scale.Read(c.Request.Context(), account.ScaleCode, stage)
@@ -76,94 +121,43 @@ func (h *Handler) history(c *gin.Context) {
 		platformhttp.WriteError(c, http.StatusInternalServerError, platformhttp.CodeInternalError, "读取过磅历史失败", nil)
 		return
 	}
-	platformhttp.OK(c, gin.H{"records": records})
+	platformhttp.OK(c, HistoryPage{Records: records})
 }
 
-func (h *Handler) first(c *gin.Context) {
+func (h *Handler) firstQR(c *gin.Context) {
 	account, ok := h.account(c)
 	if !ok {
 		return
 	}
-	ctx := c.Request.Context()
-	pending, err := h.repo.Pending(ctx, account.UserID)
-	if err != nil {
-		platformhttp.WriteError(c, http.StatusInternalServerError, platformhttp.CodeInternalError, "读取过磅状态失败", nil)
-		return
-	}
-	if pending != nil {
-		platformhttp.WriteError(c, http.StatusConflict, http.StatusConflict, "已有未完的首磅，请先回磅或取消", nil)
-		return
-	}
-	reading, _ := h.scale.Read(ctx, account.ScaleCode, "first")
+	reading, _ := h.scale.Read(c.Request.Context(), account.ScaleCode, "first")
 	if !reading.Available {
 		platformhttp.WriteError(c, http.StatusConflict, http.StatusConflict, reading.Message, nil)
 		return
 	}
-	created, err := h.repo.CreatePending(ctx, account.UserID, account, reading.WeightMilliTonne, time.Now())
+	current, err := h.repo.CreateFirstQR(c.Request.Context(), account, reading.WeightMilliTonne, time.Now())
 	if err != nil {
-		platformhttp.WriteError(c, http.StatusConflict, http.StatusConflict, "首磅保存失败，请刷新后重试", nil)
+		writeWeighingError(c, err)
 		return
 	}
-	platformhttp.OK(c, gin.H{"weight": reading, "pending": created})
+	platformhttp.OK(c, current)
 }
 
-func (h *Handler) second(c *gin.Context) {
+func (h *Handler) secondQR(c *gin.Context) {
 	account, ok := h.account(c)
 	if !ok {
 		return
 	}
-	ctx := c.Request.Context()
-	pending, err := h.repo.Pending(ctx, account.UserID)
-	if err != nil {
-		platformhttp.WriteError(c, http.StatusInternalServerError, platformhttp.CodeInternalError, "读取过磅状态失败", nil)
-		return
-	}
-	if pending == nil {
-		platformhttp.WriteError(c, http.StatusConflict, http.StatusConflict, "请先完成首磅", nil)
-		return
-	}
-	reading, _ := h.scale.Read(ctx, account.ScaleCode, "second")
+	reading, _ := h.scale.Read(c.Request.Context(), account.ScaleCode, "second")
 	if !reading.Available {
 		platformhttp.WriteError(c, http.StatusConflict, http.StatusConflict, reading.Message, nil)
 		return
 	}
-	if reading.WeightMilliTonne >= pending.FirstWeightMilliTonne {
-		platformhttp.WriteError(c, http.StatusBadRequest, platformhttp.CodeBadRequest, "回磅重量必须小于首磅重量", nil)
-		return
-	}
-	net := pending.FirstWeightMilliTonne - reading.WeightMilliTonne
-	now := time.Now()
-	ticketNo, err := h.repo.NextTicketNo(ctx, account.SiteCode, now)
+	current, err := h.repo.CreateSecondQR(c.Request.Context(), account, reading.WeightMilliTonne, time.Now())
 	if err != nil {
-		platformhttp.WriteError(c, http.StatusInternalServerError, platformhttp.CodeInternalError, "生成磅单号失败", nil)
+		writeWeighingError(c, err)
 		return
 	}
-	if err := h.createTicket(ctx, account, pending, reading, ticketNo, net, now); err != nil {
-		code := http.StatusInternalServerError
-		message := "生成云平台过磅单失败"
-		switch {
-		case errors.Is(err, weighbridge.ErrInvalid):
-			code, message = http.StatusBadRequest, "过磅数据无效，请重试"
-		case errors.Is(err, weighbridge.ErrConflict):
-			code, message = http.StatusConflict, "磅单冲突，请刷新后重试"
-		case errors.Is(err, weighbridge.ErrUnauthorized):
-			code, message = http.StatusBadRequest, "出库站点无效，请联系管理员"
-		}
-		platformhttp.WriteError(c, code, code, message, nil)
-		return
-	}
-	if err := h.repo.CompletePending(ctx, pending.ID, ticketNo, reading.WeightMilliTonne, now); err != nil {
-		platformhttp.WriteError(c, http.StatusInternalServerError, platformhttp.CodeInternalError, "更新过磅状态失败", nil)
-		return
-	}
-	platformhttp.OK(c, TicketResult{
-		TicketNo:               ticketNo,
-		FirstWeightMilliTonne:  pending.FirstWeightMilliTonne,
-		SecondWeightMilliTonne: reading.WeightMilliTonne,
-		NetMilliTonne:          net,
-		IssuedAt:               now,
-		Mock:                   reading.Mock,
-	})
+	platformhttp.OK(c, current)
 }
 
 func (h *Handler) cancel(c *gin.Context) {
@@ -171,58 +165,51 @@ func (h *Handler) cancel(c *gin.Context) {
 	if !ok {
 		return
 	}
-	if err := h.repo.CancelPending(c.Request.Context(), account.UserID); err != nil {
-		platformhttp.WriteError(c, http.StatusInternalServerError, platformhttp.CodeInternalError, "取消失败", nil)
+	if err := h.repo.Cancel(c.Request.Context(), account.UserID); err != nil {
+		writeWeighingError(c, err)
 		return
 	}
 	platformhttp.OK(c, nil)
 }
 
-func (h *Handler) createTicket(ctx context.Context, account Account, pending *PendingWeighing, reading ScaleReading, ticketNo string, net int64, now time.Time) error {
-	materialName, materialSpec, err := h.repo.Distiller(ctx)
+func (h *Handler) claim(c *gin.Context) {
+	var in ClaimRequest
+	if c.ShouldBindJSON(&in) != nil || in.Token == "" || in.SiteCode == "" || in.ScaleCode == "" {
+		platformhttp.WriteError(c, http.StatusBadRequest, platformhttp.CodeBadRequest, "扫码参数错误", nil)
+		return
+	}
+	result, err := h.repo.Claim(c.Request.Context(), in.Token, in.SiteCode, in.ScaleCode)
 	if err != nil {
-		return err
+		writeHandoffError(c, err)
+		return
 	}
-	issuer, err := h.repo.UserName(ctx, account.UserID)
-	if err != nil {
-		return err
-	}
-	first := formatTonnes(pending.FirstWeightMilliTonne)
-	second := formatTonnes(reading.WeightMilliTonne)
-	change := weighbridge.Change{
-		SchemaVersion: 2,
-		ChangeID:      "mobile-" + ticketNo,
-		SiteCode:      account.SiteCode,
-		TicketNo:      ticketNo,
-		Type:          "issue",
-		Ticket: &weighbridge.TicketSnapshot{
-			TicketNo:          ticketNo,
-			Title:             "酒糟出库过磅单",
-			Plate:             account.Plate,
-			Direction:         "outbound",
-			MaterialCode:      distillerCode,
-			MaterialName:      materialName,
-			MaterialSpec:      materialSpec,
-			PartyCode:         account.PartyCode,
-			PartyName:         account.PartyName,
-			FirstConfirmedAt:  pending.FirstAt,
-			SecondConfirmedAt: now,
-			IssuedAt:          now,
-			IssuerName:        issuer,
-			OriginalGross:     first,
-			OriginalTare:      second,
-			FinalGross:        first,
-			FinalTare:         second,
-			GrossSource:       "mobile",
-			TareSource:        "mobile",
-		},
-	}
-	_, err = h.weigh.ApplyChange(ctx, change)
-	return err
+	platformhttp.OK(c, result)
 }
 
-func formatTonnes(milliTonne int64) string {
-	return fmt.Sprintf("%d.%03d", milliTonne/1000, milliTonne%1000)
+func (h *Handler) result(c *gin.Context) {
+	var in ResultRequest
+	if c.ShouldBindJSON(&in) != nil || in.Token == "" || in.SiteCode == "" || in.ScaleCode == "" || in.Action == "" || in.Status == "" {
+		platformhttp.WriteError(c, http.StatusBadRequest, platformhttp.CodeBadRequest, "扫码结果参数错误", nil)
+		return
+	}
+	if err := h.repo.Result(c.Request.Context(), in); err != nil {
+		writeHandoffError(c, err)
+		return
+	}
+	platformhttp.OK(c, nil)
+}
+
+func (h *Handler) terminate(c *gin.Context) {
+	var in TerminateRequest
+	if c.ShouldBindJSON(&in) != nil || in.SiteCode == "" || in.FactoryTaskNo == "" {
+		platformhttp.WriteError(c, http.StatusBadRequest, platformhttp.CodeBadRequest, "终止参数错误", nil)
+		return
+	}
+	if err := h.repo.TerminateByTask(c.Request.Context(), in.SiteCode, in.FactoryTaskNo, in.Reason); err != nil {
+		writeHandoffError(c, err)
+		return
+	}
+	platformhttp.OK(c, nil)
 }
 
 func (h *Handler) account(c *gin.Context) (Account, bool) {
@@ -242,9 +229,52 @@ func (h *Handler) account(c *gin.Context) (Account, bool) {
 	}
 	account, err := h.repo.Account(c.Request.Context(), principal.UserID)
 	if err != nil {
-		status := http.StatusForbidden
-		platformhttp.WriteError(c, status, platformhttp.CodeForbidden, ErrNoAccount.Error(), nil)
+		platformhttp.WriteError(c, http.StatusForbidden, platformhttp.CodeForbidden, ErrNoAccount.Error(), nil)
 		return Account{}, false
 	}
 	return account, true
+}
+
+func writeWeighingError(c *gin.Context, err error) {
+	switch {
+	case errors.Is(err, ErrActive):
+		platformhttp.WriteError(c, http.StatusConflict, http.StatusConflict, ErrActive.Error(), nil)
+	case errors.Is(err, ErrNoFirst):
+		platformhttp.WriteError(c, http.StatusConflict, http.StatusConflict, ErrNoFirst.Error(), nil)
+	case errors.Is(err, ErrWeight):
+		platformhttp.WriteError(c, http.StatusBadRequest, platformhttp.CodeBadRequest, ErrWeight.Error(), nil)
+	case errors.Is(err, ErrExpired):
+		platformhttp.WriteError(c, http.StatusConflict, http.StatusConflict, ErrExpired.Error(), nil)
+	case errors.Is(err, ErrTerminated):
+		platformhttp.WriteError(c, http.StatusConflict, http.StatusConflict, ErrTerminated.Error(), nil)
+	case errors.Is(err, ErrConflict):
+		platformhttp.WriteError(c, http.StatusConflict, http.StatusConflict, ErrConflict.Error(), nil)
+	default:
+		platformhttp.WriteError(c, http.StatusInternalServerError, platformhttp.CodeInternalError, "过磅操作失败", nil)
+	}
+}
+
+func writeHandoffError(c *gin.Context, err error) {
+	switch {
+	case errors.Is(err, ErrHandoff):
+		platformhttp.WriteError(c, http.StatusConflict, http.StatusConflict, ErrHandoff.Error(), nil)
+	case errors.Is(err, ErrConflict):
+		platformhttp.WriteError(c, http.StatusConflict, http.StatusConflict, ErrConflict.Error(), nil)
+	case errors.Is(err, ErrWeight):
+		platformhttp.WriteError(c, http.StatusBadRequest, platformhttp.CodeBadRequest, ErrWeight.Error(), nil)
+	default:
+		platformhttp.WriteError(c, http.StatusInternalServerError, platformhttp.CodeInternalError, "厂端扫码处理失败", nil)
+	}
+}
+
+func markExpiredMessage(current *Weighing) {
+	if current == nil || current.ExpiresAt == nil || current.Message != "" {
+		return
+	}
+	if current.Status != statusFirstRecorded && current.Status != statusSecondQRReady && current.Status != statusSecondScanning {
+		return
+	}
+	if current.ExpiresAt.Before(time.Now()) {
+		current.Message = ErrExpired.Error()
+	}
 }

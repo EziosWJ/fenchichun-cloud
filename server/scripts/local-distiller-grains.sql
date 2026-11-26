@@ -60,7 +60,7 @@ ON CONFLICT (user_id, role_id) DO NOTHING;
 -- Bind the outbound account to a real customer, plate and site in the local
 -- database. The mobile page never trusts plate/party values from the client.
 INSERT INTO grain_outbound_account (user_id, party_code, plate, site_code, scale_code, enabled)
-SELECT u.id, 'C-P-0031', '晋JN0429', 'F001', 'WB01', TRUE
+SELECT u.id, 'C-P-0031', '晋JN0429', 'SITE01', 'WB01', TRUE
 FROM sys_user u
 WHERE u.username = 'outbound01' AND u.deleted = 0
 ON CONFLICT (user_id) DO UPDATE SET
