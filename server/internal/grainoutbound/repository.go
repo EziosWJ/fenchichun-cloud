@@ -19,6 +19,7 @@ const (
 	outboundRoleCode = "GRAIN_OUT"
 	distillerCode    = "C-M-0006"
 	businessZone     = "Asia/Shanghai"
+	pendingTTL       = 6 * time.Hour
 )
 
 type Repository struct{ db *gorm.DB }
@@ -67,7 +68,18 @@ func (r *Repository) Distiller(ctx context.Context) (name, spec string, err erro
 	return row.Name, row.Spec, err
 }
 
+// expirePending clears first weighings kept longer than the temporary window
+// so an old first weight can never be paired with a new second weighing.
+func expirePending(ctx context.Context, db *gorm.DB, userID int64, now time.Time) error {
+	return db.WithContext(ctx).Table("grain_outbound_weighing").
+		Where("user_id = ? AND status = 'pending' AND first_at <= ?", userID, now.Add(-pendingTTL)).
+		Updates(map[string]any{"status": "expired", "updated_at": now}).Error
+}
+
 func (r *Repository) Pending(ctx context.Context, userID int64) (*PendingWeighing, error) {
+	if err := expirePending(ctx, r.db, userID, time.Now()); err != nil {
+		return nil, err
+	}
 	var rows []PendingWeighing
 	err := r.db.WithContext(ctx).Table("grain_outbound_weighing").
 		Select("id, first_weight_milli_tonne, first_at").
@@ -85,6 +97,9 @@ func (r *Repository) Pending(ctx context.Context, userID int64) (*PendingWeighin
 func (r *Repository) CreatePending(ctx context.Context, userID int64, account Account, weight int64, at time.Time) (PendingWeighing, error) {
 	var row PendingWeighing
 	err := r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		if err := expirePending(ctx, tx, userID, at); err != nil {
+			return err
+		}
 		var existing int64
 		if err := tx.Table("grain_outbound_weighing").
 			Where("user_id = ? AND status = 'pending'", userID).Count(&existing).Error; err != nil {

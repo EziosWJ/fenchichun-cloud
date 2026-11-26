@@ -26,14 +26,7 @@ function weightText(milliTonne: number) {
 let pollTimer: ReturnType<typeof setInterval> | null = null
 let pollBusy = false
 
-function clockText(value: string) {
-  const date = new Date(value)
-  if (Number.isNaN(date.getTime())) {
-    return ''
-  }
-  const two = (number: number) => String(number).padStart(2, '0')
-  return `${two(date.getHours())}:${two(date.getMinutes())}:${two(date.getSeconds())}`
-}
+const pendingTTL = 6 * 60 * 60 * 1000
 
 function dateTimeText(value: string) {
   const date = new Date(value)
@@ -62,7 +55,6 @@ Page({
     profile: null as OutboundProfile | null,
     plate: '',
     partyName: '',
-    siteName: '',
     reading: null as ScaleReading | null,
     weightText: '0.000',
     statusText: '正在读取地磅',
@@ -70,7 +62,6 @@ Page({
     mock: false,
     pending: null as PendingWeighing | null,
     firstText: '',
-    firstTime: '',
     result: null as TicketResult | null,
     netText: '',
     resultFirstText: '',
@@ -116,10 +107,8 @@ Page({
         profile,
         plate: profile.plate,
         partyName: profile.partyName,
-        siteName: profile.siteName,
         pending: profile.pending ?? null,
         firstText: profile.pending ? weightText(profile.pending.firstWeightMilliTonne) : '',
-        firstTime: profile.pending ? clockText(profile.pending.firstAt) : '',
         result: null,
       })
       if (this.data.tab === 'weigh') {
@@ -173,6 +162,7 @@ Page({
     }
   },
   refreshWeight() {
+    this.dropExpiredPending()
     if (pollBusy) {
       return
     }
@@ -191,6 +181,18 @@ Page({
       pollBusy = false
     })
   },
+  dropExpiredPending() {
+    const pending = this.data.pending
+    if (!pending) {
+      return
+    }
+    const firstAt = new Date(pending.firstAt).getTime()
+    if (Number.isNaN(firstAt) || Date.now() - firstAt < pendingTTL) {
+      return
+    }
+    this.setData({ pending: null, firstText: '' })
+    wx.showToast({ title: '首磅已超过6小时，已自动清除', icon: 'none' })
+  },
   doFirst() {
     if (this.data.busy || !this.data.available) {
       return
@@ -200,7 +202,6 @@ Page({
       this.setData({
         pending: value.pending,
         firstText: weightText(value.pending.firstWeightMilliTonne),
-        firstTime: clockText(value.pending.firstAt),
         busy: false,
       })
       wx.showToast({ title: '首磅已记录，请卸货', icon: 'none' })
@@ -221,7 +222,6 @@ Page({
         busy: false,
         pending: null,
         firstText: '',
-        firstTime: '',
         result,
         netText: weightText(result.netMilliTonne),
         resultFirstText: weightText(result.firstWeightMilliTonne),
@@ -246,7 +246,7 @@ Page({
         }
         this.setData({ busy: true })
         cancelPending().then(() => {
-          this.setData({ busy: false, pending: null, firstText: '', firstTime: '' })
+          this.setData({ busy: false, pending: null, firstText: '' })
           wx.showToast({ title: '已取消首磅', icon: 'none' })
           this.refreshWeight()
         }).catch((error) => {
