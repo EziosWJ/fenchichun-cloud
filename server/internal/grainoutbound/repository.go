@@ -128,6 +128,25 @@ func (r *Repository) CancelPending(ctx context.Context, userID int64) error {
 		Updates(map[string]any{"status": "cancelled", "updated_at": time.Now()}).Error
 }
 
+// History lists the signed-in account's completed tickets, newest first.
+func (r *Repository) History(ctx context.Context, userID int64) ([]HistoryWeighing, error) {
+	const limit = 50
+	rows := make([]HistoryWeighing, 0)
+	err := r.db.WithContext(ctx).Table("grain_outbound_weighing").
+		Select(`ticket_no, plate, first_weight_milli_tonne,
+			COALESCE(second_weight_milli_tonne, 0) AS second_weight_milli_tonne,
+			first_at, COALESCE(second_at, updated_at) AS second_at`).
+		Where("user_id = ? AND status = 'completed' AND ticket_no <> ''", userID).
+		Order("second_at DESC, id DESC").Limit(limit).Scan(&rows).Error
+	if err != nil {
+		return nil, err
+	}
+	for index := range rows {
+		rows[index].NetMilliTonne = rows[index].FirstWeightMilliTonne - rows[index].SecondWeightMilliTonne
+	}
+	return rows, nil
+}
+
 func (r *Repository) NextTicketNo(ctx context.Context, siteCode string, at time.Time) (string, error) {
 	zone, err := time.LoadLocation(businessZone)
 	if err != nil {

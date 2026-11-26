@@ -29,6 +29,7 @@ func (h *Handler) Register(router gin.IRouter) {
 	group := router.Group("/grain-outbound")
 	group.GET("/me", h.me)
 	group.GET("/weight", h.weight)
+	group.GET("/weighings", h.history)
 	group.POST("/weighings/first", h.first)
 	group.POST("/weighings/second", h.second)
 	group.DELETE("/weighings/pending", h.cancel)
@@ -63,6 +64,19 @@ func (h *Handler) weight(c *gin.Context) {
 	}
 	reading, _ := h.scale.Read(c.Request.Context(), account.ScaleCode, stage)
 	platformhttp.OK(c, reading)
+}
+
+func (h *Handler) history(c *gin.Context) {
+	account, ok := h.account(c)
+	if !ok {
+		return
+	}
+	records, err := h.repo.History(c.Request.Context(), account.UserID)
+	if err != nil {
+		platformhttp.WriteError(c, http.StatusInternalServerError, platformhttp.CodeInternalError, "读取过磅历史失败", nil)
+		return
+	}
+	platformhttp.OK(c, gin.H{"records": records})
 }
 
 func (h *Handler) first(c *gin.Context) {

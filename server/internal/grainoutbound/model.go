@@ -20,6 +20,17 @@ type PendingWeighing struct {
 	FirstAt               time.Time `json:"firstAt"`
 }
 
+// HistoryWeighing is one completed cloud ticket owned by the signed-in account.
+type HistoryWeighing struct {
+	TicketNo               string    `json:"ticketNo"`
+	Plate                  string    `json:"plate"`
+	FirstWeightMilliTonne  int64     `json:"firstWeightMilliTonne"`
+	SecondWeightMilliTonne int64     `json:"secondWeightMilliTonne"`
+	NetMilliTonne          int64     `json:"netMilliTonne"`
+	FirstAt                time.Time `json:"firstAt"`
+	SecondAt               time.Time `json:"secondAt"`
+}
+
 type Profile struct {
 	Account
 	Pending *PendingWeighing `json:"pending,omitempty"`

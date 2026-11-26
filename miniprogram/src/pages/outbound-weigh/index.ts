@@ -1,17 +1,23 @@
-import type { OutboundProfile, PendingWeighing, ScaleReading, TicketResult } from '@/features/outbound/api'
+import type { HistoryWeighing, OutboundProfile, PendingWeighing, ScaleReading, TicketResult } from '@/features/outbound/api'
 import { routes } from '@/config/routes'
 import { grainService } from '@/features/grain/api-service'
 import { errorMessage, requireLogin } from '@/features/grain/page'
 import {
   cancelPending,
   firstWeigh,
+  outboundHistory,
   outboundProfile,
-
   outboundWeight,
-
   secondWeigh,
-
 } from '@/features/outbound/api'
+
+interface HistoryView {
+  ticketNo: string
+  firstText: string
+  secondText: string
+  netText: string
+  dateText: string
+}
 
 function weightText(milliTonne: number) {
   return (milliTonne / 1000).toFixed(3)
@@ -27,6 +33,25 @@ function clockText(value: string) {
   }
   const two = (number: number) => String(number).padStart(2, '0')
   return `${two(date.getHours())}:${two(date.getMinutes())}:${two(date.getSeconds())}`
+}
+
+function dateTimeText(value: string) {
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) {
+    return ''
+  }
+  const two = (number: number) => String(number).padStart(2, '0')
+  return `${two(date.getMonth() + 1)}-${two(date.getDate())} ${two(date.getHours())}:${two(date.getMinutes())}`
+}
+
+function historyView(item: HistoryWeighing): HistoryView {
+  return {
+    ticketNo: item.ticketNo,
+    firstText: weightText(item.firstWeightMilliTonne),
+    secondText: weightText(item.secondWeightMilliTonne),
+    netText: weightText(item.netMilliTonne),
+    dateText: dateTimeText(item.secondAt),
+  }
 }
 
 Page({
@@ -50,6 +75,10 @@ Page({
     netText: '',
     resultFirstText: '',
     resultSecondText: '',
+    tab: 'weigh' as 'weigh' | 'history',
+    historyLoading: false,
+    historyError: '',
+    history: [] as HistoryView[],
   },
   onShow() {
     try {
@@ -63,6 +92,9 @@ Page({
       return
     }
     this.load()
+    if (this.data.tab === 'history') {
+      this.loadHistory()
+    }
   },
   onHide() {
     this.stopPolling()
@@ -90,10 +122,44 @@ Page({
         firstTime: profile.pending ? clockText(profile.pending.firstAt) : '',
         result: null,
       })
-      this.startPolling()
+      if (this.data.tab === 'weigh') {
+        this.startPolling()
+      }
     }).catch((error) => {
       this.setData({ loading: false, error: errorMessage(error) })
     })
+  },
+  loadHistory() {
+    this.setData({ historyLoading: true, historyError: '' })
+    outboundHistory().then((page) => {
+      this.setData({
+        historyLoading: false,
+        history: (page.records ?? []).map(historyView),
+      })
+    }).catch((error) => {
+      this.setData({ historyLoading: false, historyError: errorMessage(error) })
+    })
+  },
+  changeTab(event: WechatMiniprogram.TouchEvent) {
+    const tab = event.currentTarget.dataset.tab === 'history' ? 'history' : 'weigh'
+    if (tab === this.data.tab) {
+      return
+    }
+    this.setData({ tab })
+    try {
+      wx.pageScrollTo({ scrollTop: 0, duration: 0 })
+    }
+    catch {
+      // 忽略。
+    }
+    if (tab === 'history') {
+      this.stopPolling()
+      this.loadHistory()
+      return
+    }
+    if (this.data.profile) {
+      this.startPolling()
+    }
   },
   startPolling() {
     this.stopPolling()

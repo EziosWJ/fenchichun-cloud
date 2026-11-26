@@ -1,6 +1,6 @@
 .weigh-page {
   min-height: 100vh;
-  padding: 32rpx 24rpx calc(48rpx + env(safe-area-inset-bottom));
+  padding: 32rpx 24rpx calc(200rpx + env(safe-area-inset-bottom));
   background: var(--fc-bg);
 }
 
@@ -170,4 +170,117 @@
   font-size: 26rpx;
   color: var(--fc-text-placeholder);
   text-align: center;
+}
+
+.history-count {
+  padding: 4rpx 8rpx 20rpx;
+  font-size: 26rpx;
+  color: var(--fc-text-secondary);
+}
+
+.history-empty {
+  padding: 96rpx 32rpx;
+  text-align: center;
+  background: var(--fc-surface);
+  border: 1rpx solid var(--fc-border);
+  border-radius: 32rpx;
+}
+
+.history-empty-title {
+  font-size: 34rpx;
+  font-weight: 600;
+  color: var(--fc-text);
+}
+
+.history-empty-hint {
+  margin-top: 16rpx;
+  font-size: 28rpx;
+  line-height: 1.6;
+  color: var(--fc-text-secondary);
+}
+
+.history-card {
+  padding: 28rpx 32rpx;
+  margin-bottom: 20rpx;
+  background: var(--fc-surface);
+  border: 1rpx solid var(--fc-border);
+  border-radius: 28rpx;
+}
+
+.history-main {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+}
+
+.history-net {
+  font-size: 60rpx;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--fc-brand);
+}
+
+.history-unit {
+  margin-left: 8rpx;
+  font-size: 28rpx;
+  font-weight: 500;
+  color: var(--fc-text);
+}
+
+.history-date {
+  font-size: 26rpx;
+  color: var(--fc-text-secondary);
+}
+
+.history-detail {
+  display: flex;
+  gap: 32rpx;
+  margin-top: 16rpx;
+  font-size: 28rpx;
+  color: var(--fc-text-secondary);
+}
+
+.history-ticket {
+  margin-top: 14rpx;
+  font-size: 26rpx;
+  color: var(--fc-text-placeholder);
+  word-break: break-all;
+}
+
+.bottom-nav {
+  position: fixed;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 10;
+  display: flex;
+  padding-bottom: env(safe-area-inset-bottom);
+  background: var(--fc-surface);
+  border-top: 1rpx solid var(--fc-border);
+}
+
+.nav-item {
+  position: relative;
+  flex: 1;
+  padding: 28rpx 0 24rpx;
+  font-size: 32rpx;
+  color: var(--fc-text-secondary);
+  text-align: center;
+}
+
+.nav-item--active {
+  font-weight: 600;
+  color: var(--fc-brand);
+}
+
+.nav-item--active::after {
+  position: absolute;
+  bottom: 10rpx;
+  left: 50%;
+  width: 48rpx;
+  height: 6rpx;
+  content: '';
+  background: var(--fc-brand);
+  border-radius: 999rpx;
+  transform: translateX(-50%);
 }

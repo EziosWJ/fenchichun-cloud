@@ -44,6 +44,20 @@ export interface TicketResult {
   mock: boolean
 }
 
+export interface HistoryWeighing {
+  ticketNo: string
+  plate: string
+  firstWeightMilliTonne: number
+  secondWeightMilliTonne: number
+  netMilliTonne: number
+  firstAt: string
+  secondAt: string
+}
+
+export interface HistoryPage {
+  records: HistoryWeighing[]
+}
+
 export function outboundProfile() {
   return request<OutboundProfile>({ path: '/grain-outbound/me' })
 }
@@ -62,4 +76,8 @@ export function secondWeigh() {
 
 export function cancelPending() {
   return request<null>({ path: '/grain-outbound/weighings/pending', method: 'DELETE' })
+}
+
+export function outboundHistory() {
+  return request<HistoryPage>({ path: '/grain-outbound/weighings' })
 }
