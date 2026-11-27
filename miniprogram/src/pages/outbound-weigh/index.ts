@@ -1,8 +1,12 @@
-import type { HistoryWeighing, OutboundProfile, OutboundQr, OutboundWeighing, ScaleReading } from '@/features/outbound/api'
+import type { HistoryQuery, HistoryWeighing, OutboundProfile, OutboundQr, OutboundWeighing, ScaleReading } from '@/features/outbound/api'
 import { routes } from '@/config/routes'
 import { grainService } from '@/features/grain/api-service'
 import { errorMessage, requireLogin } from '@/features/grain/page'
 import { firstWeighQR, handoffQrImage, outboundCurrent, outboundHistory, outboundProfile, outboundWeight, secondWeighQR } from '@/features/outbound/api'
+
+type HistoryType = 'all' | 'first' | 'second'
+type HistoryStatus = 'all' | 'pending' | 'completed'
+type HistoryRange = 'today' | '7d' | '30d' | '3m' | 'custom'
 
 interface QrView extends OutboundQr {
   action: 'first' | 'second'
@@ -11,32 +15,20 @@ interface QrView extends OutboundQr {
 
 interface HistoryView {
   id: number
-  ticketNo: string
+  type: 'first' | 'second'
   statusLabel: string
-  sourceLabel: string
+  statusKind: 'pending' | 'completed' | 'muted'
+  infoText: string
   firstText: string
   secondText: string
-  firstLabel: string
-  secondLabel: string
-  netText: string
+  mainText: string
+  showNetLabel: boolean
+  printable: boolean
   dateText: string
-  factoryTaskNo: string
 }
 
 function weightText(milliTonne: number) {
   return (milliTonne / 1000).toFixed(3)
-}
-
-function timeText(value?: string) {
-  if (!value) {
-    return ''
-  }
-  const date = new Date(value)
-  if (Number.isNaN(date.getTime())) {
-    return ''
-  }
-  const two = (number: number) => String(number).padStart(2, '0')
-  return `${two(date.getMonth() + 1)}-${two(date.getDate())} ${two(date.getHours())}:${two(date.getMinutes())}`
 }
 
 function fullTimeText(value?: string) {
@@ -66,28 +58,89 @@ function statusText(status: string) {
   return labels[status] || status
 }
 
-function sourceText(source: string) {
-  return source === 'mobile_direct' ? '手机直出' : '手机扫码'
-}
-
-function historyView(item: HistoryWeighing): HistoryView {
-  return {
-    id: item.id,
-    ticketNo: item.ticketNo || '待厂端出单',
-    statusLabel: statusText(item.status),
-    sourceLabel: sourceText(item.source),
-    firstText: weightText(item.firstWeightMilliTonne),
-    secondText: weightText(item.secondWeightMilliTonne),
-    firstLabel: item.source === 'mobile_direct' ? '首磅毛重' : '首磅皮重',
-    secondLabel: item.source === 'mobile_direct' ? '回磅皮重' : '回磅毛重',
-    netText: weightText(item.netMilliTonne),
-    dateText: timeText(item.secondAt || item.firstAt),
-    factoryTaskNo: item.factoryTaskNo || '',
+function historyStatus(status: string): Pick<HistoryView, 'statusLabel' | 'statusKind'> {
+  switch (status) {
+    case 'completed':
+      return { statusLabel: '已完成', statusKind: 'completed' }
+    case 'first_recorded':
+      return { statusLabel: '待回磅', statusKind: 'pending' }
+    case 'first_qr_ready':
+      return { statusLabel: '待首磅', statusKind: 'pending' }
+    case 'first_scanning':
+      return { statusLabel: '首磅处理中', statusKind: 'pending' }
+    case 'second_qr_ready':
+      return { statusLabel: '回磅待扫码', statusKind: 'pending' }
+    case 'second_scanning':
+      return { statusLabel: '回磅处理中', statusKind: 'pending' }
+    case 'expired':
+      return { statusLabel: '已过期', statusKind: 'muted' }
+    case 'cancelled':
+      return { statusLabel: '已取消', statusKind: 'muted' }
+    case 'terminated':
+      return { statusLabel: '已终止', statusKind: 'muted' }
+    default:
+      return { statusLabel: status, statusKind: 'muted' }
   }
 }
 
+function historyView(item: HistoryWeighing): HistoryView {
+  const type = item.type === 'second' ? 'second' : 'first'
+  const completed = item.status === 'completed'
+  const base = {
+    id: item.id,
+    type,
+    infoText: type === 'first' && item.status === 'first_recorded' ? '首磅完成，等待回磅' : '',
+    firstText: weightText(item.firstWeightMilliTonne),
+    secondText: weightText(item.secondWeightMilliTonne),
+    printable: type === 'second' && completed,
+    dateText: fullTimeText(item.secondAt || item.firstAt),
+    ...historyStatus(item.status),
+  } as const
+  if (type === 'second') {
+    return {
+      ...base,
+      mainText: completed ? weightText(item.netMilliTonne) : weightText(item.secondWeightMilliTonne),
+      showNetLabel: completed,
+    }
+  }
+  return {
+    ...base,
+    mainText: weightText(item.firstWeightMilliTonne),
+    showNetLabel: false,
+  }
+}
+
+function dateOnly(date: Date) {
+  const two = (number: number) => String(number).padStart(2, '0')
+  return `${date.getFullYear()}-${two(date.getMonth() + 1)}-${two(date.getDate())}`
+}
+
+function daysAgo(days: number) {
+  const date = new Date()
+  date.setDate(date.getDate() - days)
+  return dateOnly(date)
+}
+
+function monthsAgo(months: number) {
+  const date = new Date()
+  date.setMonth(date.getMonth() - months)
+  return dateOnly(date)
+}
+
+const historyRangeLabels: Record<HistoryRange, string> = {
+  'today': '今天',
+  '7d': '近7天',
+  '30d': '近30天',
+  '3m': '近三个月',
+  'custom': '自定义',
+}
+
+const hiddenHistoryStatuses = new Set(['cancelled', 'terminated', 'expired'])
+
 Page({
   data: {
+    statusBarHeight: 20,
+    navBarHeight: 44,
     loading: true,
     error: '',
     busy: false,
@@ -114,13 +167,50 @@ Page({
     message: '',
     tab: 'weigh' as 'weigh' | 'history',
     historyLoading: false,
+    historyLoadingMore: false,
     historyError: '',
     history: [] as HistoryView[],
+    historyType: 'all' as HistoryType,
+    historyStatus: 'all' as HistoryStatus,
+    historyRange: '3m' as HistoryRange,
+    historyRangeLabel: historyRangeLabels['3m'],
+    historyFrom: monthsAgo(3),
+    historyTo: dateOnly(new Date()),
+    historyPage: 1,
+    historyPageSize: 10,
+    historyHasMore: false,
+    historyTotal: 0,
+    historyTotalNetText: '0.000',
   },
   lastStatus: '',
+  historyRequestID: 0,
   ignoredCurrentID: 0,
   weightTimer: null as ReturnType<typeof setInterval> | null,
   currentTimer: null as ReturnType<typeof setInterval> | null,
+  onLoad() {
+    this.historyRequestID = 0
+    this.measureNavigation()
+  },
+  onResize() {
+    this.measureNavigation()
+  },
+  measureNavigation() {
+    let statusBarHeight = 20
+    let navBarHeight = 44
+    try {
+      const windowInfo = wx.getWindowInfo()
+      statusBarHeight = windowInfo.statusBarHeight || statusBarHeight
+      const menu = wx.getMenuButtonBoundingClientRect()
+      if (menu && menu.top && menu.height) {
+        const gap = Math.max(menu.top - statusBarHeight, 4)
+        navBarHeight = menu.height + gap * 2
+      }
+    }
+    catch {
+      // 旧基础库取不到胶囊信息时沿用兜底值，不影响业务。
+    }
+    this.setData({ statusBarHeight, navBarHeight })
+  },
   onShow() {
     try {
       wx.hideTabBar({ animation: false })
@@ -134,7 +224,7 @@ Page({
     }
     this.load()
     if (this.data.tab === 'history') {
-      this.loadHistory()
+      this.loadHistory(true)
     }
   },
   onHide() {
@@ -148,6 +238,12 @@ Page({
     catch {
       // 忽略。
     }
+  },
+  onReachBottom() {
+    if (this.data.tab !== 'history' || !this.data.historyHasMore || this.data.historyLoading || this.data.historyLoadingMore) {
+      return
+    }
+    this.loadHistory(false)
   },
   load() {
     this.setData({ loading: true, error: '', busy: false })
@@ -384,6 +480,19 @@ Page({
     this.setData({ current: null, qr: null, statusLabel: '', message: '', firstText: '', secondText: '', netText: '', taskText: '', ticketText: '' })
     this.refreshWeight()
   },
+  backToWeigh() {
+    if (this.data.tab !== 'history') {
+      return
+    }
+    this.setData({ tab: 'weigh' })
+    try {
+      wx.pageScrollTo({ scrollTop: 0, duration: 0 })
+    }
+    catch {
+      // 忽略。
+    }
+    this.startPolling()
+  },
   changeTab(event: WechatMiniprogram.TouchEvent) {
     const tab = event.currentTarget.dataset.tab === 'history' ? 'history' : 'weigh'
     if (tab === this.data.tab) {
@@ -398,21 +507,181 @@ Page({
     }
     if (tab === 'history') {
       this.stopPolling()
-      this.loadHistory()
+      this.loadHistory(true)
       return
     }
     this.startPolling()
   },
-  loadHistory() {
-    this.setData({ historyLoading: true, historyError: '' })
-    outboundHistory().then((page) => {
+  historyRangeBounds(range?: HistoryRange) {
+    const current = range ?? this.data.historyRange
+    if (current === 'custom') {
+      return {
+        from: this.data.historyFrom || monthsAgo(3),
+        to: this.data.historyTo || dateOnly(new Date()),
+      }
+    }
+    switch (current) {
+      case 'today':
+        return { from: dateOnly(new Date()), to: dateOnly(new Date()) }
+      case '7d':
+        return { from: daysAgo(6), to: dateOnly(new Date()) }
+      case '30d':
+        return { from: daysAgo(29), to: dateOnly(new Date()) }
+      default:
+        return { from: monthsAgo(3), to: dateOnly(new Date()) }
+    }
+  },
+  changeHistoryRange() {
+    const ranges: HistoryRange[] = ['today', '7d', '30d', '3m', 'custom']
+    wx.showActionSheet({
+      itemList: ranges.map(range => historyRangeLabels[range]),
+      success: ({ tapIndex }) => {
+        const range = ranges[tapIndex]
+        if (!range) {
+          return
+        }
+        if (range === 'custom') {
+          const bounds = this.historyRangeBounds()
+          this.setData({
+            historyRange: range,
+            historyRangeLabel: historyRangeLabels[range],
+            historyFrom: bounds.from,
+            historyTo: bounds.to,
+          })
+          return
+        }
+        this.setData({ historyRange: range, historyRangeLabel: historyRangeLabels[range] })
+        this.loadHistory(true)
+      },
+    })
+  },
+  changeHistoryType(event: WechatMiniprogram.TouchEvent) {
+    const type = event.currentTarget.dataset.type as HistoryType
+    if (type === this.data.historyType) {
+      return
+    }
+    this.setData({ historyType: type }, () => this.loadHistory(true))
+  },
+  changeHistoryStatus(event: WechatMiniprogram.TouchEvent) {
+    const status = event.currentTarget.dataset.status as HistoryStatus
+    if (status === this.data.historyStatus) {
+      return
+    }
+    this.setData({ historyStatus: status }, () => this.loadHistory(true))
+  },
+  changeHistoryFrom(event: WechatMiniprogram.PickerChange) {
+    const from = String(event.detail.value)
+    if (this.data.historyTo && from > this.data.historyTo) {
+      wx.showToast({ title: '开始日期不能晚于结束日期', icon: 'none' })
+      return
+    }
+    this.setData({ historyFrom: from }, () => this.loadHistory(true))
+  },
+  changeHistoryTo(event: WechatMiniprogram.PickerChange) {
+    const to = String(event.detail.value)
+    if (this.data.historyFrom && to < this.data.historyFrom) {
+      wx.showToast({ title: '结束日期不能早于开始日期', icon: 'none' })
+      return
+    }
+    this.setData({ historyTo: to }, () => this.loadHistory(true))
+  },
+  retryHistory() {
+    this.loadHistory(true)
+  },
+  loadHistory(reset = true) {
+    if (!reset && (this.data.historyLoading || this.data.historyLoadingMore)) {
+      return
+    }
+    const bounds = this.historyRangeBounds()
+    const page = reset ? 1 : this.data.historyPage + 1
+    const query: HistoryQuery = {
+      page,
+      pageSize: this.data.historyPageSize,
+      from: bounds.from,
+      to: bounds.to,
+    }
+    if (this.data.historyType !== 'all') {
+      query.type = this.data.historyType
+    }
+    if (this.data.historyStatus !== 'all') {
+      query.status = this.data.historyStatus
+    }
+    const currentRequestID = Number.isFinite(this.historyRequestID) ? this.historyRequestID : 0
+    const requestID = reset ? currentRequestID + 1 : currentRequestID
+    if (reset) {
+      this.historyRequestID = requestID
+    }
+    if (reset) {
+      this.setData({ historyLoading: true, historyLoadingMore: false, historyError: '' })
+    }
+    else {
+      this.setData({ historyLoadingMore: true })
+    }
+    const listRequest = outboundHistory(query)
+    if (!reset) {
+      listRequest.then((result) => {
+        if (requestID !== this.historyRequestID) {
+          return
+        }
+        const records = (result.records ?? [])
+          .filter(item => !hiddenHistoryStatuses.has(item.status))
+          .map(historyView)
+        const history = [...this.data.history, ...records]
+        this.setData({
+          historyLoading: false,
+          historyLoadingMore: false,
+          history,
+          historyPage: page,
+          historyHasMore: result.hasMore && history.length < this.data.historyTotal,
+          historyTotal: this.data.historyTotal,
+          historyTotalNetText: this.data.historyTotalNetText,
+        })
+      }).catch((error) => {
+        if (requestID !== this.historyRequestID) {
+          return
+        }
+        this.setData({ historyLoading: false, historyLoadingMore: false })
+        wx.showToast({ title: errorMessage(error), icon: 'none' })
+      })
+      return
+    }
+    const summaryQuery: HistoryQuery = {
+      page: 1,
+      pageSize: 1,
+      from: bounds.from,
+      to: bounds.to,
+      type: query.type,
+    }
+    const pendingRequest = outboundHistory({ ...summaryQuery, status: 'pending' }).catch(() => null)
+    const completedRequest = outboundHistory({ ...summaryQuery, status: 'completed' }).catch(() => null)
+    Promise.all([listRequest, pendingRequest, completedRequest]).then(([result, pending, completed]) => {
+      if (requestID !== this.historyRequestID) {
+        return
+      }
+      const records = (result.records ?? [])
+        .filter(item => !hiddenHistoryStatuses.has(item.status))
+        .map(historyView)
+      const summaryAvailable = !!pending && !!completed
+      const total = summaryAvailable ? pending.total + completed.total : result.total
+      const totalNet = summaryAvailable ? completed.totalNetMilliTonne : result.totalNetMilliTonne
       this.setData({
         historyLoading: false,
-        history: (page.records ?? []).map(historyView),
+        historyLoadingMore: false,
+        history: records,
+        historyPage: page,
+        historyHasMore: result.hasMore && records.length < total,
+        historyTotal: total,
+        historyTotalNetText: weightText(totalNet),
       })
     }).catch((error) => {
-      this.setData({ historyLoading: false, historyError: errorMessage(error) })
+      if (requestID !== this.historyRequestID) {
+        return
+      }
+      this.setData({ historyLoading: false, historyLoadingMore: false, historyError: errorMessage(error) })
     })
+  },
+  printTicket() {
+    wx.showToast({ title: '打印功能待开发', icon: 'none' })
   },
   exit() {
     wx.showModal({

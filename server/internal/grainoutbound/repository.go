@@ -123,16 +123,65 @@ func (r *Repository) Current(ctx context.Context, userID int64) (*Weighing, erro
 	return &row, nil
 }
 
-func (r *Repository) History(ctx context.Context, userID int64) ([]HistoryWeighing, error) {
-	const limit = 50
-	rows := make([]HistoryWeighing, 0)
-	err := r.db.WithContext(ctx).Table("grain_outbound_weighing").
-		Select(`id, COALESCE(ticket_no, '') AS ticket_no, status, source, plate,
-			first_weight_milli_tonne, COALESCE(second_weight_milli_tonne, 0) AS second_weight_milli_tonne,
-			net_milli_tonne, first_at, second_at, factory_task_no`).
+func (r *Repository) History(ctx context.Context, userID int64, q HistoryQuery) (HistoryPage, error) {
+	const historyTime = "COALESCE(second_at, first_at, created_at)"
+	if q.Page < 1 {
+		q.Page = 1
+	}
+	if q.PageSize < 1 || q.PageSize > 50 {
+		q.PageSize = 10
+	}
+	base := r.db.WithContext(ctx).Table("grain_outbound_weighing").
 		Where("user_id = ?", userID).
-		Order("id DESC").Limit(limit).Scan(&rows).Error
-	return rows, err
+		Where("status NOT IN ?", []string{statusCancelled, statusTerminated, statusExpired})
+	if q.From != nil {
+		base = base.Where(historyTime+" >= ?", *q.From)
+	}
+	if q.To != nil {
+		base = base.Where(historyTime+" < ?", *q.To)
+	}
+	switch q.Type {
+	case "first":
+		base = base.Where("status NOT IN ?", []string{statusSecondQRReady, statusSecondScanning, statusCompleted})
+	case "second":
+		base = base.Where("status IN ?", []string{statusSecondQRReady, statusSecondScanning, statusCompleted})
+	}
+	switch q.Status {
+	case "pending":
+		base = base.Where("status IN ?", []string{
+			statusFirstQRReady, statusFirstScanning, statusFirstRecorded, statusSecondQRReady, statusSecondScanning,
+		})
+	case "completed":
+		base = base.Where("status = ?", statusCompleted)
+	}
+
+	var summary struct {
+		Total int64
+		Net   int64
+	}
+	if err := base.Session(&gorm.Session{}).
+		Select("COUNT(*) AS total, COALESCE(SUM(CASE WHEN status = 'completed' THEN net_milli_tonne ELSE 0 END), 0) AS net").
+		Scan(&summary).Error; err != nil {
+		return HistoryPage{}, err
+	}
+
+	rows := make([]HistoryWeighing, 0)
+	const typeExpr = `CASE WHEN status IN ('second_qr_ready','second_scanning','completed') THEN 'second' ELSE 'first' END AS type`
+	err := base.Session(&gorm.Session{}).
+		Select(`id, ` + typeExpr + `, COALESCE(ticket_no, '') AS ticket_no, status, source, plate,
+			first_weight_milli_tonne, COALESCE(second_weight_milli_tonne, 0) AS second_weight_milli_tonne,
+			net_milli_tonne, first_at, second_at, COALESCE(factory_task_no, '') AS factory_task_no`).
+		Order(historyTime + " DESC, id DESC").
+		Offset((q.Page - 1) * q.PageSize).
+		Limit(q.PageSize).
+		Scan(&rows).Error
+	if err != nil {
+		return HistoryPage{}, err
+	}
+	return HistoryPage{
+		Records: rows, Total: summary.Total, TotalNetMilliTonne: summary.Net,
+		Page: q.Page, PageSize: q.PageSize, HasMore: int64(q.Page*q.PageSize) < summary.Total,
+	}, nil
 }
 
 func (r *Repository) CreateFirstQR(ctx context.Context, account Account, weight int64, at time.Time) (*Weighing, error) {

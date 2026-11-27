@@ -60,6 +60,7 @@ export interface ScaleReading {
 
 export interface HistoryWeighing {
   id: number
+  type: 'first' | 'second'
   ticketNo: string
   status: string
   source: string
@@ -74,6 +75,20 @@ export interface HistoryWeighing {
 
 export interface HistoryPage {
   records: HistoryWeighing[]
+  total: number
+  totalNetMilliTonne: number
+  page: number
+  pageSize: number
+  hasMore: boolean
+}
+
+export interface HistoryQuery {
+  page?: number
+  pageSize?: number
+  type?: 'first' | 'second'
+  status?: 'pending' | 'completed'
+  from?: string
+  to?: string
 }
 
 export function handoffQrImage(value: string) {
@@ -104,6 +119,10 @@ export function cancelPending() {
   return request<null>({ path: '/grain-outbound/weighings/pending', method: 'DELETE' })
 }
 
-export function outboundHistory() {
-  return request<HistoryPage>({ path: '/grain-outbound/weighings' })
+export function outboundHistory(query: HistoryQuery = {}) {
+  const params = Object.entries(query)
+    .filter(([, value]) => value !== undefined && value !== '')
+    .map(([key, value]) => `${encodeURIComponent(key)}=${encodeURIComponent(String(value))}`)
+    .join('&')
+  return request<HistoryPage>({ path: `/grain-outbound/weighings${params ? `?${params}` : ''}` })
 }

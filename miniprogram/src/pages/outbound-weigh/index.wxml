@@ -1,8 +1,21 @@
-<view class="weigh-page {{tab === 'weigh' ? 'weigh-page--fixed' : ''}}">
+<view class="weigh-page {{tab === 'weigh' ? 'weigh-page--fixed' : 'weigh-page--history'}}">
   <image class="top-bg" src="/assets/backgrounds/top_warm_wave_bg.png" mode="scaleToFill" aria-hidden="true" />
+  <view wx:if="{{tab === 'history'}}" class="history-backdrop" aria-hidden="true">
+    <view class="history-backdrop__glow history-backdrop__glow--right"></view>
+    <view class="history-backdrop__glow history-backdrop__glow--left"></view>
+  </view>
+  <view class="custom-nav" style="padding-top: {{statusBarHeight}}px;">
+    <view class="custom-nav__bar" style="height: {{navBarHeight}}px;">
+      <view wx:if="{{tab === 'history'}}" class="custom-nav__back" bindtap="backToWeigh" hover-class="custom-nav__back--hover" aria-role="button" aria-label="返回酒糟过磅">
+        <view class="custom-nav__arrow" aria-hidden="true"></view>
+      </view>
+      <view class="custom-nav__title">{{tab === 'history' ? '历史记录' : '酒糟过磅'}}</view>
+    </view>
+  </view>
   <view class="weigh-content">
+    <view class="nav-spacer" style="height: {{statusBarHeight + navBarHeight}}px;" aria-hidden="true"></view>
     <view class="weigh-main">
-      <view class="identity-bar">
+      <view wx:if="{{tab === 'weigh'}}" class="identity-bar">
         <view class="identity-driver">
           <image class="identity-driver-icon" src="/assets/icons/driver_outline.png" mode="aspectFit" aria-hidden="true" />
           <text class="identity-value">{{partyName || '—'}}</text>
@@ -128,29 +141,126 @@
       </block>
 
       <block wx:else>
+        <view class="history-filters {{historyRange === 'custom' ? 'history-filters--custom' : ''}}">
+          <view class="history-range" bindtap="changeHistoryRange" aria-role="button" aria-label="选择日期范围">
+            <image class="history-range__icon" src="/assets/history/calendar.png" mode="aspectFit" aria-hidden="true" />
+            <text class="history-range__label">{{historyRangeLabel}}</text>
+            <view class="history-range__caret" aria-hidden="true"></view>
+          </view>
+          <view class="history-type-tabs" aria-role="tablist">
+            <view class="history-type-tab {{historyType === 'all' ? 'is-active' : ''}}" data-type="all" bindtap="changeHistoryType" aria-role="tab" aria-selected="{{historyType === 'all'}}">全部</view>
+            <view class="history-type-tab {{historyType === 'first' ? 'is-active' : ''}}" data-type="first" bindtap="changeHistoryType" aria-role="tab" aria-selected="{{historyType === 'first'}}">首磅</view>
+            <view class="history-type-tab {{historyType === 'second' ? 'is-active' : ''}}" data-type="second" bindtap="changeHistoryType" aria-role="tab" aria-selected="{{historyType === 'second'}}">回磅</view>
+          </view>
+        </view>
+        <view wx:if="{{historyRange === 'custom'}}" class="history-custom-range">
+          <picker class="history-date-picker history-date-picker--start" mode="date" value="{{historyFrom}}" bindchange="changeHistoryFrom">
+            <view class="history-date-picker__inner" hover-class="history-date-picker__inner--hover">
+              <view class="history-date-picker__head">
+                <image class="history-date-picker__icon" src="/assets/history/calendar.png" mode="aspectFit" aria-hidden="true" />
+                <text class="history-date-picker__label">开始日期</text>
+              </view>
+              <text class="history-date-picker__value">{{historyFrom || '请选择'}}</text>
+            </view>
+          </picker>
+          <view class="history-custom-range__divider" aria-hidden="true">
+            <text>至</text>
+          </view>
+          <picker class="history-date-picker" mode="date" value="{{historyTo}}" bindchange="changeHistoryTo">
+            <view class="history-date-picker__inner" hover-class="history-date-picker__inner--hover">
+              <view class="history-date-picker__head">
+                <image class="history-date-picker__icon" src="/assets/history/calendar.png" mode="aspectFit" aria-hidden="true" />
+                <text class="history-date-picker__label">结束日期</text>
+              </view>
+              <text class="history-date-picker__value">{{historyTo || '请选择'}}</text>
+            </view>
+          </picker>
+        </view>
+
+        <view class="history-summary">
+          <view class="history-summary__glow" aria-hidden="true"></view>
+          <view class="history-summary__stats">
+            <view class="history-summary__item history-summary__item--count">
+              <view class="history-summary__label">
+                <image class="history-summary__icon" src="/assets/history/document.png" mode="aspectFit" aria-hidden="true" />
+                <text>总单据数</text>
+              </view>
+              <view class="history-summary__value">{{historyTotal}}<text class="history-summary__unit">单</text></view>
+            </view>
+            <view class="history-summary__divider" aria-hidden="true"></view>
+            <view class="history-summary__item history-summary__item--net">
+              <view class="history-summary__label">
+                <image class="history-summary__icon" src="/assets/history/scale.png" mode="aspectFit" aria-hidden="true" />
+                <text>总净重</text>
+              </view>
+              <view class="history-summary__value">{{historyTotalNetText}}<text class="history-summary__unit">吨</text></view>
+            </view>
+          </view>
+          <image class="history-summary__truck" src="/assets/history/truck.png" mode="aspectFit" aria-hidden="true" />
+        </view>
+
         <loading-state wx:if="{{historyLoading}}" text="正在加载过磅历史" />
-        <error-state wx:elif="{{historyError}}" text="{{historyError}}" bind:retry="loadHistory" />
+        <error-state wx:elif="{{historyError}}" text="{{historyError}}" bind:retry="retryHistory" />
         <view wx:elif="{{history.length === 0}}" class="history-empty">
           <view class="history-empty-title">暂无过磅记录</view>
           <view class="history-empty-hint">完成首磅、回磅并扫码后，这里会显示厂端正式磅单。</view>
         </view>
         <block wx:else>
-          <view class="history-count">共 {{history.length}} 条记录</view>
-          <view wx:for="{{history}}" wx:key="id" class="history-card">
-            <view class="history-main">
-              <view class="history-net">{{item.netText}}<text class="history-unit">吨</text></view>
-              <view class="history-date">{{item.dateText}}</view>
+          <view class="record-list">
+            <view wx:for="{{history}}" wx:key="id" class="record-card">
+              <image class="record-type" src="{{item.type === 'first' ? '/assets/history/tag-first.png' : '/assets/history/tag-second.png'}}" mode="aspectFit" aria-label="{{item.type === 'first' ? '首磅' : '回磅'}}" />
+              <view class="record-body">
+                <view class="record-head">
+                  <view class="record-top">
+                    <view class="record-time">
+                      <image class="record-time__icon" src="/assets/history/clock.png" mode="aspectFit" aria-hidden="true" />
+                      <text>{{item.dateText}}</text>
+                    </view>
+                    <view class="record-status record-status--{{item.statusKind}}">
+                      <image wx:if="{{item.statusKind === 'completed'}}" class="record-status__icon" src="/assets/history/status-check.png" mode="aspectFit" aria-hidden="true" />
+                      <image wx:elif="{{item.statusKind === 'pending'}}" class="record-status__icon" src="/assets/history/status-clock.png" mode="aspectFit" aria-hidden="true" />
+                      <text>{{item.statusLabel}}</text>
+                    </view>
+                  </view>
+                  <view class="record-main">
+                    <view class="record-main__value">
+                      <text wx:if="{{item.showNetLabel}}" class="record-net-label">净重</text>
+                      <view class="record-weight-line">
+                        <text class="record-weight">{{item.mainText}}</text>
+                        <text class="record-unit">吨</text>
+                      </view>
+                    </view>
+                    <view wx:if="{{item.printable}}" class="print-btn" catchtap="printTicket" data-id="{{item.id}}" aria-role="button" aria-label="打印单据">
+                      <image class="print-icon" src="/assets/history/print.png" mode="aspectFit" aria-hidden="true" />
+                      <text>打印单据</text>
+                    </view>
+                  </view>
+                </view>
+                <view wx:if="{{item.infoText}}" class="record-hint">
+                  <image class="record-hint__icon" src="/assets/history/status-info.png" mode="aspectFit" aria-hidden="true" />
+                  <text>{{item.infoText}}</text>
+                </view>
+                <view wx:if="{{item.type === 'second'}}" class="record-compare">
+                  <view class="compare-item">
+                    <text class="compare-label">首磅重量</text>
+                    <text class="compare-value">{{item.firstText}}<text class="compare-unit">吨</text></text>
+                  </view>
+                  <view class="compare-divider" aria-hidden="true"></view>
+                  <view class="compare-item">
+                    <text class="compare-label">回磅重量</text>
+                    <text class="compare-value">{{item.secondText}}<text class="compare-unit">吨</text></text>
+                  </view>
+                </view>
+              </view>
             </view>
-            <view class="history-status">
-              <text class="history-badge">{{item.sourceLabel}}</text>
-              <text class="history-state">{{item.statusLabel}}</text>
-            </view>
-            <view class="history-detail">
-              <text>{{item.firstLabel}} {{item.firstText}} 吨</text>
-              <text>{{item.secondLabel}} {{item.secondText}} 吨</text>
-            </view>
-            <view class="history-ticket">厂端单号 {{item.ticketNo}}</view>
-            <view wx:if="{{item.factoryTaskNo}}" class="history-ticket">厂端任务 {{item.factoryTaskNo}}</view>
+          </view>
+          <view class="history-more">
+            <t-loading wx:if="{{historyLoadingMore}}" theme="circular" size="30rpx" />
+            <view wx:elif="{{historyHasMore}}" class="history-more__arrow" aria-hidden="true"></view>
+            <view wx:else class="history-end__icon" aria-hidden="true"></view>
+            <text wx:if="{{historyLoadingMore}}">正在加载更多</text>
+            <text wx:elif="{{historyHasMore}}">上拉加载更多</text>
+            <text wx:else>没有更多记录</text>
           </view>
         </block>
       </block>
@@ -159,15 +269,15 @@
 
   <view class="bottom-nav">
     <view class="nav-item {{tab === 'weigh' ? 'nav-item--active' : ''}}" data-tab="weigh" bindtap="changeTab" aria-role="tab" aria-selected="{{tab === 'weigh'}}">
-      <t-icon name="chart" size="32rpx" color="{{tab === 'weigh' ? '#a74532' : '#777674'}}" aria-hidden="true" />
+      <t-icon name="chart" size="38rpx" color="{{tab === 'weigh' ? '#a74532' : '#777674'}}" aria-hidden="true" />
       <text>过磅</text>
     </view>
     <view class="nav-item {{tab === 'history' ? 'nav-item--active' : ''}}" data-tab="history" bindtap="changeTab" aria-role="tab" aria-selected="{{tab === 'history'}}">
-      <t-icon name="history" size="32rpx" color="{{tab === 'history' ? '#a74532' : '#777674'}}" aria-hidden="true" />
+      <t-icon name="history" size="38rpx" color="{{tab === 'history' ? '#a74532' : '#777674'}}" aria-hidden="true" />
       <text>历史记录</text>
     </view>
     <view class="nav-exit" bindtap="exit" aria-role="button">
-      <t-icon name="logout" size="32rpx" color="#777674" aria-hidden="true" />
+      <t-icon name="logout" size="38rpx" color="#777674" aria-hidden="true" />
       <text>退出登录</text>
     </view>
   </view>

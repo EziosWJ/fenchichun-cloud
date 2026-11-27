@@ -3,6 +3,7 @@ package grainoutbound
 import (
 	"errors"
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
 
@@ -13,6 +14,34 @@ import (
 	qrcode "github.com/skip2/go-qrcode"
 	"gorm.io/gorm"
 )
+
+var historyBeijing = time.FixedZone("Asia/Shanghai", 8*60*60)
+
+func historyFrom(value string) (*time.Time, error) {
+	value = strings.TrimSpace(value)
+	if value == "" {
+		return nil, nil
+	}
+	parsed, err := time.ParseInLocation("2006-01-02", value, historyBeijing)
+	if err != nil {
+		return nil, err
+	}
+	utc := parsed.UTC()
+	return &utc, nil
+}
+
+func historyTo(value string) (*time.Time, error) {
+	value = strings.TrimSpace(value)
+	if value == "" {
+		return nil, nil
+	}
+	parsed, err := time.ParseInLocation("2006-01-02", value, historyBeijing)
+	if err != nil {
+		return nil, err
+	}
+	utc := parsed.AddDate(0, 0, 1).UTC()
+	return &utc, nil
+}
 
 type Handler struct {
 	repo  *Repository
@@ -116,12 +145,48 @@ func (h *Handler) history(c *gin.Context) {
 	if !ok {
 		return
 	}
-	records, err := h.repo.History(c.Request.Context(), account.UserID)
+	page, err := strconv.Atoi(c.DefaultQuery("page", "1"))
+	if err != nil || page < 1 {
+		platformhttp.WriteError(c, http.StatusBadRequest, http.StatusBadRequest, "页码参数错误", nil)
+		return
+	}
+	pageSize, err := strconv.Atoi(c.DefaultQuery("pageSize", "10"))
+	if err != nil || pageSize < 1 || pageSize > 50 {
+		platformhttp.WriteError(c, http.StatusBadRequest, http.StatusBadRequest, "分页参数错误", nil)
+		return
+	}
+	historyType := strings.TrimSpace(c.Query("type"))
+	if historyType != "" && historyType != "first" && historyType != "second" {
+		platformhttp.WriteError(c, http.StatusBadRequest, http.StatusBadRequest, "单据类型参数错误", nil)
+		return
+	}
+	status := strings.TrimSpace(c.Query("status"))
+	if status != "" && status != "pending" && status != "completed" {
+		platformhttp.WriteError(c, http.StatusBadRequest, http.StatusBadRequest, "状态参数错误", nil)
+		return
+	}
+	from, err := historyFrom(c.Query("from"))
+	if err != nil {
+		platformhttp.WriteError(c, http.StatusBadRequest, http.StatusBadRequest, "开始日期参数错误", nil)
+		return
+	}
+	to, err := historyTo(c.Query("to"))
+	if err != nil {
+		platformhttp.WriteError(c, http.StatusBadRequest, http.StatusBadRequest, "结束日期参数错误", nil)
+		return
+	}
+	if from != nil && to != nil && !from.Before(*to) {
+		platformhttp.WriteError(c, http.StatusBadRequest, http.StatusBadRequest, "日期范围参数错误", nil)
+		return
+	}
+	result, err := h.repo.History(c.Request.Context(), account.UserID, HistoryQuery{
+		Page: page, PageSize: pageSize, Type: historyType, Status: status, From: from, To: to,
+	})
 	if err != nil {
 		platformhttp.WriteError(c, http.StatusInternalServerError, platformhttp.CodeInternalError, "读取过磅历史失败", nil)
 		return
 	}
-	platformhttp.OK(c, HistoryPage{Records: records})
+	platformhttp.OK(c, result)
 }
 
 func (h *Handler) firstQR(c *gin.Context) {

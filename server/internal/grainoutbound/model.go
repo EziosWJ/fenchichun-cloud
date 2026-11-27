@@ -65,6 +65,7 @@ type Profile struct {
 // gross-then-tare meaning and are marked with Source=mobile_direct.
 type HistoryWeighing struct {
 	ID                     int64      `json:"id"`
+	Type                   string     `json:"type"`
 	TicketNo               string     `json:"ticketNo,omitempty"`
 	Status                 string     `json:"status"`
 	Source                 string     `json:"source"`
@@ -77,8 +78,24 @@ type HistoryWeighing struct {
 	FactoryTaskNo          string     `json:"factoryTaskNo,omitempty"`
 }
 
+// HistoryQuery is the account-scoped history filter. Dates are already parsed
+// to the half-open [from, to) UTC range by the handler.
+type HistoryQuery struct {
+	Page     int
+	PageSize int
+	Type     string
+	Status   string
+	From     *time.Time
+	To       *time.Time
+}
+
 type HistoryPage struct {
-	Records []HistoryWeighing `json:"records"`
+	Records            []HistoryWeighing `json:"records"`
+	Total              int64             `json:"total"`
+	TotalNetMilliTonne int64             `json:"totalNetMilliTonne"`
+	Page               int               `json:"page"`
+	PageSize           int               `json:"pageSize"`
+	HasMore            bool              `json:"hasMore"`
 }
 
 // ScaleReading is the cloud-safe view of the local site device state. The
