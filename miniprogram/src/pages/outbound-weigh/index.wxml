@@ -1,112 +1,174 @@
-<view class="weigh-page">
-  <view class="head">
-    <view class="name">{{partyName}}</view>
-    <view class="plate">{{plate}}</view>
+<view class="weigh-page {{tab === 'weigh' ? 'weigh-page--fixed' : ''}}">
+  <image class="top-bg" src="/assets/backgrounds/top_warm_wave_bg.png" mode="scaleToFill" aria-hidden="true" />
+  <view class="weigh-content">
+    <view class="weigh-main">
+      <view class="identity-bar">
+        <view class="identity-driver">
+          <image class="identity-driver-icon" src="/assets/icons/driver_outline.png" mode="aspectFit" aria-hidden="true" />
+          <text class="identity-value">{{partyName || '—'}}</text>
+        </view>
+        <view class="identity-divider" aria-hidden="true"></view>
+        <view class="identity-plate">
+          <t-icon name="vehicle" size="30rpx" color="#ffffff" aria-hidden="true" />
+          <text class="identity-plate-text">{{plate || '—'}}</text>
+        </view>
+      </view>
+
+      <block wx:if="{{tab === 'weigh'}}">
+        <loading-state wx:if="{{loading}}" text="正在加载出库信息" />
+        <error-state wx:elif="{{error}}" text="{{error}}" bind:retry="load" />
+        <block wx:else>
+          <view class="reading-card">
+            <view class="reading-head">
+              <view class="reading-title">
+                <view class="reading-icon" aria-hidden="true">
+                  <view class="reading-icon__beam"></view>
+                  <view class="reading-icon__post"></view>
+                  <view class="reading-icon__pan reading-icon__pan--left"></view>
+                  <view class="reading-icon__pan reading-icon__pan--right"></view>
+                </view>
+                <text class="reading-label">当前地磅读数</text>
+              </view>
+              <text wx:if="{{mock}}" class="mock-badge">模拟</text>
+            </view>
+            <view class="reading-value-row">
+              <text class="reading-value">{{reading ? weightText : '--.---'}}</text>
+              <text class="reading-unit">吨</text>
+            </view>
+            <view class="reading-status-row">
+              <view class="reading-status-line" aria-hidden="true"></view>
+              <view class="reading-status reading-status--{{readingState}}" aria-role="status">
+                <t-icon wx:if="{{readingState === 'ok'}}" name="check-circle-filled" size="30rpx" color="#27865b" aria-hidden="true" />
+                <t-icon wx:elif="{{readingState === 'warn'}}" name="time" size="30rpx" color="#8a5a12" aria-hidden="true" />
+                <t-icon wx:else name="error-circle-filled" size="30rpx" color="#b33f35" aria-hidden="true" />
+                <text>{{readingHint}}</text>
+              </view>
+              <view class="reading-status-line" aria-hidden="true"></view>
+            </view>
+          </view>
+
+          <view wx:if="{{current && current.status === 'completed'}}" class="result-card">
+            <view class="result-heading">
+              <t-icon name="check-circle-filled" size="48rpx" color="#27865b" aria-hidden="true" />
+              <text class="result-title">厂端已出单</text>
+            </view>
+            <view class="result-net">{{netText}}<text class="result-unit">吨</text></view>
+            <view class="result-row"><text class="result-k">正式磅单号</text><text class="result-v">{{ticketText || '待同步'}}</text></view>
+            <view class="result-row"><text class="result-k">{{current.source === 'mobile_direct' ? '首磅毛重' : '首磅皮重'}}</text><text class="result-v">{{firstText}} 吨</text></view>
+            <view class="result-row"><text class="result-k">{{current.source === 'mobile_direct' ? '回磅皮重' : '回磅毛重'}}</text><text class="result-v">{{secondText}} 吨</text></view>
+            <view wx:if="{{message}}" class="result-message">{{message}}</view>
+            <button class="primary-btn" bindtap="finish">完成，继续下一车</button>
+          </view>
+
+          <view wx:elif="{{qr}}" class="qr-card">
+            <view class="card-heading">
+              <image class="card-heading__icon" src="/assets/icons/qr_outline.png" mode="aspectFit" aria-hidden="true" />
+              <text class="card-title">{{qrTitle}}</text>
+            </view>
+            <view class="qr-frame">
+              <view class="qr-corner qr-corner--tl" aria-hidden="true"></view>
+              <view class="qr-corner qr-corner--tr" aria-hidden="true"></view>
+              <view class="qr-corner qr-corner--bl" aria-hidden="true"></view>
+              <view class="qr-corner qr-corner--br" aria-hidden="true"></view>
+              <image class="qr-image" src="{{qr.image}}" mode="aspectFit" aria-label="{{qrTitle}}" />
+              <view class="qr-refresh" bindtap="regenerateQR" aria-role="button" aria-label="重新生成二维码">
+                <t-loading wx:if="{{busy}}" theme="circular" size="44rpx" />
+                <image wx:else class="qr-refresh-icon" src="/assets/icons/refresh_outline.png" mode="aspectFit" aria-hidden="true" />
+              </view>
+            </view>
+            <view class="qr-expiry">
+              <t-icon name="time" size="28rpx" color="#a74532" aria-hidden="true" />
+              <text>有效期至</text>
+              <text class="qr-expiry__value">{{qrExpireText}}</text>
+            </view>
+            <view class="qr-weight">
+              <text class="qr-weight__label">{{qr.action === 'first' ? '首磅皮重' : '回磅毛重'}}</text>
+              <text class="qr-weight__value">{{qr.action === 'first' ? (firstText || '—') : (secondText || '—')}}<text class="qr-weight__unit">吨</text></text>
+            </view>
+          </view>
+
+          <view wx:elif="{{current && (current.status === 'first_scanning' || current.status === 'second_scanning')}}" class="action-card processing-card">
+            <t-loading theme="circular" size="56rpx" />
+            <view class="pending-title">{{statusLabel}}</view>
+            <view class="action-hint">厂端正在采集重量和抓拍，请保持车辆停稳。</view>
+            <view wx:if="{{message}}" class="result-message">{{message}}</view>
+          </view>
+
+          <view wx:elif="{{current && current.status === 'first_recorded'}}" class="action-card">
+            <view class="action-heading">
+              <t-icon name="check-circle-filled" size="44rpx" color="#27865b" aria-hidden="true" />
+              <text class="pending-title">首磅已确认</text>
+            </view>
+            <view class="qr-weight">
+              <text class="qr-weight__label">首磅皮重</text>
+              <text class="qr-weight__value">{{firstText || '—'}}<text class="qr-weight__unit">吨</text></text>
+            </view>
+            <button class="primary-btn {{busy ? 'primary-btn--disabled' : ''}}" bindtap="doSecond">回磅</button>
+          </view>
+
+          <view wx:elif="{{current && (current.status === 'first_qr_ready' || current.status === 'second_qr_ready')}}" class="action-card">
+            <view wx:if="{{message}}" class="result-message">{{message}}</view>
+            <view class="primary-btn {{busy ? 'primary-btn--disabled' : ''}}" bindtap="regenerateQR">{{current.status === 'first_qr_ready' ? '生成首磅二维码' : '生成回磅二维码'}}</view>
+          </view>
+
+          <view wx:elif="{{current && (current.status === 'terminated' || current.status === 'expired' || current.status === 'cancelled')}}" class="action-card">
+            <view class="pending-title">{{statusLabel}}</view>
+            <view wx:if="{{message}}" class="result-message">{{message}}</view>
+            <button class="primary-btn {{busy ? 'primary-btn--disabled' : ''}}" bindtap="doFirst">重新首磅</button>
+          </view>
+
+          <view wx:else class="action-card idle-card">
+            <view class="idle-copy">
+              <text class="idle-title">开始首磅</text>
+              <text class="idle-desc">空车停稳后生成首磅二维码</text>
+            </view>
+            <button class="primary-btn idle-btn {{busy ? 'primary-btn--disabled' : ''}}" bindtap="doFirst">首磅</button>
+          </view>
+        </block>
+      </block>
+
+      <block wx:else>
+        <loading-state wx:if="{{historyLoading}}" text="正在加载过磅历史" />
+        <error-state wx:elif="{{historyError}}" text="{{historyError}}" bind:retry="loadHistory" />
+        <view wx:elif="{{history.length === 0}}" class="history-empty">
+          <view class="history-empty-title">暂无过磅记录</view>
+          <view class="history-empty-hint">完成首磅、回磅并扫码后，这里会显示厂端正式磅单。</view>
+        </view>
+        <block wx:else>
+          <view class="history-count">共 {{history.length}} 条记录</view>
+          <view wx:for="{{history}}" wx:key="id" class="history-card">
+            <view class="history-main">
+              <view class="history-net">{{item.netText}}<text class="history-unit">吨</text></view>
+              <view class="history-date">{{item.dateText}}</view>
+            </view>
+            <view class="history-status">
+              <text class="history-badge">{{item.sourceLabel}}</text>
+              <text class="history-state">{{item.statusLabel}}</text>
+            </view>
+            <view class="history-detail">
+              <text>{{item.firstLabel}} {{item.firstText}} 吨</text>
+              <text>{{item.secondLabel}} {{item.secondText}} 吨</text>
+            </view>
+            <view class="history-ticket">厂端单号 {{item.ticketNo}}</view>
+            <view wx:if="{{item.factoryTaskNo}}" class="history-ticket">厂端任务 {{item.factoryTaskNo}}</view>
+          </view>
+        </block>
+      </block>
+    </view>
   </view>
 
-  <block wx:if="{{tab === 'weigh'}}">
-    <loading-state wx:if="{{loading}}" text="正在加载出库信息" />
-    <error-state wx:elif="{{error}}" text="{{error}}" bind:retry="load" />
-    <block wx:else>
-      <view class="weight-card">
-        <view class="weight-label">当前地磅读数</view>
-        <view class="weight-value">{{weightText}}<text class="weight-unit">吨</text></view>
-        <view class="status {{available ? 'status-ok' : 'status-bad'}}">
-          {{statusText}}<text wx:if="{{mock}}"> · 模拟读数</text>
-        </view>
-      </view>
-
-      <view wx:if="{{current && current.status === 'completed'}}" class="result-card">
-        <view class="result-title">厂端已出单</view>
-        <view class="result-net">{{netText}}<text class="result-unit">吨</text></view>
-        <view class="result-row"><text class="result-k">正式磅单号</text><text class="result-v">{{ticketText || '待同步'}}</text></view>
-        <view class="result-row"><text class="result-k">{{current.source === 'mobile_direct' ? '首磅毛重' : '首磅皮重'}}</text><text class="result-v">{{firstText}} 吨</text></view>
-        <view class="result-row"><text class="result-k">{{current.source === 'mobile_direct' ? '回磅皮重' : '回磅毛重'}}</text><text class="result-v">{{secondText}} 吨</text></view>
-        <view wx:if="{{message}}" class="result-message">{{message}}</view>
-        <button class="primary-btn" bindtap="finish">完成，继续下一车</button>
-      </view>
-
-      <view wx:elif="{{qr}}" class="qr-card">
-        <view class="qr-title">{{qrTitle}}</view>
-        <view class="qr-status">{{statusLabel}}</view>
-        <view class="qr-code">
-          <image class="qr-image" src="{{qr.image}}" mode="aspectFit" />
-        </view>
-        <view class="qr-hint">请让厂端扫码设备扫描此二维码</view>
-        <view class="qr-expire">有效期至 {{qrExpireText}}</view>
-        <view class="secondary-btn" bindtap="regenerateQR">重新生成二维码</view>
-        <view class="text-btn" bindtap="cancelCurrent">取消本次{{qr.action === 'first' ? '首磅' : '回磅'}}</view>
-      </view>
-
-      <view wx:elif="{{current && (current.status === 'first_scanning' || current.status === 'second_scanning')}}" class="action-card">
-        <view class="pending-title">{{statusLabel}}</view>
-        <view class="action-hint">厂端正在采集重量和抓拍，请保持车辆停稳。</view>
-        <view wx:if="{{message}}" class="result-message">{{message}}</view>
-      </view>
-
-      <view wx:elif="{{current && current.status === 'first_recorded'}}" class="action-card">
-        <view class="pending-title">首磅已由厂端确认</view>
-        <view class="pending-weight">{{firstText}}<text class="pending-unit">吨</text></view>
-        <view class="pending-meta">厂端任务 {{taskText || '—'}}</view>
-        <view class="action-hint">装货完成后请上磅，点击回磅生成二维码。</view>
-        <view wx:if="{{message}}" class="result-message">{{message}}</view>
-        <button class="primary-btn {{busy ? 'primary-btn--disabled' : ''}}" bindtap="doSecond">回磅</button>
-        <view class="action-note">如需重新首磅，请联系厂端在电脑端终止旧任务。</view>
-      </view>
-
-      <view wx:elif="{{current && (current.status === 'first_qr_ready' || current.status === 'second_qr_ready')}}" class="action-card">
-        <view class="pending-title">{{statusLabel}}</view>
-        <view wx:if="{{message}}" class="result-message">{{message}}</view>
-        <view class="action-hint">当前二维码未在本页显示或已失效，请重新生成。</view>
-        <view class="primary-btn {{busy ? 'primary-btn--disabled' : ''}}" bindtap="regenerateQR">重新生成二维码</view>
-        <view class="text-btn" bindtap="cancelCurrent">取消本次{{current.status === 'first_qr_ready' ? '首磅' : '回磅'}}</view>
-      </view>
-
-      <view wx:elif="{{current && (current.status === 'terminated' || current.status === 'expired' || current.status === 'cancelled')}}" class="action-card">
-        <view class="pending-title">{{statusLabel}}</view>
-        <view wx:if="{{message}}" class="result-message">{{message}}</view>
-        <view class="action-hint">可以重新开始首磅。</view>
-        <button class="primary-btn {{busy ? 'primary-btn--disabled' : ''}}" bindtap="doFirst">重新首磅</button>
-      </view>
-
-      <view wx:else class="action-card">
-        <view class="action-hint">空车停稳后，点击首磅记录皮重并生成二维码。</view>
-        <button class="primary-btn {{busy ? 'primary-btn--disabled' : ''}}" bindtap="doFirst">首磅</button>
-      </view>
-    </block>
-  </block>
-
-  <block wx:else>
-    <loading-state wx:if="{{historyLoading}}" text="正在加载过磅历史" />
-    <error-state wx:elif="{{historyError}}" text="{{historyError}}" bind:retry="loadHistory" />
-    <view wx:elif="{{history.length === 0}}" class="history-empty">
-      <view class="history-empty-title">暂无过磅记录</view>
-      <view class="history-empty-hint">完成首磅、回磅并扫码后，这里会显示厂端正式磅单。</view>
-    </view>
-    <block wx:else>
-      <view class="history-count">共 {{history.length}} 条记录</view>
-      <view wx:for="{{history}}" wx:key="id" class="history-card">
-        <view class="history-main">
-          <view class="history-net">{{item.netText}}<text class="history-unit">吨</text></view>
-          <view class="history-date">{{item.dateText}}</view>
-        </view>
-        <view class="history-status">
-          <text class="history-badge">{{item.sourceLabel}}</text>
-          <text class="history-state">{{item.statusLabel}}</text>
-        </view>
-        <view class="history-detail">
-          <text>{{item.firstLabel}} {{item.firstText}} 吨</text>
-          <text>{{item.secondLabel}} {{item.secondText}} 吨</text>
-        </view>
-        <view class="history-ticket">厂端单号 {{item.ticketNo}}</view>
-        <view wx:if="{{item.factoryTaskNo}}" class="history-ticket">厂端任务 {{item.factoryTaskNo}}</view>
-      </view>
-    </block>
-  </block>
-
   <view class="bottom-nav">
-    <view class="nav-item {{tab === 'weigh' ? 'nav-item--active' : ''}}" data-tab="weigh" bindtap="changeTab">过磅</view>
-    <view class="nav-item {{tab === 'history' ? 'nav-item--active' : ''}}" data-tab="history" bindtap="changeTab">历史记录</view>
-    <view class="nav-exit" bindtap="exit">退出登录</view>
+    <view class="nav-item {{tab === 'weigh' ? 'nav-item--active' : ''}}" data-tab="weigh" bindtap="changeTab" aria-role="tab" aria-selected="{{tab === 'weigh'}}">
+      <t-icon name="chart" size="32rpx" color="{{tab === 'weigh' ? '#a74532' : '#777674'}}" aria-hidden="true" />
+      <text>过磅</text>
+    </view>
+    <view class="nav-item {{tab === 'history' ? 'nav-item--active' : ''}}" data-tab="history" bindtap="changeTab" aria-role="tab" aria-selected="{{tab === 'history'}}">
+      <t-icon name="history" size="32rpx" color="{{tab === 'history' ? '#a74532' : '#777674'}}" aria-hidden="true" />
+      <text>历史记录</text>
+    </view>
+    <view class="nav-exit" bindtap="exit" aria-role="button">
+      <t-icon name="logout" size="32rpx" color="#777674" aria-hidden="true" />
+      <text>退出登录</text>
+    </view>
   </view>
 </view>

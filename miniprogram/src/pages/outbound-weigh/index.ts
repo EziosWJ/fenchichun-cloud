@@ -2,7 +2,7 @@ import type { HistoryWeighing, OutboundProfile, OutboundQr, OutboundWeighing, Sc
 import { routes } from '@/config/routes'
 import { grainService } from '@/features/grain/api-service'
 import { errorMessage, requireLogin } from '@/features/grain/page'
-import { cancelPending, firstWeighQR, handoffQrImage, outboundCurrent, outboundHistory, outboundProfile, outboundWeight, secondWeighQR } from '@/features/outbound/api'
+import { firstWeighQR, handoffQrImage, outboundCurrent, outboundHistory, outboundProfile, outboundWeight, secondWeighQR } from '@/features/outbound/api'
 
 interface QrView extends OutboundQr {
   action: 'first' | 'second'
@@ -37,6 +37,18 @@ function timeText(value?: string) {
   }
   const two = (number: number) => String(number).padStart(2, '0')
   return `${two(date.getMonth() + 1)}-${two(date.getDate())} ${two(date.getHours())}:${two(date.getMinutes())}`
+}
+
+function fullTimeText(value?: string) {
+  if (!value) {
+    return ''
+  }
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) {
+    return ''
+  }
+  const two = (number: number) => String(number).padStart(2, '0')
+  return `${date.getFullYear()}-${two(date.getMonth() + 1)}-${two(date.getDate())} ${two(date.getHours())}:${two(date.getMinutes())}`
 }
 
 function statusText(status: string) {
@@ -85,6 +97,8 @@ Page({
     reading: null as ScaleReading | null,
     weightText: '0.000',
     statusText: '正在读取地磅',
+    readingState: 'warn' as 'ok' | 'warn' | 'bad',
+    readingHint: '正在读取地磅',
     available: false,
     mock: false,
     current: null as OutboundWeighing | null,
@@ -212,15 +226,24 @@ Page({
   },
   refreshWeight() {
     outboundWeight().then((reading) => {
+      const stable = reading.available && reading.stable
+      const waiting = reading.available && !reading.stable
       this.setData({
         reading,
         weightText: weightText(reading.weightMilliTonne),
         available: reading.available,
         mock: reading.mock,
         statusText: reading.message,
+        readingState: stable ? 'ok' : waiting ? 'warn' : 'bad',
+        readingHint: stable ? '读数稳定 · 可用' : waiting ? '读数可用 · 等待稳定' : (reading.message || '读数不可用'),
       })
     }).catch(() => {
-      this.setData({ available: false, statusText: '地磅服务连接失败' })
+      this.setData({
+        available: false,
+        readingState: 'bad',
+        readingHint: '地磅服务连接失败',
+        statusText: '地磅服务连接失败',
+      })
     })
   },
   refreshCurrent() {
@@ -304,10 +327,31 @@ Page({
     })
   },
   setQr(qr: OutboundQr, action: 'first' | 'second', weighingId: number) {
+    const imageURL = handoffQrImage(qr.value)
     this.setData({
-      qr: { ...qr, action, weighingId, image: handoffQrImage(qr.value) },
+      qr: { ...qr, action, weighingId, image: '' },
       qrTitle: action === 'first' ? '首磅二维码' : '回磅二维码',
-      qrExpireText: timeText(qr.expiresAt),
+      qrExpireText: fullTimeText(qr.expiresAt),
+    })
+    // 真机对 <image> 的 HTTP 网络图限制较多；用 wx.request 取 PNG 后转成 data URL。
+    wx.request({
+      url: imageURL,
+      method: 'GET',
+      responseType: 'arraybuffer',
+      success: (response) => {
+        if (response.statusCode !== 200 || !response.data) {
+          return
+        }
+        try {
+          const base64 = wx.arrayBufferToBase64(response.data as ArrayBuffer)
+          if (this.data.qr?.value === qr.value) {
+            this.setData({ 'qr.image': `data:image/png;base64,${base64}` })
+          }
+        }
+        catch {
+          // 保留空图，用户可以重新生成。
+        }
+      },
     })
   },
   regenerateQR() {
@@ -331,32 +375,6 @@ Page({
     }).catch((error) => {
       this.setData({ busy: false })
       wx.showToast({ title: errorMessage(error), icon: 'none' })
-    })
-  },
-  cancelCurrent() {
-    const current = this.data.current
-    if (this.data.busy || !current) {
-      return
-    }
-    const isSecond = current.status === 'second_qr_ready'
-    wx.showModal({
-      title: isSecond ? '取消回磅二维码' : '取消首磅',
-      content: isSecond ? '确定撤销当前回磅二维码，重新回磅？' : '确定取消本次首磅？厂端尚未扫码时可以直接取消。',
-      success: ({ confirm }) => {
-        if (!confirm) {
-          return
-        }
-        this.setData({ busy: true })
-        cancelPending().then(() => {
-          this.setData({ busy: false, qr: null })
-          wx.showToast({ title: isSecond ? '已取消回磅二维码' : '已取消首磅', icon: 'none' })
-          this.refreshCurrent()
-          this.refreshWeight()
-        }).catch((error) => {
-          this.setData({ busy: false })
-          wx.showToast({ title: errorMessage(error), icon: 'none' })
-        })
-      },
     })
   },
   finish() {

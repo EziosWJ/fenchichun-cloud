@@ -1,5 +1,8 @@
 {
   "navigationBarTitleText": "酒糟过磅",
+  "navigationBarBackgroundColor": "#fbe9d8",
+  "navigationBarTextStyle": "black",
+  "backgroundColor": "#f7f6f3",
   "usingComponents": {
     "loading-state": "/components/loading-state/index",
     "error-state": "/components/error-state/index"
