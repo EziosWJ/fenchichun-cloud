@@ -24,6 +24,8 @@ export default defineConfig(({ mode }) => {
       host: '0.0.0.0',
       proxy: {
         '/api': { target: proxyTarget, changeOrigin: true },
+        '/ready': { target: proxyTarget, changeOrigin: true },
+        '/health': { target: proxyTarget, changeOrigin: true },
       },
     },
     preview: { host: '0.0.0.0' },
