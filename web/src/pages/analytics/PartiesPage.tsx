@@ -176,80 +176,79 @@ export default function PartiesPage() {
   ];
 
   return (
-    <>
+    <div className="pageStack">
       <PageHeader
         title="供收方分析"
+        description="按供货方或客户维度分析累计重量、活跃周期、扣重与作废情况。"
         extra={<Space><Button onClick={() => void parties.refetch()} loading={parties.isFetching}>刷新</Button><Button onClick={() => void exportParties()} loading={exporting}>导出当前筛选 CSV</Button></Space>}
       />
-      <Space direction="vertical" size="middle" style={{ width: '100%' }}>
-        <Card size="small">
-          <Tabs
-            activeKey={direction}
-            onChange={(key) => actions.setFilter('direction', key)}
-            tabBarStyle={{ marginBottom: 0 }}
-            items={[
-              { key: 'inbound', label: '入厂供货方' },
-              { key: 'outbound', label: '出厂客户' },
-            ]}
-          />
-          <Divider style={{ margin: '10px 0 12px' }} />
-          <AnalyticsFilterBar
-            state={state}
-            actions={actions}
-            sites={master.sites}
-            materials={master.materials}
-            categories={master.categories}
-            parties={master.parties}
-            showDirection={false}
-            directionRequired
-            showKeyword
-            showCompare={false}
-            keywordPlaceholder="供收方名称 / 编码"
-          />
-        </Card>
-        {parties.isError && (
-          <Alert type="error" message={`供收方分析加载失败：${getApiErrorMessage(parties.error)}`} action={<Button onClick={() => void parties.refetch()}>重试</Button>} />
-        )}
-        <FreshnessNote freshness={data?.freshness} siteCode={state.filters.siteCode} />
-        <Row gutter={[16, 16]}>
-          <Col xs={24} sm={12} xl={4}><KpiCard label={direction === 'inbound' ? '活跃供货方' : '活跃客户'} value={summary ? formatNumber(summary.activeParties) : '—'} suffix="家" /></Col>
-          <Col xs={24} sm={12} xl={4}><KpiCard label={volumeLabel} value={summary ? formatMilliTonne(summary.totalNetMilliTonne) : '—'} suffix="吨" /></Col>
-          <Col xs={24} sm={12} xl={4}><KpiCard label="户均量" value={summary?.avgNetPerPartyMilliTonne != null ? formatMilliTonne(summary.avgNetPerPartyMilliTonne) : '—'} suffix="吨" /></Col>
-          <Col xs={24} sm={12} xl={4}><KpiCard label="企业" value={formatNumber(enterpriseCount)} suffix="家" hint={`个人 ${formatNumber(individualCount)} 家`} /></Col>
-          <Col xs={24} sm={12} xl={4}><KpiCard label="新增 / 回归" value={summary ? `${summary.newParties} / ${summary.returningParties}` : '—'} hint={summary && !summary.coverageComplete ? '历史不足，新增按“系统内首次”' : undefined} /></Col>
-          <Col xs={24} sm={12} xl={4}><KpiCard label="数据覆盖" value={summary?.coverageComplete ? '完整' : '积累中'} hint={summary?.historyStart ? `历史起点 ${dayjs(summary.historyStart).format('YYYY-MM-DD')}` : undefined} /></Col>
-        </Row>
-        <ChartCard title={`全量${direction === 'inbound' ? '供货方' : '客户'}排名`}>
-          <EChart
-            option={partyRankingOption(ranking)}
-            loading={parties.isLoading}
-            empty={!chartRanking.length}
-            height={420}
-            ariaLabel="全量供收方排名图"
-            onClick={({ dataIndex }) => {
-              if (dataIndex !== undefined && chartRanking[dataIndex]) setSelected(chartRanking[dataIndex]);
-            }}
-          />
-        </ChartCard>
-        <DataTable
-          tableKey="analytics-parties"
-          rowKey="partyCode"
-          columns={columns}
-          dataSource={data?.records ?? []}
-          total={data?.total ?? 0}
-          page={state.page}
-          pageSize={state.pageSize}
-          onPageChange={actions.setPage}
-          sortBy={state.sortBy}
-          sortOrder={state.sortOrder}
-          onSortChange={actions.setSort}
-          loading={parties.isLoading}
-          onRefresh={() => void parties.refetch()}
-          refreshing={parties.isFetching}
-          title={`${analyticsDirectionLabel(direction)}汇总`}
-          emptyDescription="当前期间没有符合条件的有效过磅单"
+      <div className="filterCard" style={{ paddingTop: 6 }}>
+        <Tabs
+          activeKey={direction}
+          onChange={(key) => actions.setFilter('direction', key)}
+          tabBarStyle={{ marginBottom: 0 }}
+          items={[
+            { key: 'inbound', label: '入厂供货方' },
+            { key: 'outbound', label: '出厂客户' },
+          ]}
         />
-      </Space>
+        <Divider style={{ margin: '10px 0 12px' }} />
+        <AnalyticsFilterBar
+          state={state}
+          actions={actions}
+          sites={master.sites}
+          materials={master.materials}
+          categories={master.categories}
+          parties={master.parties}
+          showDirection={false}
+          directionRequired
+          showKeyword
+          showCompare={false}
+          keywordPlaceholder="供收方名称 / 编码"
+        />
+      </div>
+      {parties.isError && (
+        <Alert type="error" title={`供收方分析加载失败：${getApiErrorMessage(parties.error)}`} action={<Button onClick={() => void parties.refetch()}>重试</Button>} />
+      )}
+      <FreshnessNote freshness={data?.freshness} siteCode={state.filters.siteCode} />
+      <Row gutter={[16, 16]}>
+        <Col xs={24} sm={12} xl={4}><KpiCard label={direction === 'inbound' ? '活跃供货方' : '活跃客户'} value={summary ? formatNumber(summary.activeParties) : '—'} suffix="家" /></Col>
+        <Col xs={24} sm={12} xl={4}><KpiCard label={volumeLabel} value={summary ? formatMilliTonne(summary.totalNetMilliTonne) : '—'} suffix="吨" /></Col>
+        <Col xs={24} sm={12} xl={4}><KpiCard label="户均量" value={summary?.avgNetPerPartyMilliTonne != null ? formatMilliTonne(summary.avgNetPerPartyMilliTonne) : '—'} suffix="吨" /></Col>
+        <Col xs={24} sm={12} xl={4}><KpiCard label="企业" value={formatNumber(enterpriseCount)} suffix="家" hint={`个人 ${formatNumber(individualCount)} 家`} /></Col>
+        <Col xs={24} sm={12} xl={4}><KpiCard label="新增 / 回归" value={summary ? `${summary.newParties} / ${summary.returningParties}` : '—'} hint={summary && !summary.coverageComplete ? '历史不足，新增按“系统内首次”' : undefined} /></Col>
+        <Col xs={24} sm={12} xl={4}><KpiCard label="数据覆盖" value={summary?.coverageComplete ? '完整' : '积累中'} hint={summary?.historyStart ? `历史起点 ${dayjs(summary.historyStart).format('YYYY-MM-DD')}` : undefined} /></Col>
+      </Row>
+      <ChartCard title={`全量${direction === 'inbound' ? '供货方' : '客户'}排名`}>
+        <EChart
+          option={partyRankingOption(ranking)}
+          loading={parties.isLoading}
+          empty={!chartRanking.length}
+          height={420}
+          ariaLabel="全量供收方排名图"
+          onClick={({ dataIndex }) => {
+            if (dataIndex !== undefined && chartRanking[dataIndex]) setSelected(chartRanking[dataIndex]);
+          }}
+        />
+      </ChartCard>
+      <DataTable
+        tableKey="analytics-parties"
+        rowKey="partyCode"
+        columns={columns}
+        dataSource={data?.records ?? []}
+        total={data?.total ?? 0}
+        page={state.page}
+        pageSize={state.pageSize}
+        onPageChange={actions.setPage}
+        sortBy={state.sortBy}
+        sortOrder={state.sortOrder}
+        onSortChange={actions.setSort}
+        loading={parties.isLoading}
+        onRefresh={() => void parties.refetch()}
+        refreshing={parties.isFetching}
+        title={`${analyticsDirectionLabel(direction)}汇总`}
+        emptyDescription="当前期间没有符合条件的有效过磅单"
+      />
       <Drawer
         title={selected ? `${selected.partyName}（${selected.partyCode}）` : '供收方详情'}
         width={860}
@@ -288,6 +287,6 @@ export default function PartiesPage() {
           </Space>
         )}
       </Drawer>
-    </>
+    </div>
   );
 }

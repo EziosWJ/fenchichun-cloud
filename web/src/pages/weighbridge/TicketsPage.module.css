@@ -1,41 +1,41 @@
-.filters {
+.filterGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(176px, 1fr));
+  gap: 12px 14px;
+  align-items: end;
+}
+
+.filterField {
   display: flex;
-  flex-wrap: nowrap;
-  align-items: center;
-  gap: 7px;
+  flex-direction: column;
+  gap: 6px;
   min-width: 0;
-  overflow-x: auto;
-  padding-bottom: 2px;
-  scrollbar-width: thin;
 }
 
-.keyword {
-  flex: 1 1 160px;
-  min-width: 160px;
-  max-width: 230px;
+.filterLabel {
+  color: var(--ant-color-text-secondary);
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 18px;
 }
 
-.field {
-  flex: 1 1 120px;
-  min-width: 120px;
-  max-width: 150px;
+.filterField :global(.ant-input-affix-wrapper),
+.filterField :global(.ant-select),
+.filterField :global(.ant-picker) {
+  width: 100%;
 }
 
-.date {
-  flex: 1 1 128px;
-  min-width: 128px;
-  max-width: 160px;
+.filterActions {
+  display: flex;
+  align-items: flex-end;
+  justify-content: flex-end;
+  gap: 8px;
 }
 
-.select {
-  flex: 1 1 112px;
-  min-width: 112px;
-  max-width: 150px;
-}
-
-.reset {
-  flex: 0 0 auto;
-  margin-left: auto;
+.netCell {
+  color: var(--ant-color-link);
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
 }
 
 .detail {
@@ -45,30 +45,33 @@
 }
 
 .overview {
-  padding: 4px 0 18px;
+  padding: 4px 0 16px;
 }
 
 .overviewMeta {
   color: var(--ant-color-text-secondary);
   margin-top: 6px;
+  font-size: 13px;
 }
 
 .weights {
   background: var(--ant-color-fill-quaternary);
   border: 1px solid var(--ant-color-border-secondary);
-  border-radius: 8px;
+  border-left: 3px solid var(--ant-color-primary);
+  border-radius: 10px;
   padding: 16px;
 }
 
-.weights h3, .section h3 {
+.weights h3,
+.section h3 {
   color: var(--ant-color-text);
-  font-size: 15px;
-  font-weight: 600;
+  font-size: 14.5px;
+  font-weight: 650;
   margin: 0 0 12px;
 }
 
 .weights h3 span {
-  color: var(--ant-color-text-secondary);
+  color: var(--ant-color-text-tertiary);
   font-size: 12px;
   font-weight: 400;
   margin-left: 8px;
@@ -85,7 +88,8 @@
   width: 100%;
 }
 
-.weightTable th, .weightTable td {
+.weightTable th,
+.weightTable td {
   border-bottom: 1px solid var(--ant-color-border-secondary);
   padding: 8px 10px;
   text-align: right;
@@ -99,7 +103,7 @@
 .weightTable thead th {
   color: var(--ant-color-text-secondary);
   font-size: 12px;
-  font-weight: 400;
+  font-weight: 500;
 }
 
 .weightTable tbody th {
@@ -108,32 +112,33 @@
 
 .finalWeight {
   color: var(--ant-color-link);
-  font-weight: 600;
+  font-weight: 650;
 }
 
 .adjustment {
   color: var(--ant-color-text-secondary);
-  font-size: 12px;
+  font-size: 12.5px;
   line-height: 1.8;
-  padding-top: 10px;
+  padding-top: 8px;
 }
 
 .section {
   border-bottom: 1px solid var(--ant-color-split);
-  padding: 20px 0 8px;
+  padding: 18px 0 8px;
 }
 
 .timeline,
 .review {
   margin-bottom: 12px;
   border: 1px solid var(--ant-color-border-secondary);
-  border-radius: var(--ant-border-radius-lg);
-  padding: 10px 12px;
+  border-radius: 10px;
+  padding: 12px 14px;
+  background: var(--ant-color-bg-container);
 }
 
 .timelineHeading,
 .timeline dt {
-  color: var(--ant-color-text-secondary);
+  color: var(--ant-color-text-tertiary);
   font-size: 12px;
 }
 
@@ -141,7 +146,7 @@
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(min(100%, 155px), 1fr));
   gap: 8px 16px;
-  margin: 4px 0 0;
+  margin: 6px 0 0;
 }
 
 .timeline dd {
@@ -153,6 +158,7 @@
 
 .review {
   background: var(--ant-color-fill-quaternary);
+  border-left: 3px solid var(--ant-color-error);
 }
 
 .review h3 {

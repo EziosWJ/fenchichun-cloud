@@ -96,57 +96,55 @@ export default function FlowPage() {
   ];
 
   return (
-    <>
+    <div className="pageStack">
       <PageHeader
         title="进出厂分析"
-        description=""
+        description="按入厂与出厂方向分析车次、净重趋势、厂区对比与称重间隔。"
         extra={<Space><Button onClick={() => void flow.refetch()} loading={flow.isFetching}>刷新</Button><Button onClick={() => void exportFlow()} loading={exporting}>导出当前筛选 CSV</Button></Space>}
       />
-      <Space direction="vertical" size="middle" style={{ width: '100%' }}>
-        <Card size="small">
-          <AnalyticsFilterBar state={state} actions={actions} sites={master.sites} materials={master.materials} categories={master.categories} />
-        </Card>
-        {flow.isError && (
-          <Alert type="error" message={`进出厂分析加载失败：${getApiErrorMessage(flow.error)}`} action={<Button onClick={() => void flow.refetch()}>重试</Button>} />
-        )}
-        <FreshnessNote freshness={data?.freshness} siteCode={state.filters.siteCode} />
-        <Row gutter={[16, 16]}>
-          <Col xs={24} sm={12} xl={4}><KpiCard label="入厂车次" value={summary ? formatNumber(summary.inboundTickets) : '—'} suffix="车" hint={<ComparisonText metric={comparison?.inboundTickets} unit="车" />} /></Col>
-          <Col xs={24} sm={12} xl={4}><KpiCard label="入厂净重" value={summary ? formatMilliTonne(summary.inboundNetMilliTonne) : '—'} suffix="吨" hint={<ComparisonText metric={comparison?.inboundNetMilliTonne} />} /></Col>
-          <Col xs={24} sm={12} xl={4}><KpiCard label="出厂车次" value={summary ? formatNumber(summary.outboundTickets) : '—'} suffix="车" hint={<ComparisonText metric={comparison?.outboundTickets} unit="车" />} /></Col>
-          <Col xs={24} sm={12} xl={4}><KpiCard label="出厂净重" value={summary ? formatMilliTonne(summary.outboundNetMilliTonne) : '—'} suffix="吨" hint={<ComparisonText metric={comparison?.outboundNetMilliTonne} />} /></Col>
-          <Col xs={24} sm={12} xl={4}><KpiCard label="过磅净流入" value={summary ? formatMilliTonne(summary.netFlowMilliTonne) : '—'} suffix="吨" hint={<ComparisonText metric={comparison?.netFlowMilliTonne} />} /></Col>
-          <Col xs={24} sm={12} xl={4}><KpiCard label="作废率" value={summary ? formatBp(summary.voidRateBp) : '—'} hint={summary ? `${summary.voidTickets} / ${summary.validTickets + summary.voidTickets} 张单据` : undefined} /></Col>
-        </Row>
-        <ChartCard title="进出厂净重趋势">
-          <EChart option={trendChartOption(data?.trend)} loading={flow.isLoading} empty={!data?.trend.points.length} ariaLabel="进出厂净重趋势图"
-            onClick={({ dataIndex, seriesIndex }) => {
-              const point = dataIndex === undefined ? undefined : data?.trend.points[dataIndex];
-              if (!point) return;
-              const direction = seriesIndex === 1 ? 'outbound' : 'inbound';
-              if (params.direction && params.direction !== direction) return;
-              navigate(drillHref({ ...analyticsPeriodFilters(params, point), direction }));
-            }} />
-        </ChartCard>
-        <Card size="small" title="周期汇总">
-          <Table<TrendPoint> rowKey="period" columns={trendColumns} dataSource={data?.trend.points ?? []} pagination={false} size="small" scroll={{ x: 'max-content' }} />
-        </Card>
-        <Card size="small" title="厂区对比">
-          <Table<FlowSiteRow> rowKey="siteCode" columns={siteColumns} dataSource={data?.siteComparison ?? []} pagination={false} size="small" scroll={{ x: 'max-content' }} />
-        </Card>
-        <Row gutter={[16, 16]}>
-          <Col xs={24} sm={12} xl={6}><KpiCard label="时长样本" value={data ? formatNumber(data.duration.sampleTickets) : '—'} suffix="车" hint={summary ? `共 ${formatNumber(summary.validTickets)} 张有效单` : undefined} /></Col>
-          <Col xs={24} sm={12} xl={6}><KpiCard label="两次过磅间隔中位数" value={formatSeconds(data?.duration.medianSeconds)} /></Col>
-          <Col xs={24} sm={12} xl={6}><KpiCard label="P90 间隔" value={formatSeconds(data?.duration.p90Seconds)} hint={`最大 ${formatSeconds(data?.duration.maxSeconds)}`} /></Col>
-          <Col xs={24} sm={12} xl={6}><KpiCard label="隔日完成单" value={data ? `${data.duration.crossDayTickets}（${formatBp(data.duration.crossDayRateBp)}）` : '—'} hint={data ? `已剔除重开单 ${data.duration.reopenedExcludedTickets} 张` : undefined} /></Col>
-        </Row>
-        <Alert
-          type="info"
-          showIcon
-          message="时长口径"
-          description="两次过磅间隔是首次确认到二次确认的时间，包含等待、装卸等环节。样本为间隔已知且非负的有效单，剔除重开单。隔日按北京时间判断。"
-        />
-      </Space>
-    </>
+      <div className="filterCard">
+        <AnalyticsFilterBar state={state} actions={actions} sites={master.sites} materials={master.materials} categories={master.categories} />
+      </div>
+      {flow.isError && (
+        <Alert type="error" title={`进出厂分析加载失败：${getApiErrorMessage(flow.error)}`} action={<Button onClick={() => void flow.refetch()}>重试</Button>} />
+      )}
+      <FreshnessNote freshness={data?.freshness} siteCode={state.filters.siteCode} />
+      <Row gutter={[16, 16]}>
+        <Col xs={24} sm={12} xl={4}><KpiCard label="入厂车次" value={summary ? formatNumber(summary.inboundTickets) : '—'} suffix="车" hint={<ComparisonText metric={comparison?.inboundTickets} unit="车" />} /></Col>
+        <Col xs={24} sm={12} xl={4}><KpiCard label="入厂净重" value={summary ? formatMilliTonne(summary.inboundNetMilliTonne) : '—'} suffix="吨" hint={<ComparisonText metric={comparison?.inboundNetMilliTonne} />} /></Col>
+        <Col xs={24} sm={12} xl={4}><KpiCard label="出厂车次" value={summary ? formatNumber(summary.outboundTickets) : '—'} suffix="车" hint={<ComparisonText metric={comparison?.outboundTickets} unit="车" />} /></Col>
+        <Col xs={24} sm={12} xl={4}><KpiCard label="出厂净重" value={summary ? formatMilliTonne(summary.outboundNetMilliTonne) : '—'} suffix="吨" hint={<ComparisonText metric={comparison?.outboundNetMilliTonne} />} /></Col>
+        <Col xs={24} sm={12} xl={4}><KpiCard label="过磅净流入" value={summary ? formatMilliTonne(summary.netFlowMilliTonne) : '—'} suffix="吨" hint={<ComparisonText metric={comparison?.netFlowMilliTonne} />} /></Col>
+        <Col xs={24} sm={12} xl={4}><KpiCard label="作废率" value={summary ? formatBp(summary.voidRateBp) : '—'} hint={summary ? `${summary.voidTickets} / ${summary.validTickets + summary.voidTickets} 张单据` : undefined} /></Col>
+      </Row>
+      <ChartCard title="进出厂净重趋势">
+        <EChart option={trendChartOption(data?.trend)} loading={flow.isLoading} empty={!data?.trend.points.length} ariaLabel="进出厂净重趋势图"
+          onClick={({ dataIndex, seriesIndex }) => {
+            const point = dataIndex === undefined ? undefined : data?.trend.points[dataIndex];
+            if (!point) return;
+            const direction = seriesIndex === 1 ? 'outbound' : 'inbound';
+            if (params.direction && params.direction !== direction) return;
+            navigate(drillHref({ ...analyticsPeriodFilters(params, point), direction }));
+          }} />
+      </ChartCard>
+      <Card size="small" title="周期汇总">
+        <Table<TrendPoint> rowKey="period" columns={trendColumns} dataSource={data?.trend.points ?? []} pagination={false} size="small" scroll={{ x: 'max-content' }} />
+      </Card>
+      <Card size="small" title="厂区对比">
+        <Table<FlowSiteRow> rowKey="siteCode" columns={siteColumns} dataSource={data?.siteComparison ?? []} pagination={false} size="small" scroll={{ x: 'max-content' }} />
+      </Card>
+      <Row gutter={[16, 16]}>
+        <Col xs={24} sm={12} xl={6}><KpiCard label="时长样本" value={data ? formatNumber(data.duration.sampleTickets) : '—'} suffix="车" hint={summary ? `共 ${formatNumber(summary.validTickets)} 张有效单` : undefined} /></Col>
+        <Col xs={24} sm={12} xl={6}><KpiCard label="两次过磅间隔中位数" value={formatSeconds(data?.duration.medianSeconds)} /></Col>
+        <Col xs={24} sm={12} xl={6}><KpiCard label="P90 间隔" value={formatSeconds(data?.duration.p90Seconds)} hint={`最大 ${formatSeconds(data?.duration.maxSeconds)}`} /></Col>
+        <Col xs={24} sm={12} xl={6}><KpiCard label="隔日完成单" value={data ? `${data.duration.crossDayTickets}（${formatBp(data.duration.crossDayRateBp)}）` : '—'} hint={data ? `已剔除重开单 ${data.duration.reopenedExcludedTickets} 张` : undefined} /></Col>
+      </Row>
+      <Alert
+        type="info"
+        showIcon
+        title="时长口径"
+        description="两次过磅间隔是首次确认到二次确认的时间，包含等待、装卸等环节。样本为间隔已知且非负的有效单，剔除重开单。隔日按北京时间判断。"
+      />
+    </div>
   );
 }

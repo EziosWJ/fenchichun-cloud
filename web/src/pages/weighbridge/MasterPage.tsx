@@ -34,10 +34,10 @@ export default function MasterPage() {
   }
   const kind: Kind = pathname.endsWith('/materials') ? 'materials' : pathname.endsWith('/parties') ? 'parties' : 'categories';
   return (
-    <>
+    <div className="pageStack">
       <PageHeader
         title={kind === 'categories' ? '物料分类' : kind === 'materials' ? '物料' : '往来主体'}
-        description={kind !== 'parties' ? '维护下发各厂的基础资料。' : undefined}
+        description={kind !== 'parties' ? '维护下发各厂的基础资料。' : '统一维护供应商、客户、承运商及厂端临时主体归并。'}
       />
       {kind === 'parties' ? (
         <Tabs
@@ -50,7 +50,7 @@ export default function MasterPage() {
           ]}
         />
       ) : <MasterList key={kind} kind={kind} />}
-    </>
+    </div>
   );
 }
 
@@ -98,18 +98,19 @@ function MasterList({ kind }: { kind: Kind }) {
     }
   };
   const columns: ColumnsType<Row> = [
-    { title: '编码', dataIndex: 'code', key: 'code' }, { title: '名称', dataIndex: 'name', key: 'name' },
-    ...(kind === 'materials' ? [{ title: '检验方式', dataIndex: 'inspectionMethod', key: 'inspectionMethod', render: (value: string) => value === 'visual' ? '目测' : '化验' }] : []),
+    { title: '编码', dataIndex: 'code', key: 'code', render: (v: string) => <span className="monoCode">{v}</span> },
+    { title: '名称', dataIndex: 'name', key: 'name' },
+    ...(kind === 'materials' ? [{ title: '检验方式', dataIndex: 'inspectionMethod', key: 'inspectionMethod', render: (value: string) => <Tag color={value === 'visual' ? 'warning' : 'processing'}>{value === 'visual' ? '目测' : '化验'}</Tag> }] : []),
     ...(kind === 'parties' ? [
       { title: '身份', key: 'identity', render: (_: unknown, row: Row) => { const labels = identities.filter((item) => (row as Party)[item.field]); return labels.length ? labels.map((item) => <Tag key={item.value}>{item.label}</Tag>) : '—'; } },
       { title: '备注', dataIndex: 'remark', key: 'remark', render: (value: string) => value || '—' },
     ] : []),
-    { title: '状态', dataIndex: 'enabled', key: 'enabled', render: (v: boolean) => <Tag color={v ? 'green' : 'default'}>{v ? '启用' : '停用'}</Tag> },
-    { title: '操作', key: 'actions', render: (_, row) => <Button type="link" onClick={() => edit(row)}>编辑</Button> },
+    { title: '状态', dataIndex: 'enabled', key: 'enabled', render: (v: boolean) => <Tag color={v ? 'success' : 'default'}>{v ? '启用' : '停用'}</Tag> },
+    { title: '操作', key: 'actions', render: (_, row) => <Button size="small" type="link" onClick={() => edit(row)}>编辑</Button> },
   ];
-  return <>
-    <Space direction="vertical" style={{ width: '100%' }} size="middle">
-      <Space wrap align="end">
+  return <div className="pageStack">
+    <div className="filterCard">
+      <Space wrap align="end" size={[14, 12]} style={{ width: '100%' }}>
         <FilterField label="名称或编码" wide>
           <Input.Search aria-label="名称或编码" placeholder="名称或编码" value={draft.keyword} onChange={(e) => setKeyword(e.target.value)} onSearch={(value) => actions.setKeyword(value)} allowClear />
         </FilterField>
@@ -118,11 +119,23 @@ function MasterList({ kind }: { kind: Kind }) {
             <Select aria-label="身份" placeholder="身份" allowClear value={state.filters.identity} options={identities.map(({ value, label }) => ({ value, label }))} onChange={(value) => actions.setFilter('identity', value)} />
           </FilterField>
         )}
-        <Button type="primary" onClick={() => edit(null)}>新增</Button>
+        <Button type="primary" style={{ marginLeft: 'auto' }} onClick={() => edit(null)}>新增</Button>
       </Space>
-      {active.isError && <Alert type="error" message={getApiErrorMessage(active.error)} action={<Button onClick={() => void active.refetch()}>重试</Button>} />}
-      <DataTable tableKey={`weighbridge-${kind}`} columns={columns} rowKey="code" dataSource={filtered.slice((state.page - 1) * state.pageSize, state.page * state.pageSize)} total={filtered.length} page={state.page} pageSize={state.pageSize} onPageChange={actions.setPage} loading={active.isLoading} onRefresh={() => void active.refetch()} />
-    </Space>
+    </div>
+    {active.isError && <Alert type="error" title={getApiErrorMessage(active.error)} action={<Button onClick={() => void active.refetch()}>重试</Button>} />}
+    <DataTable
+      tableKey={`weighbridge-${kind}`}
+      title={kind === 'categories' ? '分类列表' : kind === 'materials' ? '物料列表' : '正式往来主体'}
+      columns={columns}
+      rowKey="code"
+      dataSource={filtered.slice((state.page - 1) * state.pageSize, state.page * state.pageSize)}
+      total={filtered.length}
+      page={state.page}
+      pageSize={state.pageSize}
+      onPageChange={actions.setPage}
+      loading={active.isLoading}
+      onRefresh={() => void active.refetch()}
+    />
     <Modal title={`${editing ? '编辑' : '新增'}${kind === 'categories' ? '分类' : kind === 'materials' ? '物料' : '往来主体'}`} open={open} onCancel={() => { if (!save.isPending) setOpen(false); }} onOk={() => void submit()} confirmLoading={save.isPending} destroyOnHidden width={kind === 'parties' ? 800 : 520}>
       <Form form={form} layout="vertical">
         <GridRow gutter={16}>
@@ -154,5 +167,5 @@ function MasterList({ kind }: { kind: Kind }) {
         </GridRow>
       </Form>
     </Modal>
-  </>;
+  </div>;
 }

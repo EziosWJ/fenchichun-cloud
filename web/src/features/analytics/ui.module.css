@@ -1,0 +1,123 @@
+.kpiCard {
+  height: 100%;
+  border: 1px solid var(--ant-color-border-secondary);
+  border-radius: var(--app-radius-panel);
+  box-shadow: var(--app-shadow-card);
+  transition: border-color 0.18s ease, box-shadow 0.18s ease;
+}
+
+.kpiCard:hover {
+  border-color: var(--ant-color-border);
+  box-shadow: var(--app-shadow-hover);
+}
+
+.kpiCard :global(.ant-card-body) {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  height: 100%;
+  padding: 16px 18px;
+}
+
+.kpiLabel {
+  color: var(--ant-color-text-secondary);
+  font-size: 12.5px;
+  font-weight: 500;
+  line-height: 1.4;
+}
+
+.kpiValueRow {
+  display: flex;
+  align-items: baseline;
+  gap: 5px;
+  margin-top: 8px;
+}
+
+.kpiValue {
+  color: var(--ant-color-text);
+  font-size: 24px;
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+  line-height: 1.18;
+}
+
+.kpiSuffix {
+  color: var(--ant-color-text-tertiary);
+  font-size: 12.5px;
+  font-weight: 500;
+}
+
+.kpiHint {
+  min-height: 18px;
+  margin-top: 8px;
+  color: var(--ant-color-text-tertiary);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.chartCard {
+  border: 1px solid var(--ant-color-border-secondary);
+  border-radius: var(--app-radius-panel);
+  box-shadow: var(--app-shadow-card);
+}
+
+.freshnessBar {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px 14px;
+  border: 1px solid var(--ant-color-border-secondary);
+  border-left: 3px solid var(--ant-color-success);
+  border-radius: 10px;
+  background: var(--ant-color-bg-container);
+  color: var(--ant-color-text-secondary);
+  font-size: 12.5px;
+}
+
+.freshnessStale {
+  border-color: var(--app-brand-accent-border);
+  border-left-color: var(--app-brand-accent);
+  background: var(--app-brand-accent-bg);
+}
+
+.freshnessRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 18px;
+}
+
+.freshnessDot {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  margin-right: 6px;
+  border-radius: 50%;
+  background: var(--ant-color-success);
+  vertical-align: middle;
+}
+
+.freshnessStale .freshnessDot {
+  background: var(--app-brand-accent);
+}
+
+.freshnessMeta {
+  color: var(--ant-color-text-tertiary);
+  font-size: 12px;
+}
+
+.freshnessDetails {
+  color: var(--ant-color-text);
+  font-size: 12px;
+}
+
+.freshnessDetails summary {
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.freshnessDetails ul {
+  margin: 4px 0 0;
+  padding-inline-start: 20px;
+}

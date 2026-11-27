@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Alert, Button, Card, Checkbox, Form, Input, Typography } from 'antd';
-import { LockKeyhole, Moon, Sun, UserRound } from 'lucide-react';
+import { BarChart3, LockKeyhole, Moon, Scale, Sun, UserRound, Wheat } from 'lucide-react';
 import { Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { appConfig } from '../config/app.config';
 import { useAppPreferences } from '../app/AppProviders';
@@ -80,12 +80,20 @@ export default function LoginPage() {
       <section className={styles.brandPanel} aria-label="平台介绍">
         <div className={styles.brandMark}>
           <span className={styles.brandLogo}>{appConfig.logoText}</span>
-          <span>{appConfig.brandName}</span>
+          <div className={styles.brandMeta}>
+            <span className={styles.brandName}>{appConfig.brandName}</span>
+            <span className={styles.brandSub}>{appConfig.brandSubtitle}</span>
+          </div>
         </div>
         <div className={styles.brandBody}>
-          <p className={styles.brandEyebrow}>GO REST API · REACT ADMIN</p>
+          <p className={styles.brandEyebrow}>FENCHICHUN DISTILLERY CLOUD</p>
           <h1 className={styles.brandTitle}>{appConfig.loginTitle}</h1>
           <p className={styles.brandDesc}>{appConfig.loginSubtitle}</p>
+          <div className={styles.brandPills} aria-hidden="true">
+            <span className={styles.brandPill}><Wheat size={14} />原粮入厂流转</span>
+            <span className={styles.brandPill}><Scale size={14} />过磅厂云同步</span>
+            <span className={styles.brandPill}><BarChart3 size={14} />经营对账分析</span>
+          </div>
         </div>
         <p className={styles.brandFoot}>{appConfig.footerText}</p>
       </section>
@@ -100,10 +108,14 @@ export default function LoginPage() {
           onClick={toggleTheme}
         />
         <Card variant="borderless" className={styles.formCard}>
+          <div className={styles.mobileBrand}>
+            <span className={styles.mobileBrandLogo}>{appConfig.logoText}</span>
+            <span className={styles.mobileBrandName}>{appConfig.brandName}</span>
+          </div>
           <Typography.Title level={2} className={styles.formTitle}>
-            登录
+            员工登录
           </Typography.Title>
-          <p className={styles.formSubtitle}>请输入系统账号进入管理后台。</p>
+          <p className={styles.formSubtitle}>请输入员工账号进入{appConfig.brandName}{appConfig.brandSubtitle}。</p>
 
           {error && (
             <Alert
@@ -163,7 +175,7 @@ export default function LoginPage() {
           </Form>
 
           <p className={styles.footerHint}>
-            登录状态失效时会返回本页，登录后回到原页面。
+            仅限汾池春酒业授权员工使用 · 登录失效后将自动回到当前页面
           </p>
         </Card>
       </section>

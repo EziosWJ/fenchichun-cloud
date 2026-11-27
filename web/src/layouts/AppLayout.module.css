@@ -43,7 +43,8 @@
   min-height: var(--app-header-height);
   align-items: center;
   gap: 10px;
-  padding: 12px 12px 12px 16px;
+  padding: 10px 10px 10px 16px;
+  border-bottom: 1px solid var(--ant-color-split);
 }
 
 .brandCollapsed {
@@ -60,17 +61,20 @@
 
 .brandMark {
   display: inline-grid;
-  flex: 0 0 36px;
-  width: 36px;
-  height: 36px;
+  flex: 0 0 34px;
+  width: 34px;
+  height: 34px;
   place-items: center;
-  border-radius: 10px;
-  color: var(--ant-color-text-light-solid);
-  background: var(--ant-color-primary);
-  box-shadow: 0 4px 12px var(--ant-color-primary-border);
-  font-size: 13px;
-  font-weight: 800;
-  letter-spacing: 0.04em;
+  border-radius: 9px;
+  color: #fbf7f2;
+  background: linear-gradient(145deg, #b54736 0%, #8b2e20 100%);
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 248, 240, 0.3),
+    0 3px 8px rgba(158, 59, 44, 0.22);
+  font-family: var(--app-font-serif);
+  font-size: 16px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
 }
 
 .brandText {
@@ -79,15 +83,15 @@
   flex: 1;
   flex-direction: column;
   gap: 1px;
-  line-height: 1.25;
+  line-height: 1.2;
 }
 
 .brandName {
   overflow: hidden;
   color: var(--ant-color-text);
-  font-size: 14px;
+  font-size: 14.5px;
   font-weight: 650;
-  letter-spacing: -0.01em;
+  letter-spacing: 0.01em;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -96,7 +100,7 @@
   overflow: hidden;
   color: var(--ant-color-text-tertiary);
   font-size: 11px;
-  letter-spacing: 0.02em;
+  letter-spacing: 0.04em;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -106,18 +110,58 @@
   color: var(--ant-color-text-tertiary);
 }
 
+.brand :global(.ant-btn:hover) {
+  color: var(--ant-color-text);
+  background: var(--ant-color-fill-quaternary);
+}
+
 .sideMenu {
   flex: 1;
   overflow: auto;
-  padding: 4px 0 8px;
+  padding: 8px 4px 12px;
   border-inline-end: 0 !important;
 }
 
+.sideMenu :global(.ant-menu-item-group-title) {
+  padding-top: 12px;
+  padding-bottom: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.sideMenu :global(.ant-menu-item) {
+  position: relative;
+  font-size: 13.5px;
+  font-weight: 450;
+}
+
+.sideMenu :global(.ant-menu-item-selected) {
+  font-weight: 600;
+}
+
+.sideMenu :global(.ant-menu-item-selected)::before {
+  position: absolute;
+  top: 8px;
+  bottom: 8px;
+  left: 0;
+  width: 3px;
+  border-radius: 0 3px 3px 0;
+  background: var(--ant-color-primary);
+  content: '';
+}
+
+.sideMenu :global(.ant-menu-inline-collapsed .ant-menu-item-selected)::before {
+  display: none;
+}
+
 .sidebarFoot {
-  padding: 12px 18px 16px;
-  border-top: 1px solid var(--ant-color-border-secondary);
+  padding: 10px 16px 12px;
+  border-top: 1px solid var(--ant-color-split);
   color: var(--ant-color-text-tertiary);
-  font-size: 11.5px;
+  font-size: 11px;
+  letter-spacing: 0.03em;
 }
 
 .main {
@@ -129,7 +173,7 @@
   z-index: 20;
   top: 0;
   background: var(--ant-color-bg-container);
-  box-shadow: var(--ant-box-shadow-tertiary);
+  border-bottom: 1px solid var(--ant-color-border-secondary);
 }
 
 .header {
@@ -138,7 +182,7 @@
   align-items: center;
   justify-content: space-between;
   gap: 16px;
-  padding: 10px 24px;
+  padding: 8px 24px;
   background: var(--ant-color-bg-container);
 }
 
@@ -177,14 +221,14 @@
 }
 
 .headerIconButton {
-  width: 36px;
-  height: 36px;
+  width: 34px;
+  height: 34px;
   border-radius: var(--app-radius-control);
   color: var(--ant-color-text-secondary);
 }
 
 .headerIconButton:hover {
-  color: var(--ant-color-primary) !important;
+  color: var(--ant-color-link) !important;
   background: var(--ant-color-fill-quaternary) !important;
 }
 
@@ -192,8 +236,8 @@
   display: flex;
   min-height: var(--app-tabbar-height);
   align-items: center;
-  padding: 4px 16px 6px;
-  border-bottom: 1px solid var(--ant-color-border-secondary);
+  padding: 2px 16px 4px;
+  border-top: 1px solid var(--ant-color-split);
   background: var(--ant-color-bg-container);
 }
 
@@ -211,16 +255,16 @@
 }
 
 .tabs :global(.ant-tabs-nav-list) {
-  gap: 0;
+  gap: 2px;
 }
 
 .tabs :global(.ant-tabs-tab) {
   margin-block: 0 !important;
-  padding: 4px 10px !important;
+  padding: 3px 10px !important;
   border: 1px solid transparent !important;
-  border-radius: var(--app-radius-control) !important;
+  border-radius: 7px !important;
   background: transparent !important;
-  transition: background 0.2s ease, color 0.2s ease;
+  transition: background 0.18s ease, color 0.18s ease, border-color 0.18s ease;
 }
 
 .tabs :global(.ant-tabs-tab:hover) {
@@ -229,13 +273,13 @@
 
 .tabs :global(.ant-tabs-tab-active) {
   background: var(--ant-color-primary-bg) !important;
-  border-color: transparent !important;
+  border-color: var(--ant-color-primary-border) !important;
 }
 
 .tabs :global(.ant-tabs-tab-btn) {
   max-width: 168px;
   overflow: hidden;
-  font-size: 13px;
+  font-size: 12.5px;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -246,10 +290,10 @@
 }
 
 .tabs :global(.ant-tabs-tab-remove) {
-  width: 24px;
-  height: 24px;
+  width: 22px;
+  height: 22px;
   margin-inline-start: 4px;
-  opacity: 0.65;
+  opacity: 0.6;
   font-size: 10px;
 }
 
@@ -300,7 +344,7 @@
   min-width: 0;
   flex: 1;
   margin-inline: auto;
-  padding: var(--app-content-padding-y) var(--app-content-padding-x) 32px;
+  padding: var(--app-content-padding-y) var(--app-content-padding-x) 28px;
 }
 
 .contentCollapsed {
@@ -312,7 +356,7 @@
 }
 
 .footer {
-  padding: 14px 24px;
+  padding: 12px 24px;
   border-top: 1px solid var(--ant-color-border-secondary);
   color: var(--ant-color-text-tertiary);
   font-size: 12px;
@@ -329,9 +373,9 @@
   flex-basis: 32px;
   width: 32px;
   height: 32px;
-  border-radius: 9px;
+  border-radius: 8px;
   box-shadow: none;
-  font-size: 12px;
+  font-size: 15px;
 }
 
 .drawerBrand .brandName {
@@ -344,7 +388,7 @@
 
 @media (max-width: 991px) {
   .content {
-    padding: 20px 20px 28px;
+    padding: 16px 16px 24px;
   }
 }
 
@@ -355,12 +399,12 @@
 
   .header {
     min-height: var(--app-header-height-mobile);
-    padding: 8px 12px;
+    padding: 6px 12px;
   }
 
   .headerIconButton {
-    width: 40px;
-    height: 40px;
+    width: 38px;
+    height: 38px;
   }
 
   .tabBar {
@@ -373,16 +417,16 @@
   }
 
   .tabs :global(.ant-tabs-tab-remove) {
-    width: 28px;
-    height: 28px;
+    width: 26px;
+    height: 26px;
   }
 
   .content {
-    padding: 16px var(--app-content-padding-x-mobile) 24px;
+    padding: 14px var(--app-content-padding-x-mobile) 24px;
   }
 
   .footer {
-    padding: 12px;
+    padding: 10px 12px;
   }
 }
 

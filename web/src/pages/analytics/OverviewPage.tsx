@@ -24,8 +24,8 @@ import styles from './OverviewPage.module.css';
 
 const { RangePicker } = DatePicker;
 
-const OUTBOUND_COLOR = '#13c2c2';
-const CATEGORY_ACCENTS = ['#13c2c2', '#fa8c16', '#722ed1', '#52c41a', '#eb2f96'];
+const OUTBOUND_COLOR = '#2f6f6d';
+const CATEGORY_ACCENTS = ['#2f6f6d', '#c9822b', '#4d638c', '#6c8459', '#9c6644'];
 
 interface PeriodPreset {
   key: string;
@@ -167,7 +167,7 @@ function RankingList({
   emptyText,
   showShare = false,
   rowHref,
-  accent = '#1677ff',
+  accent = '#9e3b2c',
 }: {
   rows: TopRow[];
   loading: boolean;

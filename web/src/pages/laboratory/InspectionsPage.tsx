@@ -4,9 +4,10 @@ import { Alert, App, Button, DatePicker, Descriptions, Input, Modal, Select, Spa
 import type { ColumnsType } from 'antd/es/table';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import dayjs from 'dayjs';
-import { Building2, CalendarClock, Droplets, FileText, Gauge, Info, StickyNote, Truck, Users, Wheat } from 'lucide-react';
+import { Building2, CalendarClock, Droplets, FileText, Gauge, Info, RotateCcw, StickyNote, Truck, Users, Wheat } from 'lucide-react';
 import { DataTable } from '../../components/DataTable';
 import { PageHeader } from '../../components/PageHeader';
+import { FilterField } from '../../components/SearchFilterBar';
 import { trips, type Trip } from '../../features/grain-intake/api';
 import { sites } from '../../features/weighbridge/api';
 import { inspection as fetchInspection, voidInspection, type Inspection } from '../../features/laboratory/api';
@@ -66,27 +67,27 @@ export default function InspectionsPage() {
     enabled: viewId !== undefined,
   });
   const columns: ColumnsType<Trip> = [
-    { title: '流转单号', dataIndex: 'number' },
-    { title: '厂区', dataIndex: 'siteCode' },
-    { title: '车牌', dataIndex: 'plate' },
+    { title: '流转单号', dataIndex: 'number', render: (value: string) => <span className="monoCode">{value}</span> },
+    { title: '厂区', dataIndex: 'siteCode', render: (value: string) => <span className="monoCode">{value || '—'}</span> },
+    { title: '车牌', dataIndex: 'plate', render: (value: string) => <span className="plateBadge">{value}</span> },
     { title: '粮种', dataIndex: 'materialName' },
-    { title: '供应商', dataIndex: 'partyName', render: (value: string) => value || <Tag color="orange">待核实</Tag> },
-    { title: '司机', key: 'driver', render: (_, row) => `${row.driver || '—'} ${row.driverPhone}` },
+    { title: '供应商', dataIndex: 'partyName', render: (value: string) => value || <Tag color="warning">待核实</Tag> },
+    { title: '司机', key: 'driver', render: (_, row) => [row.driver || '—', row.driverPhone].filter(Boolean).join(' ') },
     { title: '登记时间', dataIndex: 'createdAt', render: (value: string) => formatDateTime(value) },
     {
       title: '化验结果', key: 'inspection', render: (_, row) => row.inspectionId
-        ? <Tag color={row.inspectionConclusion === 'accept' ? 'green' : 'red'}>{row.inspectionConclusion === 'accept' ? '接收' : '拒收'}</Tag>
+        ? <Tag color={row.inspectionConclusion === 'accept' ? 'success' : 'error'}>{row.inspectionConclusion === 'accept' ? '接收' : '拒收'}</Tag>
         : <Tag>未化验</Tag>,
     },
     {
       title: '操作', key: 'actions', render: (_, row) => row.inspectionId
-        ? <Space>
-          <Tooltip title="该流转单已化验"><Button disabled>化验</Button></Tooltip>
-          <Button onClick={() => { setViewingTrip(row); setViewId(row.inspectionId!); }}>查看</Button>
+        ? <Space size={4}>
+          <Tooltip title="该流转单已化验"><Button size="small" type="text" disabled>化验</Button></Tooltip>
+          <Button size="small" type="link" onClick={() => { setViewingTrip(row); setViewId(row.inspectionId!); }}>查看</Button>
         </Space>
         : canInspect
-          ? <Button type="primary" onClick={() => setSelected(row)}>化验</Button>
-          : <Tooltip title="无化验权限"><Button disabled>化验</Button></Tooltip>,
+          ? <Button size="small" type="primary" onClick={() => setSelected(row)}>化验</Button>
+          : <Tooltip title="无化验权限"><Button size="small" type="text" disabled>化验</Button></Tooltip>,
     },
   ];
   const value = detail.data;
@@ -109,65 +110,71 @@ export default function InspectionsPage() {
       setVoidSubmitting(false);
     }
   };
-  return <>
-    <PageHeader title="化验单" />
-    <Space orientation="vertical" size="middle" style={{ width: '100%', marginTop: 20 }}>
-      <Space wrap align="center" style={{ width: '100%' }}>
-        <Input.Search
-          aria-label="单号、车牌或供应商"
-          placeholder="单号、车牌或供应商"
-          value={keyword}
-          allowClear
-          onChange={(e) => { setKeyword(e.target.value); if (!e.target.value) { setSearch(''); setPage(1); } }}
-          onSearch={(value) => { setSearch(value); setPage(1); }}
-          style={{ width: 300 }}
-        />
-        <Select
-          allowClear
-          placeholder="全部厂区"
-          style={{ width: 190 }}
-          loading={siteList.isLoading}
-          options={siteOptions}
-          value={siteCode}
-          onChange={(value) => { setSiteCode(value); setPage(1); }}
-        />
-        <Select
-          allowClear
-          placeholder="全部化验结果"
-          style={{ width: 150 }}
-          options={[
-            { value: 'pending', label: '待化验' },
-            { value: 'accept', label: '接收' },
-            { value: 'reject', label: '拒收' },
-          ]}
-          value={result}
-          onChange={(value) => { setResult(value); setPage(1); }}
-        />
-        <DatePicker.RangePicker
-          allowClear
-          placeholder={['登记开始', '登记结束']}
-          value={dateRange ? [dayjs(dateRange[0]), dayjs(dateRange[1])] : null}
-          onChange={(dates) => {
-            setDateRange(dates?.[0] && dates[1] ? [dates[0].format('YYYY-MM-DD'), dates[1].format('YYYY-MM-DD')] : null);
-            setPage(1);
-          }}
-        />
-        {hasFilters && <Button onClick={resetFilters}>重置筛选</Button>}
+  return <div className="pageStack">
+    <PageHeader title="化验单" description="未化验车辆默认排在前列，录入后自动生效并匹配扣减规则。" />
+    <div className="filterCard" role="search" aria-label="化验单筛选">
+      <Space wrap align="end" size={[14, 12]} style={{ width: '100%' }}>
+        <FilterField label="关键词" wide>
+          <Input.Search
+            aria-label="单号、车牌或供应商"
+            placeholder="单号、车牌或供应商"
+            value={keyword}
+            allowClear
+            onChange={(e) => { setKeyword(e.target.value); if (!e.target.value) { setSearch(''); setPage(1); } }}
+            onSearch={(value) => { setSearch(value); setPage(1); }}
+          />
+        </FilterField>
+        <FilterField label="厂区">
+          <Select
+            allowClear
+            placeholder="全部厂区"
+            loading={siteList.isLoading}
+            options={siteOptions}
+            value={siteCode}
+            onChange={(value) => { setSiteCode(value); setPage(1); }}
+          />
+        </FilterField>
+        <FilterField label="化验结果">
+          <Select
+            allowClear
+            placeholder="全部化验结果"
+            options={[
+              { value: 'pending', label: '待化验' },
+              { value: 'accept', label: '接收' },
+              { value: 'reject', label: '拒收' },
+            ]}
+            value={result}
+            onChange={(value) => { setResult(value); setPage(1); }}
+          />
+        </FilterField>
+        <FilterField label="登记日期" date>
+          <DatePicker.RangePicker
+            allowClear
+            placeholder={['登记开始', '登记结束']}
+            value={dateRange ? [dayjs(dateRange[0]), dayjs(dateRange[1])] : null}
+            onChange={(dates) => {
+              setDateRange(dates?.[0] && dates[1] ? [dates[0].format('YYYY-MM-DD'), dates[1].format('YYYY-MM-DD')] : null);
+              setPage(1);
+            }}
+          />
+        </FilterField>
+        {hasFilters && <Button icon={<RotateCcw size={14} aria-hidden="true" />} onClick={resetFilters}>重置筛选</Button>}
       </Space>
-      {list.isError && <Alert type="error" title={getApiErrorMessage(list.error)} action={<Button onClick={() => void list.refetch()}>重试</Button>} />}
-      <DataTable
-        tableKey="laboratory-trips"
-        rowKey="id"
-        columns={columns}
-        dataSource={list.data?.items ?? []}
-        total={list.data?.total ?? 0}
-        page={page}
-        pageSize={pageSize}
-        onPageChange={setPage}
-        loading={list.isLoading}
-        onRefresh={() => void list.refetch()}
-      />
-    </Space>
+    </div>
+    {list.isError && <Alert type="error" title={getApiErrorMessage(list.error)} action={<Button onClick={() => void list.refetch()}>重试</Button>} />}
+    <DataTable
+      tableKey="laboratory-trips"
+      title="待化验与历史流转单"
+      rowKey="id"
+      columns={columns}
+      dataSource={list.data?.items ?? []}
+      total={list.data?.total ?? 0}
+      page={page}
+      pageSize={pageSize}
+      onPageChange={setPage}
+      loading={list.isLoading}
+      onRefresh={() => void list.refetch()}
+    />
     {selected && <InspectionFormModal
       trip={selected}
       open
@@ -297,5 +304,5 @@ export default function InspectionsPage() {
         <Input.TextArea id="inspection-void-reason" placeholder="请填写作废原因" maxLength={2000} rows={3} disabled={voidSubmitting} value={voidReason} onChange={(event) => setVoidReason(event.target.value)} />
       </Space>}
     </Modal>
-  </>;
+  </div>;
 }

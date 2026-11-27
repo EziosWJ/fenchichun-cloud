@@ -1,5 +1,5 @@
 import { useState, type ReactNode } from 'react';
-import { Alert, App, Button, Card, Descriptions, Empty, Input, Select, Space, Table, Tabs, Tag, Typography } from 'antd';
+import { Alert, App, Button, Card, Descriptions, Empty, Input, Select, Space, Steps, Table, Tabs, Tag, Typography } from 'antd';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   Building2,
@@ -115,10 +115,20 @@ export default function TripWorkspace({ gate = false }: { gate?: boolean }) {
     return null;
   })();
   const inspection = effective;
+  const stepIndex = (() => {
+    if (trip.exitedAt) return 5;
+    if (trip.stage === 'permit_pending' || trip.stage === 'permit_approved') return 4;
+    if (trip.stage === 'ready') return 3;
+    if (trip.stage === 'pending_ticket') return 3;
+    if (trip.stage === 'pending_unload') return 2;
+    if (trip.stage === 'rejected') return 4;
+    return 1;
+  })();
+  const stepStatus = trip.stage === 'blocked' || trip.stage === 'rejected' ? 'error' : trip.exitedAt ? 'finish' : 'process';
   const labView = <Space orientation="vertical" size="middle" style={{ width: '100%' }}>
     {inspection ? <Descriptions size="small" column={{ xs: 1, sm: 2, lg: 3 }} items={[
       { key: 'number', label: '化验单号', children: inspection.number },
-      { key: 'conclusion', label: '结论', children: inspection.conclusion === 'accept' ? <Tag color="green">接收</Tag> : <Tag color="red">拒收</Tag> },
+      { key: 'conclusion', label: '结论', children: inspection.conclusion === 'accept' ? <Tag color="success">接收</Tag> : <Tag color="error">拒收</Tag> },
       { key: 'confirmed', label: '化验时间', children: formatDateTime(inspection.confirmedAt ?? inspection.createdAt) },
       { key: 'moisture', label: '水分（%）', children: inspection.moisture || '—' },
       { key: 'bulkDensity', label: '容量（g/L）', children: inspection.bulkDensity || '—' },
@@ -126,15 +136,30 @@ export default function TripWorkspace({ gate = false }: { gate?: boolean }) {
     ]} /> : <span style={{ color: 'var(--ant-color-text-secondary)' }}>尚未录入化验结果</span>}
     {!gate && canInspect && !labLocked && !inspection && <Button type="primary" onClick={() => navigate(`/laboratory/inspections?keyword=${encodeURIComponent(trip.number)}`)}>去录入化验结果</Button>}
   </Space>;
-  return <>
+  return <div className="pageStack">
     <PageHeader
       title={<Typography.Text copyable={{ text: trip.number, tooltips: ['复制流转单号', '已复制'] }}>{gate ? `出厂核验 · ${trip.number}` : trip.number}</Typography.Text>}
-      meta={<Tag color={trip.stage === 'blocked' ? 'red' : trip.exitedAt ? 'green' : 'blue'}>{stageLabel(trip.stage, trip.inspectionMethod)}</Tag>}
+      meta={<Tag color={trip.stage === 'blocked' || trip.stage === 'rejected' ? 'error' : trip.exitedAt ? 'success' : 'processing'}>{stageLabel(trip.stage, trip.inspectionMethod)}</Tag>}
       onBack={() => navigate(gate
         ? { pathname: '/grain-intake/permits', search: search || (trip.effectiveConclusion === 'reject' ? '?mode=rejections' : '') }
         : '/grain-intake/trips')}
     />
-    <div className="pageStack" style={{ marginTop: 20, gap: 12 }}>
+    <section className={styles.stepperCard} aria-label="办理进度">
+      <Steps
+        size="small"
+        current={stepIndex}
+        status={stepStatus}
+        items={[
+          { title: '入厂登记' },
+          { title: visual ? '现场目测' : '化验检测' },
+          { title: '现场卸货' },
+          { title: '关联磅单' },
+          { title: trip.effectiveConclusion === 'reject' ? '拒收核验' : '出门证审批' },
+          { title: '确认出厂' },
+        ]}
+      />
+    </section>
+    <div className="pageStack" style={{ gap: 12 }}>
       {actionError && <Alert type="error" showIcon closable title="操作未完成" description={actionError} onClose={() => setActionError('')} />}
       {ticketWarning && <Alert type="warning" showIcon title="磅单需要核对" description={ticketWarning} />}
       {trip.stage === 'blocked' && <Alert type="error" title="当前依据已失效或存在冲突，暂停开证和放行，请核查磅单与化验记录。" />}
@@ -326,5 +351,5 @@ export default function TripWorkspace({ gate = false }: { gate?: boolean }) {
       </Card>
     </div>
     {editing && <TripEditor original={trip} onClose={() => setEditing(false)} onSaved={() => { setEditing(false); refresh(); }} />}
-  </>;
+  </div>;
 }

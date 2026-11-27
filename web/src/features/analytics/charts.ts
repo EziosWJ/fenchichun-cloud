@@ -1,7 +1,7 @@
 import type { EChartsOption } from 'echarts';
 import type { ByproductTrendPoint, MaterialTrendSeries, StructureRow, SupplierQualityRow, SupplierQualityTrend, TopRow, TrendSeries } from './api';
 
-const palette = ['#1677ff', '#13c2c2', '#fa8c16', '#722ed1', '#eb2f96'];
+const palette = ['#9e3b2c', '#2f6f6d', '#c9822b', '#4d638c', '#6c8459', '#9c6644'];
 
 // 后端重量字段统一是千分之一吨；图表入口只转换一次，坐标轴和 tooltip 不再各自换算。
 function toTonnes(value: number): number {
@@ -79,9 +79,9 @@ export function pieChartOption(rows: StructureRow[] | undefined): EChartsOption 
     series: [
       {
         type: 'pie',
-        radius: ['42%', '68%'],
+        radius: ['46%', '72%'],
         avoidLabelOverlap: true,
-        itemStyle: { borderRadius: 4, borderColor: '#fff', borderWidth: 2 },
+        itemStyle: { borderRadius: 5, borderColor: 'transparent', borderWidth: 2 },
         label: { formatter: '{b}' },
         data: (rows ?? []).map((row) => ({ name: row.label, value: toTonnes(row.netMilliTonne) })),
       },
@@ -108,9 +108,9 @@ export function countPieChartOption(rows: Array<{ name: string; value: number }>
     series: [
       {
         type: 'pie',
-        radius: ['42%', '68%'],
+        radius: ['46%', '72%'],
         avoidLabelOverlap: true,
-        itemStyle: { borderRadius: 4, borderColor: '#fff', borderWidth: 2 },
+        itemStyle: { borderRadius: 5, borderColor: 'transparent', borderWidth: 2 },
         label: { formatter: '{b}' },
         data: (rows ?? []).map((row) => ({ name: row.name, value: row.value })),
       },

@@ -1,7 +1,8 @@
 import type { ReactNode } from 'react';
-import { Alert, Card, Space, Statistic, Typography } from 'antd';
+import { Card, Space, Typography } from 'antd';
 import type { AnalyticsFreshness, ComparisonMetric } from './api';
 import { formatBeijingTime, formatBp } from './format';
+import styles from './ui.module.css';
 
 export function KpiCard({
   label,
@@ -15,19 +16,15 @@ export function KpiCard({
   hint?: ReactNode;
 }) {
   return (
-    <Card
-      size="small"
-      style={{ height: '100%' }}
-      styles={{ body: { display: 'flex', flexDirection: 'column', height: '100%' } }}
-    >
-      <Statistic title={label} value={value as string | number} suffix={suffix} />
-      <div style={{ minHeight: 20, marginTop: 4 }}>
-        {hint && (
-          <Typography.Text type="secondary" style={{ display: 'block', fontSize: 12 }}>
-            {hint}
-          </Typography.Text>
-        )}
+    <Card size="small" className={styles.kpiCard}>
+      <div>
+        <div className={styles.kpiLabel}>{label}</div>
+        <div className={styles.kpiValueRow}>
+          <span className={styles.kpiValue}>{value}</span>
+          {suffix && <span className={styles.kpiSuffix}>{suffix}</span>}
+        </div>
       </div>
+      <div className={styles.kpiHint}>{hint}</div>
     </Card>
   );
 }
@@ -42,7 +39,7 @@ export function ChartCard({
   children: ReactNode;
 }) {
   return (
-    <Card size="small" title={title} extra={extra}>
+    <Card size="small" className={styles.chartCard} title={title} extra={extra}>
       {children}
     </Card>
   );
@@ -62,36 +59,40 @@ export function FreshnessNote({
     (site.enabled !== false || siteCode === site.siteCode)
       && (!site.lastReceivedAt || Date.parse(site.lastReceivedAt) < staleBefore));
   const latestReceipt = siteCode ? receipts[0]?.lastReceivedAt : freshness.lastReceivedAt;
+  const stale = staleSites.length > 0;
+
   return (
-    <Alert
-      type={staleSites.length ? 'warning' : 'info'}
-      showIcon
-      title={
-        <Space size={[20, 4]} wrap>
-          <span>数据截止（筛选内最后出单） {formatBeijingTime(freshness.filteredDataThrough)}</span>
-          <span>最近接收（{siteCode ? '所选厂区' : '全平台'}） {formatBeijingTime(latestReceipt)}</span>
-        </Space>
-      }
-      description={
-        <>
-          {staleSites.length > 0 && (
-            <details open={staleSites.length === 1 || undefined}>
-              <summary>{staleSites.length} 个厂区超 2 小时未收到单据变化或暂无接收记录</summary>
-              <ul style={{ marginBlock: 4, paddingInlineStart: 22 }}>
-                {staleSites.map((site) => (
-                  <li key={site.siteCode}>
-                    {site.siteName || site.siteCode}（{site.siteCode}） {site.lastReceivedAt
-                      ? formatBeijingTime(site.lastReceivedAt)
-                      : '暂无接收记录'}
-                  </li>
-                ))}
-              </ul>
-            </details>
-          )}
-          <span>北京时间。全平台历史起点 {formatBeijingTime(freshness.historyStart)}。补传会更新统计，接收间隔也可能受厂区业务量影响。</span>
-        </>
-      }
-    />
+    <div
+      className={`${styles.freshnessBar} ${stale ? styles.freshnessStale : ''}`.trim()}
+      role="status"
+      aria-label="数据同步状态"
+    >
+      <div className={styles.freshnessRow}>
+        <span>
+          <i className={styles.freshnessDot} aria-hidden="true" />
+          数据截止（筛选内最后出单） <strong>{formatBeijingTime(freshness.filteredDataThrough)}</strong>
+        </span>
+        <span>
+          最近接收（{siteCode ? '所选厂区' : '全平台'}） <strong>{formatBeijingTime(latestReceipt)}</strong>
+        </span>
+        <span className={styles.freshnessMeta}>
+          北京时间 · 历史起点 {formatBeijingTime(freshness.historyStart)}（补传会更新统计）
+        </span>
+      </div>
+      {stale && (
+        <details className={styles.freshnessDetails} open={staleSites.length === 1 || undefined}>
+          <summary>{staleSites.length} 个厂区超 2 小时未收到单据变化或暂无接收记录</summary>
+          <ul>
+            {staleSites.map((site) => (
+              <li key={site.siteCode}>
+                {site.siteName || site.siteCode}（{site.siteCode}）{' '}
+                {site.lastReceivedAt ? formatBeijingTime(site.lastReceivedAt) : '暂无接收记录'}
+              </li>
+            ))}
+          </ul>
+        </details>
+      )}
+    </div>
   );
 }
 

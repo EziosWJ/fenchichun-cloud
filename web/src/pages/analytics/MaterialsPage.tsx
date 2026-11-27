@@ -215,10 +215,10 @@ export default function MaterialsPage() {
   );
 
   return (
-    <>
+    <div className="pageStack">
       <PageHeader
         title="物料分析"
-        description=""
+        description="按物料与分类统计入出厂净重、扣量率、核心原料稳定性及副产品流向。"
         extra={
           <Space>
             <Button onClick={() => void activeQuery.refetch()} loading={activeQuery.isFetching}>刷新</Button>
@@ -226,27 +226,26 @@ export default function MaterialsPage() {
           </Space>
         }
       />
-      <Space direction="vertical" size="middle" style={{ width: '100%' }}>
-        <Card size="small">
-          <AnalyticsFilterBar
-            state={state}
-            actions={actions}
-            sites={master.sites}
-            materials={master.materials}
-            categories={master.categories}
-            parties={master.parties}
-            showDirection={activeTab === 'overview'}
-            showKeyword
-            showCompare={false}
-            keywordPlaceholder={
-              activeTab === 'supplier' ? '供应商名称 / 编码' : activeTab === 'byproduct' ? '客户名称 / 编码' : '物料名称 / 编码'
-            }
-          />
-        </Card>
-        <Tabs
-          activeKey={activeTab}
-          onChange={(key) => setActiveTab(key as MaterialTab)}
-          items={[
+      <div className="filterCard">
+        <AnalyticsFilterBar
+          state={state}
+          actions={actions}
+          sites={master.sites}
+          materials={master.materials}
+          categories={master.categories}
+          parties={master.parties}
+          showDirection={activeTab === 'overview'}
+          showKeyword
+          showCompare={false}
+          keywordPlaceholder={
+            activeTab === 'supplier' ? '供应商名称 / 编码' : activeTab === 'byproduct' ? '客户名称 / 编码' : '物料名称 / 编码'
+          }
+        />
+      </div>
+      <Tabs
+        activeKey={activeTab}
+        onChange={(key) => setActiveTab(key as MaterialTab)}
+        items={[
             { key: 'overview', label: '物料总览', children: overview },
             {
               key: 'supplier',
@@ -298,9 +297,8 @@ export default function MaterialsPage() {
                 />
               ),
             },
-          ]}
-        />
-      </Space>
-    </>
+        ]}
+      />
+    </div>
   );
 }

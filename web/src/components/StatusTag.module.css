@@ -3,18 +3,19 @@
   align-items: center;
   gap: 5px;
   margin-inline-end: 0;
-  padding-inline: 8px;
+  padding-inline: 9px;
   border-radius: 999px;
   font-size: 12px;
   font-weight: 500;
   line-height: 20px;
   white-space: nowrap;
 }
+
 .dot {
-  width: 5px;
-  height: 5px;
-  flex: 0 0 5px;
+  width: 6px;
+  height: 6px;
+  flex: 0 0 6px;
   border-radius: 50%;
   background: currentColor;
-  opacity: .9;
+  opacity: 0.85;
 }

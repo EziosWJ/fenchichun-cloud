@@ -236,33 +236,31 @@ export default function QualityPage() {
   ];
 
   return (
-    <>
+    <div className="pageStack">
       <PageHeader
         title="数据质量"
-        description=""
+        description="核查作废率、重开链、净重调整覆盖率与手工重量异常。"
         extra={<Space><Button onClick={() => void quality.refetch()} loading={quality.isFetching}>刷新</Button><Button onClick={() => void exportQuality()} loading={exporting}>导出质量明细 CSV</Button></Space>}
       />
-      <Space direction="vertical" size="middle" style={{ width: '100%' }}>
-        <Card size="small">
-          <AnalyticsFilterBar state={state} actions={actions} sites={master.sites} materials={master.materials} categories={master.categories} parties={master.parties} showKeyword showCompare={false} keywordPlaceholder="单号 / 物料 / 供收方" />
-        </Card>
-        {quality.isError && (
-          <Alert type="error" message={`数据质量加载失败：${getApiErrorMessage(quality.error)}`} action={<Button onClick={() => void quality.refetch()}>重试</Button>} />
-        )}
-        <FreshnessNote freshness={data?.freshness} siteCode={state.filters.siteCode} />
-        <Row gutter={[16, 16]}>
-          <Col xs={24} sm={12} xl={4}><KpiCard label="总单数" value={summary ? formatNumber(summary.totalTickets) : '—'} suffix="张" hint={summary ? `有效 ${summary.validTickets} · 作废 ${summary.voidTickets}` : undefined} /></Col>
-          <Col xs={24} sm={12} xl={4}><KpiCard label="作废率" value={formatBp(summary?.voidRateBp)} hint={summary ? `${summary.voidTickets} / ${summary.totalTickets} 张单据` : undefined} /></Col>
-          <Col xs={24} sm={12} xl={4}><KpiCard label="重开率" value={formatBp(summary?.reopenRateBp)} hint={summary ? `${summary.reopenedTickets} / ${summary.validTickets} 张有效单` : undefined} /></Col>
-          <Col xs={24} sm={12} xl={4}><KpiCard label="调整单占比" value={formatBp(summary?.adjustmentTicketRateBp)} hint={summary ? `调整 ${summary.adjustedTickets} / ${summary.adjustmentKnownTickets} 张已知单` : undefined} /></Col>
-          <Col xs={24} sm={12} xl={4}><KpiCard label="调整覆盖率" value={formatBp(summary?.adjustmentCoverageBp)} hint={summary ? `${summary.adjustmentKnownTickets} / ${summary.validTickets} 张有效单` : undefined} /></Col>
-          <Col xs={24} sm={12} xl={4}><KpiCard label="异常涉及单" value={summary ? formatNumber(summary.anomalyTickets) : '—'} suffix="张" hint={summary ? `手工来源 ${formatBp(summary.manualWeightRateBp)}` : undefined} /></Col>
-        </Row>
-        <Tabs items={tabs} />
-        <Typography.Text type="secondary">
-          口径：作废率=作废单/(有效+作废)；重开率=新单 previousTicketNo 非空/有效单；调整单占比只统计调整字段已知的有效单；异常清单最多展示 1000 条。
-        </Typography.Text>
-      </Space>
-    </>
+      <div className="filterCard">
+        <AnalyticsFilterBar state={state} actions={actions} sites={master.sites} materials={master.materials} categories={master.categories} parties={master.parties} showKeyword showCompare={false} keywordPlaceholder="单号 / 物料 / 供收方" />
+      </div>
+      {quality.isError && (
+        <Alert type="error" title={`数据质量加载失败：${getApiErrorMessage(quality.error)}`} action={<Button onClick={() => void quality.refetch()}>重试</Button>} />
+      )}
+      <FreshnessNote freshness={data?.freshness} siteCode={state.filters.siteCode} />
+      <Row gutter={[16, 16]}>
+        <Col xs={24} sm={12} xl={4}><KpiCard label="总单数" value={summary ? formatNumber(summary.totalTickets) : '—'} suffix="张" hint={summary ? `有效 ${summary.validTickets} · 作废 ${summary.voidTickets}` : undefined} /></Col>
+        <Col xs={24} sm={12} xl={4}><KpiCard label="作废率" value={formatBp(summary?.voidRateBp)} hint={summary ? `${summary.voidTickets} / ${summary.totalTickets} 张单据` : undefined} /></Col>
+        <Col xs={24} sm={12} xl={4}><KpiCard label="重开率" value={formatBp(summary?.reopenRateBp)} hint={summary ? `${summary.reopenedTickets} / ${summary.validTickets} 张有效单` : undefined} /></Col>
+        <Col xs={24} sm={12} xl={4}><KpiCard label="调整单占比" value={formatBp(summary?.adjustmentTicketRateBp)} hint={summary ? `调整 ${summary.adjustedTickets} / ${summary.adjustmentKnownTickets} 张已知单` : undefined} /></Col>
+        <Col xs={24} sm={12} xl={4}><KpiCard label="调整覆盖率" value={formatBp(summary?.adjustmentCoverageBp)} hint={summary ? `${summary.adjustmentKnownTickets} / ${summary.validTickets} 张有效单` : undefined} /></Col>
+        <Col xs={24} sm={12} xl={4}><KpiCard label="异常涉及单" value={summary ? formatNumber(summary.anomalyTickets) : '—'} suffix="张" hint={summary ? `手工来源 ${formatBp(summary.manualWeightRateBp)}` : undefined} /></Col>
+      </Row>
+      <Tabs items={tabs} />
+      <Typography.Text type="secondary" style={{ fontSize: 12.5 }}>
+        口径：作废率=作废单/(有效+作废)；重开率=新单 previousTicketNo 非空/有效单；调整单占比只统计调整字段已知的有效单；异常清单最多展示 1000 条。
+      </Typography.Text>
+    </div>
   );
 }

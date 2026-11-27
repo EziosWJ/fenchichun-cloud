@@ -1,32 +1,43 @@
 .card {
   overflow: hidden;
+  border: 1px solid var(--ant-color-border-secondary);
   border-radius: var(--app-radius-panel);
   box-shadow: var(--app-shadow-card);
 }
+
 .flush {
   border: 0;
   border-radius: 0;
   box-shadow: none;
 }
+
 .toolbar {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  padding: 16px 20px;
+  padding: 13px 18px;
   border-bottom: 1px solid var(--ant-color-border-secondary);
 }
-.toolbarTitle { display: flex; min-width: 0; align-items: center; gap: 10px; }
+
+.toolbarTitle {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 8px;
+}
+
 .title {
   overflow: hidden;
   color: var(--ant-color-text);
-  font-size: 15px;
+  font-size: 14.5px;
   font-weight: 650;
-  letter-spacing: -.01em;
+  letter-spacing: -0.01em;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+
 .total {
   display: inline-flex;
   height: 22px;
@@ -39,18 +50,31 @@
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
-.toolbarActions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+
+.toolbarActions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
 .toolbarDivider {
   width: 1px;
-  height: 20px;
+  height: 18px;
   margin: 0 2px;
   background: var(--ant-color-border-secondary);
 }
-.iconButton { border-radius: 8px; color: var(--ant-color-text-secondary); }
+
+.iconButton {
+  border-radius: 8px;
+  color: var(--ant-color-text-secondary);
+}
+
 .iconButton:hover {
-  color: var(--ant-color-primary) !important;
+  color: var(--ant-color-link) !important;
   background: var(--ant-color-fill-quaternary) !important;
 }
+
 .selectionBar {
   display: flex;
   flex-wrap: wrap;
@@ -63,36 +87,67 @@
   border-radius: 10px;
   background: var(--ant-color-primary-bg);
 }
-.batchDivider { width: 1px; height: 18px; background: var(--ant-color-primary-border); }
-.columnPanel { display: grid; width: 220px; max-height: 320px; gap: 10px; overflow: auto; padding: 2px; }
-.columnPanel :global(.ant-checkbox-wrapper) { font-size: 13px; }
-.card :global(.ant-table) { border-radius: 0 0 16px 16px; }
+
+.batchDivider {
+  width: 1px;
+  height: 18px;
+  background: var(--ant-color-primary-border);
+}
+
+.columnPanel {
+  display: grid;
+  width: 220px;
+  max-height: 320px;
+  gap: 10px;
+  overflow: auto;
+  padding: 2px;
+}
+
+.columnPanel :global(.ant-checkbox-wrapper) {
+  font-size: 13px;
+}
+
+.card :global(.ant-table) {
+  border-radius: 0 0 var(--app-radius-panel) var(--app-radius-panel);
+}
+
 .card :global(.ant-table-thead > tr > th) {
   font-size: 12px;
   white-space: nowrap;
   font-weight: 600;
-  letter-spacing: .01em;
+  letter-spacing: 0.02em;
 }
+
 .card :global(.ant-table-thead > tr > th:first-child:not(.ant-table-selection-column)),
 .card :global(.ant-table-tbody > tr > td:first-child:not(.ant-table-selection-column)),
 .card :global(.ant-table-thead > tr > th.ant-table-selection-column + th),
 .card :global(.ant-table-tbody > tr > td.ant-table-selection-column + td) {
-  padding-inline-start: 20px !important;
+  padding-inline-start: 18px !important;
 }
+
 .card :global(.ant-table-thead > tr > th:last-child),
 .card :global(.ant-table-tbody > tr > td:last-child) {
-  padding-inline-end: 20px;
+  padding-inline-end: 18px;
 }
+
 .card :global(.ant-table-selection-column) {
   padding-inline: 8px !important;
 }
+
 .card :global(.ant-table-tbody > tr:last-child > td) {
   border-bottom: 0;
 }
-.card :global(.ant-table-tbody > tr > td) { font-size: 13.5px; }
+
+.card :global(.ant-table-tbody > tr > td) {
+  font-size: 13.5px;
+}
+
 .card :global(.ant-table-pagination.ant-pagination) {
   margin: 0 !important;
-  padding: 12px 20px;
+  padding: 12px 18px;
   border-top: 1px solid var(--ant-color-border-secondary);
 }
-.card :global(.ant-table-placeholder .ant-empty) { padding: 28px 0; }
+
+.card :global(.ant-table-placeholder .ant-empty) {
+  padding: 28px 0;
+}

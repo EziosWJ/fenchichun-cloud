@@ -1,4 +1,11 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="React Admin Template">
-  <rect width="64" height="64" rx="16" fill="#1677ff"/>
-  <text x="32" y="41" text-anchor="middle" font-family="Inter, Arial, sans-serif" font-size="23" font-weight="700" fill="#ffffff">RA</text>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="汾池春酒业">
+  <defs>
+    <linearGradient id="fcSeal" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#b54736"/>
+      <stop offset="100%" stop-color="#852b1e"/>
+    </linearGradient>
+  </defs>
+  <rect width="64" height="64" rx="16" fill="url(#fcSeal)"/>
+  <rect x="6" y="6" width="52" height="52" rx="11" fill="none" stroke="rgba(255,248,240,0.38)" stroke-width="1.5"/>
+  <text x="32" y="43" text-anchor="middle" font-family="'Songti SC', 'Noto Serif SC', 'STSong', serif" font-size="30" font-weight="600" fill="#fbf7f2">汾</text>
 </svg>
