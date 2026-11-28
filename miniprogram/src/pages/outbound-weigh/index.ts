@@ -110,6 +110,29 @@ function historyView(item: HistoryWeighing): HistoryView {
   }
 }
 
+interface LockedReading {
+  text: string
+  hint: string
+}
+
+function lockedReadingFor(current?: OutboundWeighing | null): LockedReading | null {
+  if (!current) {
+    return null
+  }
+  switch (current.status) {
+    case 'first_qr_ready':
+      return { text: weightText(current.firstWeightMilliTonne), hint: '首磅已锁定 · 刷新二维码重称' }
+    case 'first_scanning':
+      return { text: weightText(current.firstWeightMilliTonne), hint: '首磅已锁定 · 厂端正在采集' }
+    case 'second_qr_ready':
+      return { text: weightText(current.secondWeightMilliTonne), hint: '回磅已锁定 · 刷新二维码重称' }
+    case 'second_scanning':
+      return { text: weightText(current.secondWeightMilliTonne), hint: '回磅已锁定 · 厂端正在采集' }
+    default:
+      return null
+  }
+}
+
 function dateOnly(date: Date) {
   const two = (number: number) => String(number).padStart(2, '0')
   return `${date.getFullYear()}-${two(date.getMonth() + 1)}-${two(date.getDate())}`
@@ -149,8 +172,10 @@ Page({
     partyName: '',
     reading: null as ScaleReading | null,
     weightText: '0.000',
+    liveWeightText: '0.000',
+    weightLocked: false,
     statusText: '正在读取地磅',
-    readingState: 'warn' as 'ok' | 'warn' | 'bad',
+    readingState: 'warn' as 'ok' | 'warn' | 'bad' | 'locked',
     readingHint: '正在读取地磅',
     available: false,
     mock: false,
@@ -187,8 +212,14 @@ Page({
   ignoredCurrentID: 0,
   weightTimer: null as ReturnType<typeof setInterval> | null,
   currentTimer: null as ReturnType<typeof setInterval> | null,
+  qrRefreshPending: false,
+  qrRefreshCommitting: false,
+  qrRefreshTimeout: null as ReturnType<typeof setTimeout> | null,
   onLoad() {
     this.historyRequestID = 0
+    this.qrRefreshPending = false
+    this.qrRefreshCommitting = false
+    this.qrRefreshTimeout = null
     this.measureNavigation()
   },
   onResize() {
@@ -262,19 +293,37 @@ Page({
       this.setData({ loading: false, error: errorMessage(error) })
     })
   },
-  applyCurrent(current?: OutboundWeighing) {
+  applyCurrent(current?: OutboundWeighing | null) {
     if (current && current.id === this.ignoredCurrentID) {
-      this.setData({ current: null, qr: null, statusLabel: '', message: '' })
+      this.clearQRRefreshWait()
+      this.setData({
+        current: null,
+        qr: null,
+        statusLabel: '',
+        message: '',
+        weightLocked: false,
+        readingState: 'warn',
+        readingHint: '正在读取地磅',
+        busy: false,
+      })
       return
     }
-    const previous = this.lastStatus
+    const previousStatus = this.lastStatus
     this.lastStatus = current ? current.status : ''
+    const qrActive = !!current && (current.status === 'first_qr_ready' || current.status === 'second_qr_ready')
+    const refreshInvalidated = this.qrRefreshPending && !qrActive
+    if (refreshInvalidated) {
+      this.clearQRRefreshWait()
+    }
+    const pendingRefresh = this.qrRefreshPending === true
+    const lock = pendingRefresh ? null : lockedReadingFor(current)
+    const wasLocked = this.data.weightLocked
     const keepQR = this.data.qr && current && this.data.qr.weighingId === current.id && (
       (current.status === 'first_qr_ready' && this.data.qr.action === 'first')
       || (current.status === 'second_qr_ready' && this.data.qr.action === 'second')
     )
     const terminal = !!current && ['completed', 'terminated', 'expired', 'cancelled'].includes(current.status)
-    this.setData({
+    const next: Record<string, unknown> = {
       current: current || null,
       firstText: current ? weightText(current.firstWeightMilliTonne) : '',
       secondText: current ? weightText(current.secondWeightMilliTonne) : '',
@@ -284,9 +333,25 @@ Page({
       statusLabel: current ? statusText(current.status) : '',
       message: current ? current.message : '',
       qr: keepQR ? this.data.qr : null,
-      busy: terminal ? false : this.data.busy,
-    })
-    if (current && previous !== current.status) {
+      busy: terminal || refreshInvalidated ? false : (pendingRefresh ? true : this.data.busy),
+    }
+    if (!pendingRefresh) {
+      next.weightLocked = !!lock
+      next.weightText = lock ? lock.text : (this.data.liveWeightText || this.data.weightText)
+      if (lock) {
+        next.readingState = 'locked'
+        next.readingHint = lock.hint
+      }
+      else if (wasLocked) {
+        next.readingState = 'warn'
+        next.readingHint = '正在读取地磅'
+      }
+    }
+    this.setData(next)
+    if (!pendingRefresh && wasLocked && !lock) {
+      this.refreshWeight()
+    }
+    if (current && previousStatus !== current.status) {
       if (current.status === 'first_recorded') {
         wx.showToast({ title: '厂端首磅已确认，请装货后回磅', icon: 'none' })
       }
@@ -311,6 +376,7 @@ Page({
     this.currentTimer = setInterval(() => this.refreshCurrent(), 2000)
   },
   stopPolling() {
+    this.clearQRRefreshWait()
     if (this.weightTimer) {
       clearInterval(this.weightTimer)
       this.weightTimer = null
@@ -320,26 +386,48 @@ Page({
       this.currentTimer = null
     }
   },
+  clearQRRefreshWait() {
+    if (this.qrRefreshTimeout) {
+      clearTimeout(this.qrRefreshTimeout)
+      this.qrRefreshTimeout = null
+    }
+    this.qrRefreshPending = false
+    this.qrRefreshCommitting = false
+  },
   refreshWeight() {
     outboundWeight().then((reading) => {
       const stable = reading.available && reading.stable
       const waiting = reading.available && !reading.stable
-      this.setData({
+      const nextText = weightText(reading.weightMilliTonne)
+      const pending = this.qrRefreshPending === true
+      const next: Record<string, unknown> = {
         reading,
-        weightText: weightText(reading.weightMilliTonne),
+        liveWeightText: nextText,
         available: reading.available,
         mock: reading.mock,
         statusText: reading.message,
-        readingState: stable ? 'ok' : waiting ? 'warn' : 'bad',
-        readingHint: stable ? '读数稳定 · 可用' : waiting ? '读数可用 · 等待稳定' : (reading.message || '读数不可用'),
-      })
+      }
+      if (!this.data.weightLocked) {
+        next.weightText = nextText
+        next.readingState = stable ? 'ok' : waiting ? 'warn' : 'bad'
+        next.readingHint = pending
+          ? (stable ? '读数已稳定，正在刷新二维码' : '正在重新读取地磅，请保持停稳')
+          : (stable ? '读数稳定 · 可用' : waiting ? '读数可用 · 等待稳定' : (reading.message || '读数不可用'))
+      }
+      this.setData(next)
+      if (pending && !this.qrRefreshCommitting && reading.available && reading.stable) {
+        this.commitQRRefresh()
+      }
     }).catch(() => {
-      this.setData({
+      const next: Record<string, unknown> = {
         available: false,
-        readingState: 'bad',
-        readingHint: '地磅服务连接失败',
         statusText: '地磅服务连接失败',
-      })
+      }
+      if (!this.data.weightLocked) {
+        next.readingState = 'bad'
+        next.readingHint = '地磅服务连接失败'
+      }
+      this.setData(next)
     })
   },
   refreshCurrent() {
@@ -354,8 +442,10 @@ Page({
       wx.showToast({ title: '正在处理，请稍候', icon: 'none' })
       return
     }
-    if (!this.data.available || !this.data.reading) {
-      wx.showToast({ title: '地磅读数不可用', icon: 'none' })
+    const reading = this.data.reading
+    if (!this.data.available || !reading || !reading.stable) {
+      const hint = !reading ? '地磅读数不可用' : (!reading.available ? (reading.message || '地磅读数不可用') : '读数尚未稳定，请稍候')
+      wx.showToast({ title: hint, icon: 'none' })
       this.refreshWeight()
       return
     }
@@ -389,8 +479,10 @@ Page({
     if (this.data.busy || !current || current.status !== 'first_recorded') {
       return
     }
-    if (!this.data.available || !this.data.reading) {
-      wx.showToast({ title: '地磅读数不可用', icon: 'none' })
+    const reading = this.data.reading
+    if (!this.data.available || !reading || !reading.stable) {
+      const hint = !reading ? '地磅读数不可用' : (!reading.available ? (reading.message || '地磅读数不可用') : '读数尚未稳定，请稍候')
+      wx.showToast({ title: hint, icon: 'none' })
       this.refreshWeight()
       return
     }
@@ -451,6 +543,9 @@ Page({
     })
   },
   regenerateQR() {
+    this.startQRRefresh()
+  },
+  startQRRefresh() {
     const current = this.data.current
     if (this.data.busy) {
       return
@@ -458,20 +553,60 @@ Page({
     if (!current || (current.status !== 'first_qr_ready' && current.status !== 'second_qr_ready')) {
       return
     }
-    this.setData({ busy: true })
+    this.clearQRRefreshWait()
+    this.qrRefreshPending = true
+    this.qrRefreshTimeout = setTimeout(() => {
+      this.qrRefreshTimeout = null
+      if (this.qrRefreshCommitting) {
+        return
+      }
+      this.cancelQRRefresh('地磅读数未稳定，请重试')
+    }, 15000)
+    this.setData({
+      busy: true,
+      weightLocked: false,
+      weightText: this.data.liveWeightText || this.data.weightText,
+      readingState: 'warn',
+      readingHint: '正在重新读取地磅，请保持停稳',
+    })
+    this.refreshWeight()
+  },
+  commitQRRefresh() {
+    if (!this.qrRefreshPending || this.qrRefreshCommitting) {
+      return
+    }
+    const current = this.data.current
+    if (!current || (current.status !== 'first_qr_ready' && current.status !== 'second_qr_ready')) {
+      this.cancelQRRefresh('二维码状态已变化，请重新操作')
+      return
+    }
+    this.qrRefreshCommitting = true
+    if (this.qrRefreshTimeout) {
+      clearTimeout(this.qrRefreshTimeout)
+      this.qrRefreshTimeout = null
+    }
     const action = current.status === 'first_qr_ready' ? 'first' : 'second'
     const request = action === 'first' ? firstWeighQR : secondWeighQR
     request().then((value) => {
+      this.clearQRRefreshWait()
       this.setData({ busy: false })
       this.applyCurrent(value)
       if (value.qr) {
         this.setQr(value.qr, action, value.id)
-        wx.showToast({ title: '二维码已重新生成', icon: 'none' })
+        wx.showToast({ title: '二维码已刷新', icon: 'none' })
       }
     }).catch((error) => {
+      this.clearQRRefreshWait()
       this.setData({ busy: false })
+      this.applyCurrent(this.data.current)
       wx.showToast({ title: errorMessage(error), icon: 'none' })
     })
+  },
+  cancelQRRefresh(message: string) {
+    this.clearQRRefreshWait()
+    this.setData({ busy: false })
+    this.applyCurrent(this.data.current)
+    wx.showToast({ title: message, icon: 'none' })
   },
   finish() {
     const current = this.data.current
@@ -484,13 +619,14 @@ Page({
     if (this.data.tab !== 'history') {
       return
     }
-    this.setData({ tab: 'weigh' })
+    this.setData({ tab: 'weigh', busy: false })
     try {
       wx.pageScrollTo({ scrollTop: 0, duration: 0 })
     }
     catch {
       // 忽略。
     }
+    this.applyCurrent(this.data.current)
     this.startPolling()
   },
   changeTab(event: WechatMiniprogram.TouchEvent) {
@@ -498,7 +634,7 @@ Page({
     if (tab === this.data.tab) {
       return
     }
-    this.setData({ tab })
+    this.setData({ tab, busy: false })
     try {
       wx.pageScrollTo({ scrollTop: 0, duration: 0 })
     }
@@ -510,6 +646,7 @@ Page({
       this.loadHistory(true)
       return
     }
+    this.applyCurrent(this.data.current)
     this.startPolling()
   },
   historyRangeBounds(range?: HistoryRange) {

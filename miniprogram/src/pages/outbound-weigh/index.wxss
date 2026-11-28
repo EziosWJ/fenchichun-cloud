@@ -388,6 +388,17 @@
   background: var(--fc-error-soft);
 }
 
+.reading-status--locked {
+  color: var(--fc-brand);
+  background: var(--fc-brand-soft);
+}
+
+.reading-status__icon {
+  flex: none;
+  width: 30rpx;
+  height: 30rpx;
+}
+
 /* 卡片通用 */
 .action-card,
 .result-card,
@@ -654,37 +665,6 @@
   font-weight: 600;
   font-variant-numeric: tabular-nums;
   color: var(--fc-brand);
-}
-
-.qr-weight {
-  display: flex;
-  gap: 10rpx;
-  align-items: baseline;
-  justify-content: center;
-  padding: 14rpx 20rpx;
-  margin-top: 14rpx;
-  background: #fbf1e7;
-  border-radius: 18rpx;
-}
-
-.qr-weight__label {
-  font-size: 26rpx;
-  color: var(--fc-text-secondary);
-}
-
-.qr-weight__value {
-  font-size: 38rpx;
-  font-weight: 700;
-  font-variant-numeric: tabular-nums;
-  line-height: 1.2;
-  color: var(--fc-brand);
-}
-
-.qr-weight__unit {
-  margin-left: 4rpx;
-  font-size: 22rpx;
-  font-weight: 500;
-  color: var(--fc-text-secondary);
 }
 
 /* 完成结果 */

@@ -40,18 +40,19 @@
                   <view class="reading-icon__pan reading-icon__pan--left"></view>
                   <view class="reading-icon__pan reading-icon__pan--right"></view>
                 </view>
-                <text class="reading-label">当前地磅读数</text>
+                <text class="reading-label">{{weightLocked ? '地磅读数已锁定' : '当前地磅读数'}}</text>
               </view>
               <text wx:if="{{mock}}" class="mock-badge">模拟</text>
             </view>
             <view class="reading-value-row">
-              <text class="reading-value">{{reading ? weightText : '--.---'}}</text>
+              <text class="reading-value">{{weightLocked || reading ? weightText : '--.---'}}</text>
               <text class="reading-unit">吨</text>
             </view>
             <view class="reading-status-row">
               <view class="reading-status-line" aria-hidden="true"></view>
               <view class="reading-status reading-status--{{readingState}}" aria-role="status">
-                <t-icon wx:if="{{readingState === 'ok'}}" name="check-circle-filled" size="30rpx" color="#27865b" aria-hidden="true" />
+                <image wx:if="{{readingState === 'locked'}}" class="reading-status__icon" src="/assets/history/status-lock.png" mode="aspectFit" aria-hidden="true" />
+                <t-icon wx:elif="{{readingState === 'ok'}}" name="check-circle-filled" size="30rpx" color="#27865b" aria-hidden="true" />
                 <t-icon wx:elif="{{readingState === 'warn'}}" name="time" size="30rpx" color="#8a5a12" aria-hidden="true" />
                 <t-icon wx:else name="error-circle-filled" size="30rpx" color="#b33f35" aria-hidden="true" />
                 <text>{{readingHint}}</text>
@@ -94,10 +95,6 @@
               <text>有效期至</text>
               <text class="qr-expiry__value">{{qrExpireText}}</text>
             </view>
-            <view class="qr-weight">
-              <text class="qr-weight__label">{{qr.action === 'first' ? '首磅皮重' : '回磅毛重'}}</text>
-              <text class="qr-weight__value">{{qr.action === 'first' ? (firstText || '—') : (secondText || '—')}}<text class="qr-weight__unit">吨</text></text>
-            </view>
           </view>
 
           <view wx:elif="{{current && (current.status === 'first_scanning' || current.status === 'second_scanning')}}" class="action-card processing-card">
@@ -112,16 +109,13 @@
               <t-icon name="check-circle-filled" size="44rpx" color="#27865b" aria-hidden="true" />
               <text class="pending-title">首磅已确认</text>
             </view>
-            <view class="qr-weight">
-              <text class="qr-weight__label">首磅皮重</text>
-              <text class="qr-weight__value">{{firstText || '—'}}<text class="qr-weight__unit">吨</text></text>
-            </view>
+            <view class="action-hint">请装货后回磅，上方显示当前地磅读数。</view>
             <button class="primary-btn {{busy ? 'primary-btn--disabled' : ''}}" bindtap="doSecond">回磅</button>
           </view>
 
           <view wx:elif="{{current && (current.status === 'first_qr_ready' || current.status === 'second_qr_ready')}}" class="action-card">
             <view wx:if="{{message}}" class="result-message">{{message}}</view>
-            <view class="primary-btn {{busy ? 'primary-btn--disabled' : ''}}" bindtap="regenerateQR">{{current.status === 'first_qr_ready' ? '生成首磅二维码' : '生成回磅二维码'}}</view>
+            <view class="primary-btn {{busy ? 'primary-btn--disabled' : ''}}" bindtap="regenerateQR">{{busy ? '正在重新读取地磅…' : (current.status === 'first_qr_ready' ? '生成首磅二维码' : '生成回磅二维码')}}</view>
           </view>
 
           <view wx:elif="{{current && (current.status === 'terminated' || current.status === 'expired' || current.status === 'cancelled')}}" class="action-card">
