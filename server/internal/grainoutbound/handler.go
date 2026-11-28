@@ -62,6 +62,10 @@ func (h *Handler) Register(router gin.IRouter) {
 	group.POST("/weighings/first-qr", h.firstQR)
 	group.POST("/weighings/second-qr", h.secondQR)
 	group.DELETE("/weighings/pending", h.cancel)
+	group.GET("/weighings/:id/print-status", h.printStatus)
+	group.POST("/weighings/:id/print", h.startInitialPrint)
+	group.POST("/weighings/:id/print-scan", h.startPrintScan)
+	group.POST("/weighings/:id/print-verify", h.verifyPrint)
 }
 
 // RegisterFactory exposes the token-authenticated handoff endpoints used by the
@@ -73,6 +77,12 @@ func (h *Handler) RegisterFactory(router gin.IRouter) {
 	group.POST("/result", h.result)
 	group.POST("/terminate", h.terminate)
 	group.GET("/qr", h.qrImage)
+
+	prints := router.Group("/grain-outbound/factory")
+	prints.POST("/mobile-prints/claim", h.claimPrintCommands)
+	prints.POST("/mobile-prints/scan", h.claimPrintScan)
+	prints.POST("/mobile-prints/:id/result", h.printCommandResult)
+	prints.POST("/print-attempts", h.syncPrintAttempt)
 }
 
 // qrImage renders the same one-time handoff value as a PNG so the mini program

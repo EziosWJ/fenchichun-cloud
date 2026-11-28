@@ -123,6 +123,23 @@ func (r *Repository) Current(ctx context.Context, userID int64) (*Weighing, erro
 	return &row, nil
 }
 
+func (r *Repository) WeighingByID(ctx context.Context, userID, id int64) (*Weighing, error) {
+	var row Weighing
+	err := r.db.WithContext(ctx).Table("grain_outbound_weighing").
+		Select(`id, user_id, status, source, plate, party_code, site_code, scale_code,
+			first_weight_milli_tonne, first_at, COALESCE(second_weight_milli_tonne, 0) AS second_weight_milli_tonne,
+			second_at, net_milli_tonne, COALESCE(ticket_no, '') AS ticket_no,
+			COALESCE(factory_task_no, '') AS factory_task_no, capture_status, message, expires_at`).
+		Where("id = ? AND user_id = ?", id, userID).Take(&row).Error
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	return &row, nil
+}
+
 func (r *Repository) History(ctx context.Context, userID int64, q HistoryQuery) (HistoryPage, error) {
 	const historyTime = "COALESCE(second_at, first_at, created_at)"
 	if q.Page < 1 {

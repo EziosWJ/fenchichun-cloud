@@ -34,6 +34,7 @@ type HandoffQR struct {
 // values and the official ticket number.
 type Weighing struct {
 	ID                     int64      `json:"id"`
+	UserID                 int64      `json:"-"`
 	Status                 string     `json:"status"`
 	Source                 string     `json:"source"`
 	Plate                  string     `json:"plate"`

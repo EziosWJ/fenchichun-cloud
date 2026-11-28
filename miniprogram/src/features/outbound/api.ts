@@ -126,3 +126,94 @@ export function outboundHistory(query: HistoryQuery = {}) {
     .join('&')
   return request<HistoryPage>({ path: `/grain-outbound/weighings${params ? `?${params}` : ''}` })
 }
+
+export interface OutboundPrintAttempt {
+  id: number
+  attemptNo: number
+  intent: 'initial' | 'reprint' | string
+  status: 'initiated' | 'printed' | 'failed' | 'unknown' | string
+  source: 'factory' | 'mobile' | string
+  actorName: string
+  reason: string
+  scanVerified: boolean
+  initiatedAt: string
+  resolvedAt?: string
+  resolutionSource: string
+  closeReason: string
+}
+
+export interface OutboundPrintCommand {
+  id: number
+  status: string
+  origin: string
+  action: string
+  reason: string
+  scanVerified: boolean
+  factoryAttemptId?: number
+  factoryIntent?: string
+  message: string
+  createdAt: string
+  updatedAt: string
+}
+
+export interface OutboundPrintScan {
+  id: number
+  expiresAt: string
+}
+
+export interface OutboundPrintStatus {
+  ticketNo: string
+  siteCode: string
+  plate: string
+  netMilliTonne: number
+  printStatus: 'unprinted' | 'printing' | 'printed' | 'failed' | 'unknown' | string
+  reprintCount: number
+  maxReprints: number
+  canPrint: boolean
+  scanRequired: boolean
+  retryAsReprint: boolean
+  needsVerify: boolean
+  lastAttempt?: OutboundPrintAttempt
+  attempts: OutboundPrintAttempt[]
+  activeCommand?: OutboundPrintCommand
+  pendingScan?: OutboundPrintScan
+}
+
+export interface OutboundPrintScanResult {
+  value: string
+  expiresAt: string
+}
+
+export function outboundPrintStatus(weighingID: number, context: 'completion' | 'history') {
+  return request<OutboundPrintStatus>({
+    path: `/grain-outbound/weighings/${weighingID}/print-status?context=${context}`,
+  })
+}
+
+export function startOutboundPrint(weighingID: number) {
+  return request<OutboundPrintCommand>({
+    path: `/grain-outbound/weighings/${weighingID}/print`,
+    method: 'POST',
+    data: {},
+  })
+}
+
+export function createOutboundPrintScan(weighingID: number, reason: string) {
+  return request<OutboundPrintScanResult>({
+    path: `/grain-outbound/weighings/${weighingID}/print-scan`,
+    method: 'POST',
+    data: { reason },
+  })
+}
+
+export function verifyOutboundPrint(weighingID: number, result: 'printed' | 'not_printed') {
+  return request<OutboundPrintCommand>({
+    path: `/grain-outbound/weighings/${weighingID}/print-verify`,
+    method: 'POST',
+    data: { result },
+  })
+}
+
+export function printQrImage(value: string) {
+  return handoffQrImage(value)
+}

@@ -31,7 +31,7 @@
         <loading-state wx:if="{{loading}}" text="正在加载出库信息" />
         <error-state wx:elif="{{error}}" text="{{error}}" bind:retry="load" />
         <block wx:else>
-          <view class="reading-card">
+          <view wx:if="{{!(current && current.status === 'completed')}}" class="reading-card">
             <view class="reading-head">
               <view class="reading-title">
                 <view class="reading-icon" aria-hidden="true">
@@ -66,12 +66,35 @@
               <t-icon name="check-circle-filled" size="48rpx" color="#27865b" aria-hidden="true" />
               <text class="result-title">厂端已出单</text>
             </view>
+            <view class="result-net-label">净重</view>
             <view class="result-net">{{netText}}<text class="result-unit">吨</text></view>
             <view class="result-row"><text class="result-k">正式磅单号</text><text class="result-v">{{ticketText || '待同步'}}</text></view>
             <view class="result-row"><text class="result-k">{{current.source === 'mobile_direct' ? '首磅毛重' : '首磅皮重'}}</text><text class="result-v">{{firstText}} 吨</text></view>
             <view class="result-row"><text class="result-k">{{current.source === 'mobile_direct' ? '回磅皮重' : '回磅毛重'}}</text><text class="result-v">{{secondText}} 吨</text></view>
             <view wx:if="{{message}}" class="result-message">{{message}}</view>
-            <button class="primary-btn" bindtap="finish">完成，继续下一车</button>
+            <view class="result-print">
+              <view class="result-print__head">
+                <text class="result-print__label">打印状态</text>
+                <text class="result-print__state">{{printStatusLabel}}</text>
+              </view>
+              <view wx:if="{{printStatusError}}" class="result-print__error">
+                {{printStatusError}}
+                <text class="result-print__retry" bindtap="retryPrintStatus">重试</text>
+              </view>
+              <view wx:elif="{{printStatusLoading}}" class="result-print__hint">正在查询厂端打印状态…</view>
+              <view wx:else class="result-print__hint">
+                <text wx:if="{{printStatus && printStatus.activeCommand}}">打印任务已提交，正在等待厂端打印机…</text>
+                <text wx:elif="{{printStatus && printStatus.needsVerify}}">上次打印结果未知，请先核实是否出纸。</text>
+                <text wx:elif="{{printStatus && printStatus.canPrint}}">{{printStatus.scanRequired ? '补打需在厂端扫码，点击查看详情。' : '可打印本次过磅单。'}}</text>
+                <text wx:elif="{{printStatus && printStatus.reprintCount >= printStatus.maxReprints}}">补打次数已达上限，最多补打2次。</text>
+                <text wx:elif="{{printStatus && printStatus.printStatus === 'printed'}}">本单已打印，可在打印记录中查看。</text>
+                <text wx:elif="{{printStatus}}">当前暂不可打印。</text>
+              </view>
+              <view class="result-print__action" bindtap="openCompletionPrintDialog" aria-role="button">
+                <text>{{printActionLabel}}</text>
+              </view>
+            </view>
+            <button class="primary-btn" bindtap="finish">完成</button>
           </view>
 
           <view wx:elif="{{qr}}" class="qr-card">
@@ -224,7 +247,7 @@
                         <text class="record-unit">吨</text>
                       </view>
                     </view>
-                    <view wx:if="{{item.printable}}" class="print-btn" catchtap="printTicket" data-id="{{item.id}}" aria-role="button" aria-label="打印单据">
+                    <view wx:if="{{item.printable}}" class="print-btn" catchtap="openHistoryPrintDialog" data-id="{{item.id}}" aria-role="button" aria-label="打印单据">
                       <image class="print-icon" src="/assets/history/print.png" mode="aspectFit" aria-hidden="true" />
                       <text>打印单据</text>
                     </view>
@@ -273,6 +296,94 @@
     <view class="nav-exit" bindtap="exit" aria-role="button">
       <t-icon name="logout" size="38rpx" color="#777674" aria-hidden="true" />
       <text>退出登录</text>
+    </view>
+  </view>
+
+  <view wx:if="{{printDialogOpen}}" class="print-mask" bindtap="closePrintDialog">
+    <view class="print-sheet" catchtap="stopTap">
+      <view class="print-sheet__head">
+        <view class="print-sheet__heading">
+          <view class="print-sheet__title">{{printDialogContext === 'history' ? '打印 / 补打单据' : '打印过磅单'}}</view>
+          <view class="print-sheet__sub">{{printStatus ? printStatus.ticketNo : '正在读取单据…'}}</view>
+        </view>
+        <view class="print-sheet__close" bindtap="closePrintDialog" aria-role="button" aria-label="关闭">×</view>
+      </view>
+      <scroll-view scroll-y class="print-sheet__body">
+        <view wx:if="{{printStatusLoading && !printStatus}}" class="print-state">正在查询厂端打印状态…</view>
+        <view wx:elif="{{printStatusError}}" class="print-error">
+          <text>{{printStatusError}}</text>
+          <text class="print-link" bindtap="retryPrintStatus">重试</text>
+        </view>
+        <block wx:else>
+          <view class="print-summary">
+            <view class="print-summary__item">
+              <text class="print-summary__label">净重</text>
+              <text class="print-summary__value">{{printNetText}}<text class="print-summary__unit">吨</text></text>
+            </view>
+            <view class="print-summary__item">
+              <text class="print-summary__label">打印状态</text>
+              <text class="print-summary__state">{{printStatusLabel}}</text>
+            </view>
+          </view>
+          <view wx:if="{{printNotice}}" class="print-notice">{{printNotice}}</view>
+          <view wx:if="{{printStatus && printStatus.activeCommand}}" class="print-progress">
+            <t-loading theme="circular" size="34rpx" />
+            <view class="print-progress__text">打印任务已提交，正在等待厂端打印机…</view>
+          </view>
+          <view wx:elif="{{printStatus && printStatus.needsVerify}}" class="print-panel">
+            <view class="print-section-title">核实上次打印结果</view>
+            <view class="print-hint">请检查打印机出口是否出纸。未出纸时才能继续补打。</view>
+            <view class="print-verify-actions">
+              <view class="print-dialog-btn print-dialog-btn--outline {{printSubmitting ? 'is-disabled' : ''}}" bindtap="verifyPrintResult" data-result="printed">已出纸</view>
+              <view class="print-dialog-btn print-dialog-btn--danger {{printSubmitting ? 'is-disabled' : ''}}" bindtap="verifyPrintResult" data-result="not_printed">未出纸</view>
+            </view>
+          </view>
+          <view wx:elif="{{printStatus && printQrValue}}" class="print-panel">
+            <view class="print-section-title">请将二维码对准厂端扫码器</view>
+            <view class="print-qr-frame">
+              <image wx:if="{{printQrImage}}" class="print-qr-image" src="{{printQrImage}}" mode="aspectFit" />
+              <t-loading wx:else theme="circular" size="38rpx" />
+            </view>
+            <view class="print-hint">{{printQrHint}}</view>
+          </view>
+          <view wx:elif="{{printStatus && printStatus.canPrint}}" class="print-panel">
+            <block wx:if="{{printStatus.scanRequired}}">
+              <view class="print-section-title">{{printScanTitle}}</view>
+              <input class="print-reason" value="{{printReason}}" bindinput="printReasonInput" placeholder="{{printScanPlaceholder}}" maxlength="200" />
+              <view class="print-dialog-btn print-dialog-btn--primary {{printSubmitting ? 'is-disabled' : ''}}" bindtap="generatePrintScan">{{printSubmitting ? '正在生成…' : printScanButton}}</view>
+              <view class="print-hint">历史记录打印必须到厂端扫码，扫码成功后才出纸。</view>
+            </block>
+            <block wx:else>
+              <view class="print-section-title">首次打印</view>
+              <view class="print-hint">确认后将通过云端通知厂端打印机出纸。</view>
+              <view class="print-dialog-btn print-dialog-btn--primary {{printSubmitting ? 'is-disabled' : ''}}" bindtap="startInitialPrint">{{printSubmitting ? '正在提交…' : '打印过磅单'}}</view>
+            </block>
+          </view>
+          <view wx:elif="{{printStatus}}" class="print-panel">
+            <view class="print-hint">
+              <text wx:if="{{printStatus.reprintCount >= printStatus.maxReprints}}">补打次数已达上限，最多补打2次。</text>
+              <text wx:elif="{{printStatus.printStatus === 'printed'}}">本单已打印。</text>
+              <text wx:else>当前暂不可打印。</text>
+            </view>
+          </view>
+          <view wx:if="{{printAttemptsView.length}}" class="print-history">
+            <view class="print-section-title">打印记录</view>
+            <view wx:for="{{printAttemptsView}}" wx:key="id" class="print-history__row">
+              <view class="print-history__main">
+                <text class="print-history__source">{{item.sourceLabel}}</text>
+                <text class="print-history__intent">{{item.intentLabel}}</text>
+                <text class="print-history__status print-history__status--{{item.statusKind}}">{{item.statusLabel}}</text>
+              </view>
+              <view wx:if="{{item.actorText || item.scanLabel}}" class="print-history__meta">
+                <text wx:if="{{item.actorText}}">{{item.actorText}}</text>
+                <text wx:if="{{item.scanLabel}}" class="print-history__scan">{{item.scanLabel}}</text>
+              </view>
+              <text class="print-history__time">{{item.timeText}}</text>
+              <text wx:if="{{item.reason}}" class="print-history__reason">{{item.reason}}</text>
+            </view>
+          </view>
+        </block>
+      </scroll-view>
     </view>
   </view>
 </view>
